@@ -38,8 +38,9 @@ export function GameRoom({ roomId, role }: GameRoomProps) {
   }
 
   if (!snapshot) {
-    if (error === 'WRONG_PASSWORD')
+    if (error === 'WRONG_PASSWORD') {
       return <PasswordPrompt onSubmit={(pw) => room.join(pw, role)} />;
+    }
     if (error) {
       return (
         <Notice title={ROOM_ERRORS[error]}>

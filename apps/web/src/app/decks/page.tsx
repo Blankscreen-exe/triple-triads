@@ -1,23 +1,31 @@
-import type { DeckViolation } from '@triple-triad/engine';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { Suspense } from 'react';
 import { CardLine } from '@/components/cards/card-line';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClasses } from '@/components/ui/button';
+import { ConfirmButton } from '@/components/ui/confirm-button';
 import { Window } from '@/components/ui/window';
 import { getDatabase } from '@/server/db';
 import { listDecks } from '@/server/decks/decks';
 import { requireUser } from '@/server/web/current-user';
-import { makeDeckActive } from './actions';
+import { deleteDeckAction, makeDeckActive } from './actions';
+import { describeViolation, violationKey } from './describe-violation';
+import { NewDeckForm } from './new-deck-form';
 
 export const metadata: Metadata = { title: 'Decks' };
 
 export default function DecksPage() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="font-display text-2xl font-bold tracking-wider text-cream">Your decks</h1>
-      <p className="mt-1 text-sm text-slate-300/80">
-        Your active deck is the one you bring to a game.
-      </p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-wider text-cream">Your decks</h1>
+          <p className="mt-1 text-sm text-slate-300/80">
+            Your active deck is the one you bring to a game.
+          </p>
+        </div>
+        <NewDeckForm />
+      </div>
       <Suspense fallback={<p className="mt-6 text-slate-300">Loading decks…</p>}>
         <DeckList />
       </Suspense>
@@ -36,26 +44,40 @@ async function DeckList() {
   return (
     <div className="mt-6 grid gap-6 lg:grid-cols-2">
       {decks.map((deck) => (
-        <Window key={deck.id} className="p-5">
-          <div className="flex items-center justify-between gap-3">
+        <Window key={deck.id} className="p-5" aria-label={deck.name}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="font-display text-lg font-bold tracking-wider text-cream">
                 {deck.name}
               </h2>
               <p className="text-xs text-slate-300/70">{deck.size} cards</p>
             </div>
-            {deck.isActive ? (
-              <span className="rounded-sm bg-action px-3 py-1 text-sm font-semibold ring-1 ring-white/60">
-                Active
-              </span>
-            ) : (
-              <form action={makeDeckActive}>
+            <div className="flex items-center gap-2">
+              {deck.isActive ? (
+                <span className="rounded-sm bg-action px-3 py-1 text-sm font-semibold ring-1 ring-white/60">
+                  Active
+                </span>
+              ) : (
+                <form action={makeDeckActive}>
+                  <input type="hidden" name="deckId" value={deck.id} />
+                  <Button type="submit" variant="secondary" className="!py-1 text-sm">
+                    Make active
+                  </Button>
+                </form>
+              )}
+              <Link
+                href={`/decks/${deck.id}`}
+                className={buttonClasses('secondary', '!py-1 text-sm')}
+              >
+                Edit
+              </Link>
+              <form action={deleteDeckAction}>
                 <input type="hidden" name="deckId" value={deck.id} />
-                <Button type="submit" variant="secondary" className="!py-1 text-sm">
-                  Make active
-                </Button>
+                <ConfirmButton variant="quiet" confirmation={`Delete the deck "${deck.name}"?`}>
+                  Delete
+                </ConfirmButton>
               </form>
-            )}
+            </div>
           </div>
 
           {deck.violations.length > 0 && (
@@ -83,26 +105,4 @@ async function DeckList() {
       ))}
     </div>
   );
-}
-
-function violationKey(violation: DeckViolation): string {
-  switch (violation.code) {
-    case 'WRONG_SIZE':
-      return violation.code;
-    case 'TOO_MANY_COPIES':
-      return `${violation.code}-${violation.key}`;
-    case 'STAR_CAP_EXCEEDED':
-      return `${violation.code}-${String(violation.stars)}`;
-  }
-}
-
-function describeViolation(violation: DeckViolation): string {
-  switch (violation.code) {
-    case 'WRONG_SIZE':
-      return `A deck needs exactly ${String(violation.expected)} cards (this one has ${String(violation.actual)}).`;
-    case 'TOO_MANY_COPIES':
-      return `At most ${String(violation.max)} cards with the same stats (found ${String(violation.count)}).`;
-    case 'STAR_CAP_EXCEEDED':
-      return `At most ${String(violation.max)} ${String(violation.stars)}-star cards (found ${String(violation.count)}).`;
-  }
 }

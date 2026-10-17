@@ -27,8 +27,9 @@ export async function createCustomCard(
   art: Buffer | null,
   scoring: ScoringConfig = DEFAULT_SCORING,
 ): Promise<CreateCardResult> {
-  if (!rankCard(input.stats, input.element, scoring).allowed)
+  if (!rankCard(input.stats, input.element, scoring).allowed) {
     return { ok: false, error: 'TOO_STRONG' };
+  }
 
   const owned = db
     .select({ total: count() })

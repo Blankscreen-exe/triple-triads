@@ -4,9 +4,9 @@ A self-hosted, two-player, browser-based version of **Triple Triad**, the card g
 Final Fantasy VIII, with player accounts, a Yu-Gi-Oh-style card collection, a custom card maker and
 uploadable art packs.
 
-> **Status:** in development. Working today: accounts, trunks and starter decks, the card renderer,
-> and **live two-player games**: a lobby with rooms, every FF8 rule, turn timers, spectators,
-> reconnects and rematches. Card maker, deck editor, ratings and the admin panel are next — see
+> **Status:** in development. Working today: accounts, trunks and starter decks, live two-player
+> games (lobby, every FF8 rule, turn timers, spectators, reconnects, rematches), a card maker with
+> art uploads and a deck editor. Ratings, the admin panel and custom asset packs are next — see
 > [Roadmap](#roadmap).
 
 The full product specification lives in [`design/SPEC.md`](design/SPEC.md).
@@ -104,7 +104,7 @@ See [`apps/web/.env.example`](apps/web/.env.example):
 | `PORT`      | `3000`        | HTTP and WebSocket port.                                     |
 | `LOG_LEVEL` | `info`        | `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent` |
 | `NODE_ENV`  | `development` | `development`, `production` or `test`.                       |
-| `DATA_DIR`  | `./data`      | Where the SQLite database (and later, uploads) is stored.    |
+| `DATA_DIR`  | `./data`      | Where the SQLite database and uploaded files are stored.     |
 
 The database is created and migrated on first start, and the default cards and starter decks are
 inserted. **The first account to sign up becomes the admin.**
@@ -140,7 +140,7 @@ Run from the repository root; each runs across all workspace packages.
 3. ~~Accounts, trunk and starter decks (SQLite)~~
 4. ~~Card renderer and default asset pack~~
 5. ~~Lobby and live play: rooms, coin flip, turn timer, reconnects, rematch~~
-6. Card maker and deck editor
+6. ~~Card maker and deck editor~~
 7. Rating, tiers and streaks
 8. Admin panel
 9. Custom asset pack uploads, Docker image and VPS deployment guide

@@ -25,8 +25,9 @@ describe('createDeck', () => {
   it('limits how many decks a player can have', async () => {
     const db = createTestDatabase();
     const user = await createTestUser(db);
-    for (let i = listDecks(db, user.id).length; i < MAX_DECKS_PER_PLAYER; i++)
+    for (let i = listDecks(db, user.id).length; i < MAX_DECKS_PER_PLAYER; i++) {
       createDeck(db, user.id, `D${String(i)}`);
+    }
 
     expect(createDeck(db, user.id, 'One too many')).toEqual({ ok: false, error: 'DECK_LIMIT' });
   });
