@@ -1,6 +1,7 @@
 'use client';
 
 import type { RoomSnapshot, VoteChoice } from '@/lib/realtime/protocol';
+import { formatStreak, tierFor } from '@/lib/rating';
 import { Button } from '../ui/button';
 import { Window } from '../ui/window';
 import { Countdown } from './countdown';
@@ -40,6 +41,7 @@ export function ResultPanel({ room, clockOffset, onVote }: ResultPanelProps) {
       <p className="mt-1 text-sm text-slate-300/80">
         Red {score} Blue{game.forfeit && ' · by forfeit'}
       </p>
+      {you && game.outcome && <RatingChange outcome={game.outcome[you]} />}
 
       {room.rematch && room.you.role === 'player' && (
         <div className="mt-4 space-y-3">
@@ -79,5 +81,24 @@ export function ResultPanel({ room, clockOffset, onVote }: ResultPanelProps) {
         <p className="mt-3 text-sm text-slate-300/80">Your opponent left. Waiting for a new one…</p>
       )}
     </Window>
+  );
+}
+
+function RatingChange({
+  outcome,
+}: {
+  readonly outcome: { ratingBefore: number; ratingAfter: number; streak: number };
+}) {
+  const change = outcome.ratingAfter - outcome.ratingBefore;
+  const sign = change > 0 ? '+' : change < 0 ? '−' : '±';
+  return (
+    <p className="mt-2 text-sm text-slate-100">
+      Rating {outcome.ratingAfter}{' '}
+      <span className={change > 0 ? 'text-status-open' : change < 0 ? 'text-score-red' : ''}>
+        ({sign}
+        {Math.abs(change)})
+      </span>{' '}
+      · {tierFor(outcome.ratingAfter).label} · Streak {formatStreak(outcome.streak)}
+    </p>
   );
 }

@@ -6,8 +6,8 @@ uploadable art packs.
 
 > **Status:** in development. Working today: accounts, trunks and starter decks, live two-player
 > games (lobby, every FF8 rule, turn timers, spectators, reconnects, rematches), a card maker with
-> art uploads and a deck editor. Ratings, the admin panel and custom asset packs are next — see
-> [Roadmap](#roadmap).
+> art uploads, a deck editor, and Elo ratings with tiers, streaks, match history and rankings. The
+> admin panel and custom asset packs are next — see [Roadmap](#roadmap).
 
 The full product specification lives in [`design/SPEC.md`](design/SPEC.md).
 
@@ -29,7 +29,9 @@ The full product specification lives in [`design/SPEC.md`](design/SPEC.md).
   only as SHA-256 hashes, constant-time responses for unknown users, and login throttling.
 - **Integrity in the database, not just the code**: foreign keys, CHECK constraints for every enum
   and stat range, and a partial unique index allowing one default starter deck. Migrations are
-  generated SQL, committed, and applied automatically at startup.
+  generated SQL, committed, applied automatically at startup, and covered by an upgrade test that
+  migrates a populated database and checks no rows are lost (SQLite table rebuilds can silently
+  cascade-delete).
 - **Tested at every level**: engine unit tests, data-layer tests against a real in-memory SQLite
   with the real migrations (no mocks), and Playwright end-to-end tests against the production
   build.
@@ -141,6 +143,6 @@ Run from the repository root; each runs across all workspace packages.
 4. ~~Card renderer and default asset pack~~
 5. ~~Lobby and live play: rooms, coin flip, turn timer, reconnects, rematch~~
 6. ~~Card maker and deck editor~~
-7. Rating, tiers and streaks
+7. ~~Rating, tiers and streaks~~
 8. Admin panel
 9. Custom asset pack uploads, Docker image and VPS deployment guide

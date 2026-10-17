@@ -70,7 +70,14 @@ test('two players play a full game and agree to a rematch', async ({ browser }) 
     await expect(
       page.getByRole('heading', { name: new RegExp(`^(${outcomes.join('|')})$`) }),
     ).toBeVisible();
+    // The game was recorded and the rating change is shown.
+    await expect(page.getByText(/^Rating \d+/)).toBeVisible();
   }
+
+  await alice.page.goto('/rankings');
+  await expect(alice.page.getByRole('cell', { name: alice.name, exact: true })).toBeVisible();
+  await expect(alice.page.getByRole('cell', { name: bob.name, exact: true })).toBeVisible();
+  await alice.page.goBack();
 
   await alice.page.getByRole('button', { name: 'Play again' }).click();
   await expect(alice.page.getByText('Waiting for your opponent…')).toBeVisible();

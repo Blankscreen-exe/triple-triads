@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { buttonClasses } from '@/components/ui/button';
+import { PlayerRecord } from '@/components/player-record';
 import { Window } from '@/components/ui/window';
 import { getDatabase } from '@/server/db';
 import { listDecks } from '@/server/decks/decks';
+import { getPlayerStats, listRecentMatches } from '@/server/matches/matches';
 import { getCurrentUser } from '@/server/web/current-user';
 
 export default function HomePage() {
@@ -38,7 +40,9 @@ async function Welcome() {
     );
   }
 
-  const activeDeck = listDecks(getDatabase(), user.id).find((deck) => deck.isActive);
+  const db = getDatabase();
+  const activeDeck = listDecks(db, user.id).find((deck) => deck.isActive);
+  const stats = getPlayerStats(db, user.id);
   return (
     <div className="mt-6 space-y-4">
       <p className="text-slate-100">
@@ -58,6 +62,7 @@ async function Welcome() {
           Your decks
         </Link>
       </div>
+      {stats && <PlayerRecord stats={stats} recent={listRecentMatches(db, user.id, 5)} />}
     </div>
   );
 }
