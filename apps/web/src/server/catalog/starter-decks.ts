@@ -147,8 +147,9 @@ export function deleteStarterDeck(db: AppDatabase, deckId: string): StarterDeckR
         .where(ne(starterDecks.id, deckId))
         .orderBy(asc(starterDecks.sortOrder))
         .get();
-      if (next)
-        {tx.update(starterDecks).set({ isDefault: true }).where(eq(starterDecks.id, next.id)).run();}
+      if (next) {
+        tx.update(starterDecks).set({ isDefault: true }).where(eq(starterDecks.id, next.id)).run();
+      }
     }
   });
   return { ok: true, data: null };
