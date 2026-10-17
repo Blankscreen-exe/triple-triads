@@ -82,6 +82,7 @@ function gameSnapshot(room: Room, game: ActiveGame, viewerColor: PlayerColor | n
         }
       : null,
     forfeit: game.forfeit,
+    outcome: game.outcome,
   };
 }
 

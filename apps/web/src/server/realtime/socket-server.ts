@@ -23,7 +23,7 @@ import { validateSessionToken, type SessionUser } from '../auth/sessions';
 import type { AppDatabase } from '../db/client';
 import type { Logger } from '../logger';
 import { createDatabaseDeckProvider } from '../rooms/game-decks';
-import type { FinishedGame } from '../rooms/model';
+import { recordMatch } from '../matches/matches';
 import { RoomManager } from '../rooms/room-manager';
 
 export const SOCKET_PATH = '/socket.io';
@@ -49,7 +49,6 @@ type GameSocket = Socket<
 export interface SocketServerOptions {
   readonly db: AppDatabase;
   readonly logger: Logger;
-  readonly onGameFinished?: (game: FinishedGame) => void;
 }
 
 export interface RealtimeServer {
@@ -60,7 +59,7 @@ export interface RealtimeServer {
 
 export function createSocketServer(
   httpServer: HttpServer,
-  { db, logger, onGameFinished }: SocketServerOptions,
+  { db, logger }: SocketServerOptions,
 ): RealtimeServer {
   const io: GameServer = new Server(httpServer, {
     path: SOCKET_PATH,
@@ -80,7 +79,13 @@ export function createSocketServer(
         { roomId: game.roomId, result: game.result, forfeit: game.forfeit },
         'game finished',
       );
-      onGameFinished?.(game);
+      try {
+        return recordMatch(db, game);
+      } catch (error) {
+        // A recording failure must not break the game for the players; it is logged instead.
+        logger.error({ err: error, roomId: game.roomId }, 'failed to record a finished game');
+        return undefined;
+      }
     },
     events: {
       roomChanged: (roomId) => {

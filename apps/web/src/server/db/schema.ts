@@ -45,9 +45,56 @@ export const users = sqliteTable(
     activeDeckId: text('active_deck_id').references((): AnySQLiteColumn => decks.id, {
       onDelete: 'set null',
     }),
+    /** Elo rating (design/SPEC.md, section 10). */
+    rating: integer('rating').notNull().default(1000),
+    wins: integer('wins').notNull().default(0),
+    losses: integer('losses').notNull().default(0),
+    draws: integer('draws').notNull().default(0),
+    /** Positive for consecutive wins, negative for consecutive losses. Draws leave it unchanged. */
+    streak: integer('streak').notNull().default(0),
     createdAt: createdAt(),
   },
-  (table) => [check('users_role_valid', sql`${table.role} in ${sqlList(USER_ROLES)}`)],
+  (table) => [
+    check('users_role_valid', sql`${table.role} in ${sqlList(USER_ROLES)}`),
+    index('users_rating_idx').on(table.rating),
+  ],
+);
+
+export const MATCH_WINNERS = ['red', 'blue'] as const;
+
+/** One finished game, with the ratings before and after for each player. */
+export const matches = sqliteTable(
+  'matches',
+  {
+    id: text('id').primaryKey(),
+    /** Players are kept as null if their account is later deleted, so history survives. */
+    redUserId: text('red_user_id').references((): AnySQLiteColumn => users.id, {
+      onDelete: 'set null',
+    }),
+    blueUserId: text('blue_user_id').references((): AnySQLiteColumn => users.id, {
+      onDelete: 'set null',
+    }),
+    /** Null for a draw. */
+    winner: text('winner', { enum: MATCH_WINNERS }),
+    redScore: integer('red_score').notNull(),
+    blueScore: integer('blue_score').notNull(),
+    forfeit: integer('forfeit', { mode: 'boolean' }).notNull(),
+    redRatingBefore: integer('red_rating_before').notNull(),
+    redRatingAfter: integer('red_rating_after').notNull(),
+    blueRatingBefore: integer('blue_rating_before').notNull(),
+    blueRatingAfter: integer('blue_rating_after').notNull(),
+    playedAt: integer('played_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [
+    check(
+      'matches_winner_valid',
+      sql`${table.winner} is null or ${table.winner} in ${sqlList(MATCH_WINNERS)}`,
+    ),
+    index('matches_red_user_idx').on(table.redUserId, table.playedAt),
+    index('matches_blue_user_idx').on(table.blueUserId, table.playedAt),
+  ],
 );
 
 export const sessions = sqliteTable(

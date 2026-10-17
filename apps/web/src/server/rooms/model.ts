@@ -7,6 +7,7 @@ import type { AssetPack } from '@/lib/asset-packs';
 import type {
   CardInfo,
   GameSnapshot,
+  MatchOutcome,
   RoomOptions,
   RoomStatus,
   VoteChoice,
@@ -50,6 +51,7 @@ export interface ActiveGame {
   /** Final result; differs from `state.result` when the game ended by forfeit. */
   result: GameResult | null;
   forfeit: boolean;
+  outcome: MatchOutcome | null;
 }
 
 export interface RematchVote {

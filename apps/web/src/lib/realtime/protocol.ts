@@ -100,6 +100,16 @@ export interface CardInfo extends DescribableCard {
   readonly artUrl: string | null;
 }
 
+export interface PlayerOutcome {
+  readonly ratingBefore: number;
+  readonly ratingAfter: number;
+  /** Positive for a win streak, negative for a loss streak. */
+  readonly streak: number;
+}
+
+/** Rating and streak changes from a finished game. */
+export type MatchOutcome = Readonly<Record<PlayerColor, PlayerOutcome>>;
+
 export interface GameSnapshot {
   readonly view: GameView;
   readonly players: Readonly<Record<PlayerColor, SeatInfo & { readonly pack: AssetPack }>>;
@@ -117,6 +127,8 @@ export interface GameSnapshot {
   readonly paused: { readonly username: string; readonly forfeitAt: number } | null;
   /** True when the result came from a forfeit (leaving or not reconnecting in time). */
   readonly forfeit: boolean;
+  /** Rating changes once the game is over and recorded; null before that. */
+  readonly outcome: MatchOutcome | null;
 }
 
 export interface RematchSnapshot {

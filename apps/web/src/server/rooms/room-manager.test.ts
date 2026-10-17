@@ -61,7 +61,10 @@ function createManager() {
   return new RoomManager({
     decks: deckProvider,
     events: events as unknown as RoomEvents,
-    onGameFinished: (game) => finished.push(game),
+    onGameFinished: (game) => {
+      finished.push(game);
+      return undefined;
+    },
     coinFlip: () => coinFlip,
     newSeed: () => 1234,
     newRoomId: () => 'room-1',

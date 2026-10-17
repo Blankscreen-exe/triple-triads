@@ -27,6 +27,7 @@ import type {
   CardInfo,
   CreateRoomInput,
   JoinRoomInput,
+  MatchOutcome,
   MoveInput,
   RoomError,
   RoomSnapshot,
@@ -49,8 +50,11 @@ export interface RoomEvents {
 export interface RoomManagerDeps {
   readonly decks: DeckProvider;
   readonly events: RoomEvents;
-  /** Called once per finished game, e.g. to record it and update ratings. */
-  readonly onGameFinished?: (game: FinishedGame) => void;
+  /**
+   * Called once per finished game, e.g. to record it and update ratings. The returned outcome
+   * (rating changes) is shown to the players.
+   */
+  readonly onGameFinished?: (game: FinishedGame) => MatchOutcome | undefined;
   readonly now?: () => number;
   /** Coin flip: returns true when the first-seated player goes first. */
   readonly coinFlip?: () => boolean;
@@ -318,6 +322,7 @@ export class RoomManager {
       paused: null,
       result: null,
       forfeit: false,
+      outcome: null,
     };
     room.status = 'playing';
     room.rematch = null;
@@ -381,12 +386,13 @@ export class RoomManager {
     game.pausedTurnRemaining = null;
     room.status = 'finished';
 
-    this.#deps.onGameFinished?.({
-      roomId: room.id,
-      players: { red: game.players.red.user, blue: game.players.blue.user },
-      result,
-      forfeit,
-    });
+    game.outcome =
+      this.#deps.onGameFinished?.({
+        roomId: room.id,
+        players: { red: game.players.red.user, blue: game.players.blue.user },
+        result,
+        forfeit,
+      }) ?? null;
 
     if (!forfeit && room.seats.length === 2) {
       // Loser goes first next time; after a draw the order stays the same (spec 9.7).
