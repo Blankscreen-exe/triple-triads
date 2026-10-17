@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   check:
-    name: Lint, type-check, test and build
+    name: Lint, type-check, test, build and end-to-end
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,3 +42,17 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Install Playwright browser
+        run: pnpm --filter @triple-triad/web exec playwright install --with-deps chromium
+
+      - name: End-to-end tests
+        run: pnpm test:e2e
+
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: apps/web/test-results/
+          retention-days: 7

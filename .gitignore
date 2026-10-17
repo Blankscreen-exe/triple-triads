@@ -29,3 +29,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Playwright
+test-results/
+playwright-report/
+.e2e-data/

@@ -4,9 +4,9 @@ A self-hosted, two-player, browser-based version of **Triple Triad**, the card g
 Final Fantasy VIII, with player accounts, a Yu-Gi-Oh-style card collection, a custom card maker and
 uploadable art packs.
 
-> **Status:** in development. The rules engine is complete and fully tested; the web server
-> skeleton (Next.js + Socket.IO on one port) is in place. Accounts, lobby, live play, card maker,
-> deck editor and admin panel are next — see [Roadmap](#roadmap).
+> **Status:** in development. Working today: the complete rules engine, accounts (sign-up, login,
+> sessions), every player's trunk and starter decks, and choosing an active deck. Lobby, live play,
+> card maker, deck editor and admin panel are next — see [Roadmap](#roadmap).
 
 The full product specification lives in [`design/SPEC.md`](design/SPEC.md).
 
@@ -21,6 +21,14 @@ The full product specification lives in [`design/SPEC.md`](design/SPEC.md).
   and a health check, so it runs the same behind a local tunnel or on a VPS.
 - **Complete FF8 rule set**: Same, Same Wall, Plus, Combo chains and Elemental squares, plus this
   project's own draw-per-turn, deck-building and card-ranking rules.
+- **Careful authentication**: Argon2id password hashes (OWASP parameters), session tokens stored
+  only as SHA-256 hashes, constant-time responses for unknown users, and login throttling.
+- **Integrity in the database, not just the code**: foreign keys, CHECK constraints for every enum
+  and stat range, and a partial unique index allowing one default starter deck. Migrations are
+  generated SQL, committed, and applied automatically at startup.
+- **Tested at every level**: engine unit tests, data-layer tests against a real in-memory SQLite
+  with the real migrations (no mocks), and Playwright end-to-end tests against the production
+  build.
 
 ## Architecture
 
@@ -31,18 +39,31 @@ Browser ──HTTP──▶ ┌────────────────�
                   │   ├─ Socket.IO  /socket.io  ── real-time game traffic                   │
                   │   └─ Next.js    everything else (React UI, server components, routes)   │
                   │                        │                                                │
-                  │                        ▼                                                │
-                  │          packages/engine  (pure rules: moves, captures, scoring,        │
-                  │                            card ranking, deck validation, player views) │
+                  │            ┌───────────┴────────────┐                                   │
+                  │            ▼                        ▼                                   │
+                  │   packages/engine           SQLite (Drizzle ORM)                        │
+                  │   pure rules: moves,        users, sessions, cards, trunk,              │
+                  │   captures, scoring,        decks, starter decks                        │
+                  │   ranking, deck checks                                                  │
                   └─────────────────────────────────────────────────────────────────────────┘
 ```
+
+Inside `apps/web/src`:
+
+| Folder        | Responsibility                                                                     |
+| ------------- | ---------------------------------------------------------------------------------- |
+| `app/`        | Routes: pages and server actions. Thin: they validate input and call `server/`.    |
+| `components/` | React components (Balamb Classic theme).                                           |
+| `server/`     | Server-only domain code: database, auth, users, decks, trunk, catalogue, realtime. |
+| `server/web/` | The only code that touches Next.js request APIs (cookies, current user).           |
+| `lib/`        | Code shared by server and browser (validation rules, formatting).                  |
 
 | Path                | What it is                                                                     |
 | ------------------- | ------------------------------------------------------------------------------ |
 | `packages/engine`   | Rules engine. Framework-free TypeScript, unit-tested to ≥ 95 % coverage.       |
 | `apps/web`          | Next.js app and the custom server (`src/server`) that hosts it with Socket.IO. |
 | `design/`           | Specification, card layout (`card-layout.json`), artist templates and mockups. |
-| `.github/workflows` | CI: formatting, lint, type-check, tests, coverage gate and production build.   |
+| `.github/workflows` | CI: formatting, lint, type-check, tests, coverage gate, build and end-to-end.  |
 
 ### Engine at a glance
 
@@ -78,6 +99,10 @@ See [`apps/web/.env.example`](apps/web/.env.example):
 | `PORT`      | `3000`        | HTTP and WebSocket port.                                     |
 | `LOG_LEVEL` | `info`        | `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent` |
 | `NODE_ENV`  | `development` | `development`, `production` or `test`.                       |
+| `DATA_DIR`  | `./data`      | Where the SQLite database (and later, uploads) is stored.    |
+
+The database is created and migrated on first start, and the default cards and starter decks are
+inserted. **The first account to sign up becomes the admin.**
 
 ### Production
 
@@ -98,6 +123,7 @@ Run from the repository root; each runs across all workspace packages.
 | `pnpm build`     | Production build.                            |
 | `pnpm start`     | Run the production build.                    |
 | `pnpm test`      | Unit tests (Vitest).                         |
+| `pnpm test:e2e`  | End-to-end tests (Playwright); build first.  |
 | `pnpm lint`      | ESLint (strict, type-aware).                 |
 | `pnpm typecheck` | TypeScript in strict mode.                   |
 | `pnpm format`    | Format with Prettier (`format:check` in CI). |
@@ -106,7 +132,7 @@ Run from the repository root; each runs across all workspace packages.
 
 1. ~~Project setup: monorepo, strict TypeScript, lint, tests, CI, custom server, theme~~
 2. ~~Rules engine with tests~~
-3. Accounts, trunk and starter decks (SQLite)
+3. ~~Accounts, trunk and starter decks (SQLite)~~
 4. Card renderer and default asset pack
 5. Lobby and live play: rooms, coin flip, turn timer, reconnects, rematch
 6. Card maker and deck editor
