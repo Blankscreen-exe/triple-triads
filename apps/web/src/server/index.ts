@@ -8,6 +8,8 @@ import { existsSync } from 'node:fs';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import next from 'next';
 import { ConfigError, loadConfig } from './config';
+import { closeDatabase } from './db/client';
+import { prepareDatabase, scheduleSessionCleanup } from './db/startup';
 import { createLogger } from './logger';
 import { createSocketServer } from './realtime/socket-server';
 
@@ -19,6 +21,10 @@ async function main(): Promise<void> {
 
   const config = loadConfig(process.env);
   const logger = createLogger(config);
+
+  // Migrate before Next.js starts: its server code assumes an up-to-date schema.
+  const db = prepareDatabase(config.databasePath, logger);
+  const stopSessionCleanup = scheduleSessionCleanup(db, logger);
 
   const httpServer = createServer();
   const app = next({
@@ -32,6 +38,19 @@ async function main(): Promise<void> {
   await app.prepare();
 
   httpServer.on('request', (req: IncomingMessage, res: ServerResponse) => {
+    const startedAt = performance.now();
+    res.on('finish', () => {
+      logger.debug(
+        {
+          method: req.method,
+          url: req.url,
+          status: res.statusCode,
+          ms: Math.round(performance.now() - startedAt),
+        },
+        'request',
+      );
+    });
+
     if (req.method === 'GET' && req.url === HEALTH_PATH) {
       res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
       res.end(JSON.stringify({ status: 'ok' }));
@@ -64,10 +83,14 @@ async function main(): Promise<void> {
     }, SHUTDOWN_TIMEOUT_MS);
     forceExit.unref();
 
+    stopSessionCleanup();
     // Closing Socket.IO also closes the underlying HTTP server.
     void io.close((error) => {
       if (error) logger.error({ err: error }, 'error while closing the server');
-      void app.close().finally(() => process.exit(error ? 1 : 0));
+      void app.close().finally(() => {
+        closeDatabase(db);
+        process.exit(error ? 1 : 0);
+      });
     });
   };
   process.on('SIGINT', shutdown);

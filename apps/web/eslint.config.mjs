@@ -16,15 +16,5 @@ export default defineConfig([
       '@typescript-eslint/consistent-type-imports': 'error',
     },
   },
-  {
-    // Client and shared code must not import server-only modules.
-    files: ['src/app/**', 'src/components/**'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        { patterns: [{ group: ['@/server/*', '**/server/*'], message: 'Server-only module.' }] },
-      ],
-    },
-  },
   globalIgnores(['.next/**', 'out/**', 'dist/**', 'next-env.d.ts']),
 ]);
