@@ -4,6 +4,33 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  default:
+    '@eslint/js':
+      specifier: ^9.39.4
+      version: 9.39.5
+    '@types/node':
+      specifier: ^24.19.2
+      version: 24.19.2
+    '@vitest/coverage-v8':
+      specifier: ^5.0.5
+      version: 5.0.5
+    eslint:
+      specifier: ^9.39.5
+      version: 9.39.5
+    typescript:
+      specifier: ^5.9.3
+      version: 5.9.3
+    typescript-eslint:
+      specifier: ^8.71.2
+      version: 8.71.2
+    vitest:
+      specifier: ^5.0.5
+      version: 5.0.5
+    zod:
+      specifier: ^4.6.7
+      version: 4.6.7
+
 importers:
 
   .:
@@ -17,6 +44,9 @@ importers:
       '@node-rs/argon2':
         specifier: ^2.2.2
         version: 2.2.2
+      '@triple-triad/card-layout':
+        specifier: workspace:*
+        version: link:../../packages/card-layout
       '@triple-triad/engine':
         specifier: workspace:*
         version: link:../../packages/engine
@@ -48,7 +78,7 @@ importers:
         specifier: ^4.8.4
         version: 4.8.4
       zod:
-        specifier: ^4.6.7
+        specifier: 'catalog:'
         version: 4.6.7
     devDependencies:
       '@playwright/test':
@@ -61,7 +91,7 @@ importers:
         specifier: ^9.6.0
         version: 9.6.0
       '@types/node':
-        specifier: ^24.19.2
+        specifier: 'catalog:'
         version: 24.19.2
       '@types/react':
         specifier: ^19
@@ -79,7 +109,7 @@ importers:
         specifier: ^0.28.2
         version: 0.28.2
       eslint:
-        specifier: ^9
+        specifier: 'catalog:'
         version: 9.39.5(jiti@2.7.0)
       eslint-config-next:
         specifier: 16.4.2
@@ -94,34 +124,59 @@ importers:
         specifier: ^4.23.15
         version: 4.23.15
       typescript:
-        specifier: ^5
+        specifier: 'catalog:'
         version: 5.9.3
       typescript-eslint:
-        specifier: ^8.71.2
+        specifier: 'catalog:'
         version: 8.71.2(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
+        version: 5.0.5(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+
+  packages/card-layout:
+    dependencies:
+      '@triple-triad/engine':
+        specifier: workspace:*
+        version: link:../engine
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
+    devDependencies:
+      '@eslint/js':
+        specifier: 'catalog:'
+        version: 9.39.5
+      eslint:
+        specifier: 'catalog:'
+        version: 9.39.5(jiti@2.7.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      typescript-eslint:
+        specifier: 'catalog:'
+        version: 8.71.2(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
+      vitest:
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
   packages/engine:
     devDependencies:
       '@eslint/js':
-        specifier: ^10.0.1
-        version: 10.0.1(eslint@9.39.5(jiti@2.7.0))
+        specifier: 'catalog:'
+        version: 9.39.5
       '@vitest/coverage-v8':
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(vitest@5.0.5)
       eslint:
-        specifier: ^9.39.5
+        specifier: 'catalog:'
         version: 9.39.5(jiti@2.7.0)
       typescript:
-        specifier: ^5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       typescript-eslint:
-        specifier: ^8.71.2
+        specifier: 'catalog:'
         version: 8.71.2(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
 packages:
@@ -702,15 +757,6 @@ packages:
   '@eslint/eslintrc@3.3.7':
     resolution: {integrity: sha512-F42g89Qd5oAWtp0k0nnSrjziAKza7w8SVT4mStc18LZMaRb4J1HQAHLCalEtDCxrTuksx7NU9qsmeLwpOfPqWw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
-
-  '@eslint/js@10.0.1':
-    resolution: {integrity: sha512-zeR9k5pd4gxjZ0abRoIaxdc7I3nDktoXZk2qOv9gCNWx3mVwEn32VRhyLaRsDiJjTs0xq/T8mfPtyuXu7GWBcA==}
-    engines: {node: ^20.19.0 || ^22.13.0 || >=24}
-    peerDependencies:
-      eslint: ^10.0.0
-    peerDependenciesMeta:
-      eslint:
-        optional: true
 
   '@eslint/js@9.39.5':
     resolution: {integrity: sha512-QywQuszQh77pIXCsq998c8hbhSTI/azTty1Z6N53dmAudKHhy573j3yvRLsX2BSp8YpLtoCEG8E9DJe+8zUh4A==}
@@ -3748,10 +3794,6 @@ snapshots:
       strip-json-comments: 3.1.1
     transitivePeerDependencies:
       - supports-color
-
-  '@eslint/js@10.0.1(eslint@9.39.5(jiti@2.7.0))':
-    optionalDependencies:
-      eslint: 9.39.5(jiti@2.7.0)
 
   '@eslint/js@9.39.5': {}
 

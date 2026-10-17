@@ -2,6 +2,17 @@ packages:
   - apps/*
   - packages/*
 
+# Shared versions for tooling used by several packages. Packages reference these with "catalog:".
+catalog:
+  '@eslint/js': ^9.39.4
+  '@types/node': ^24.19.2
+  '@vitest/coverage-v8': ^5.0.5
+  eslint: ^9.39.5
+  typescript: ^5.9.3
+  typescript-eslint: ^8.71.2
+  vitest: ^5.0.5
+  zod: ^4.6.7
+
 # Packages allowed to run install scripts (pnpm blocks them by default).
 allowBuilds:
   better-sqlite3: true
