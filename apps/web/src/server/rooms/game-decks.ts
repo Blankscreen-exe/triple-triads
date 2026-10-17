@@ -2,6 +2,7 @@
  * Loading a player's active deck for a game.
  */
 import type { CardDefinition } from '@triple-triad/engine';
+import { cardArtUrl } from '@/lib/media';
 import type { CardInfo } from '@/lib/realtime/protocol';
 import type { DbExecutor } from '../db/client';
 import { listDecks } from '../decks/decks';
@@ -32,7 +33,7 @@ export function createDatabaseDeckProvider(db: DbExecutor): DeckProvider {
           stats: card.stats,
           element: card.element,
           stars: card.stars,
-          artUrl: null,
+          artUrl: cardArtUrl(card.artKey),
         });
       }
       return { ok: true, deck: { cards, faces } };
