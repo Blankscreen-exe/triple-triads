@@ -9,7 +9,7 @@ import type { AppDatabase } from '../db/client';
 import { cards } from '../db/schema';
 import { getGameSettings } from '../settings/settings';
 import type { FileStorage } from '../storage/storage';
-import { processCardArt, type CardArtError } from './card-art';
+import { storeCardArt, type CardArtError } from './card-art';
 
 /** Upper bound on custom cards per player, to keep one account from filling the disk. */
 export const MAX_CUSTOM_CARDS_PER_PLAYER = 200;
@@ -42,11 +42,9 @@ export async function createCustomCard(
   const cardId = randomUUID();
   let artKey: string | null = null;
   if (art) {
-    const processed = await processCardArt(art);
-    if (!processed.ok) return processed;
-    artKey = `cards/${cardId}/${processed.art.hash}`;
-    await storage.put(`${artKey}-full.webp`, processed.art.full, 'image/webp');
-    await storage.put(`${artKey}-card.webp`, processed.art.card, 'image/webp');
+    const stored = await storeCardArt(storage, cardId, art);
+    if (!stored.ok) return stored;
+    artKey = stored.artKey;
   }
 
   try {
@@ -63,7 +61,7 @@ export async function createCustomCard(
       .run();
   } catch (error) {
     // Do not leave orphaned files behind if the row could not be written.
-    if (artKey) await storage.deletePrefix(`cards/${cardId}`);
+    if (artKey) await storage.deleteFolder(`cards/${cardId}`);
     throw error;
   }
   return { ok: true, cardId };
@@ -84,6 +82,6 @@ export async function deleteCustomCard(
     .where(and(eq(cards.id, cardId), eq(cards.kind, 'custom'), eq(cards.creatorId, userId)))
     .run();
   if (removed.changes === 0) return false;
-  await storage.deletePrefix(`cards/${cardId}`);
+  await storage.deleteFolder(`cards/${cardId}`);
   return true;
 }

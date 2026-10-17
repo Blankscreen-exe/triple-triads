@@ -30,12 +30,23 @@ describe('local storage', () => {
     expect(await storage.get('cards/missing.webp')).toBeNull();
   });
 
-  it('deletes everything under a prefix', async () => {
+  it('deletes a single file', async () => {
+    await storage.put('cards/abc/a.webp', Buffer.from('a'), 'image/webp');
+    await storage.put('cards/abc/b.webp', Buffer.from('b'), 'image/webp');
+
+    await storage.delete('cards/abc/a.webp');
+    await storage.delete('cards/abc/missing.webp');
+
+    expect(await storage.get('cards/abc/a.webp')).toBeNull();
+    expect(await storage.get('cards/abc/b.webp')).not.toBeNull();
+  });
+
+  it('deletes everything under a folder', async () => {
     await storage.put('cards/abc/a.webp', Buffer.from('a'), 'image/webp');
     await storage.put('cards/abc/b.webp', Buffer.from('b'), 'image/webp');
     await storage.put('cards/keep/c.webp', Buffer.from('c'), 'image/webp');
 
-    await storage.deletePrefix('cards/abc');
+    await storage.deleteFolder('cards/abc');
 
     expect(await storage.get('cards/abc/a.webp')).toBeNull();
     expect(await storage.get('cards/keep/c.webp')).not.toBeNull();

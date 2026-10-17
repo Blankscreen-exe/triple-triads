@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { CARD_LAYOUT, type CardLayout } from '@triple-triad/card-layout';
 import sharp, { type Metadata } from 'sharp';
 import { CARD_ART_MAX_BYTES, CARD_ART_MIN_SIDE } from '@/lib/validation/card';
+import type { FileStorage } from '../storage/storage';
 
 export type CardArtError = 'IMAGE_TOO_LARGE' | 'IMAGE_TOO_SMALL' | 'UNSUPPORTED_IMAGE';
 
@@ -50,4 +51,28 @@ export async function processCardArt(
   const card = await render(Math.round(layout.width / 2), Math.round(layout.height / 2));
   const hash = createHash('sha256').update(full).digest('hex').slice(0, 16);
   return { ok: true, art: { full, card, hash } };
+}
+
+const ART_SIZES = ['full', 'card'] as const;
+
+/**
+ * Processes and stores art for a card. Returns the art key ("cards/<id>/<hash>") to save on the
+ * card row; the files are `<key>-full.webp` and `<key>-card.webp`.
+ */
+export async function storeCardArt(
+  storage: FileStorage,
+  cardId: string,
+  input: Buffer,
+): Promise<{ ok: true; artKey: string } | { ok: false; error: CardArtError }> {
+  const processed = await processCardArt(input);
+  if (!processed.ok) return processed;
+  const artKey = `cards/${cardId}/${processed.art.hash}`;
+  await storage.put(`${artKey}-full.webp`, processed.art.full, 'image/webp');
+  await storage.put(`${artKey}-card.webp`, processed.art.card, 'image/webp');
+  return { ok: true, artKey };
+}
+
+/** Deletes one version of a card's art. */
+export async function deleteCardArt(storage: FileStorage, artKey: string): Promise<void> {
+  await Promise.all(ART_SIZES.map((size) => storage.delete(`${artKey}-${size}.webp`)));
 }
