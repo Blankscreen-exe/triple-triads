@@ -6,8 +6,11 @@ import { z } from 'zod';
 
 export const USERNAME_MIN_LENGTH = 3;
 export const USERNAME_MAX_LENGTH = 20;
-/** Letters, digits, underscores and hyphens. */
-export const USERNAME_PATTERN = '^[A-Za-z0-9_\-]+$';
+/**
+ * Letters, digits, underscores and hyphens. Also used as an HTML `pattern` attribute, which
+ * browsers compile with the `v` flag: the hyphen must be escaped there, hence the raw string.
+ */
+export const USERNAME_PATTERN = String.raw`^[A-Za-z0-9_\-]+$`;
 
 export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 128;
