@@ -1,0 +1,28 @@
+{
+  "name": "@triple-triad/card-layout",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Positions of every element on a card face, shared by the card renderer and the artist template generator.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./card-layout.json": "./src/card-layout.json"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@triple-triad/engine": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@eslint/js": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
+    "vitest": "catalog:"
+  }
+}

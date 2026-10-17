@@ -1,4 +1,4 @@
-"""Generate measurement templates from design/card-layout.json.
+"""Generate measurement templates from packages/card-layout/src/card-layout.json.
 
 Outputs (in design/templates/):
   card-template-lines.png    - card outlines only, transparent (drop on top of your PSD)
@@ -20,7 +20,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 DESIGN = Path(__file__).resolve().parent.parent
 OUT = DESIGN / "templates"
-LAYOUT = json.loads((DESIGN / "card-layout.json").read_text())
+LAYOUT = json.loads((DESIGN.parent / "packages" / "card-layout" / "src" / "card-layout.json").read_text())
 
 W, H = LAYOUT["width"], LAYOUT["height"]
 B = LAYOUT["frameBorder"]
