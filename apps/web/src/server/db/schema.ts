@@ -245,3 +245,16 @@ export const settings = sqliteTable('settings', {
     .notNull()
     .$defaultFn(() => new Date()),
 });
+
+/**
+ * Uploaded asset-pack parts: one row per owner (a user id, or "default" for the admin's changes to
+ * the default pack). `files` maps each replaced part to its storage key; missing parts fall back
+ * to the default pack.
+ */
+export const assetPacks = sqliteTable('asset_packs', {
+  owner: text('owner').primaryKey(),
+  files: text('files', { mode: 'json' }).notNull().$type<Record<string, string>>(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});

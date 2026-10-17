@@ -6,6 +6,7 @@ import { DeckEditor, type EditorCard } from '@/components/decks/deck-editor';
 import { listGenericCards } from '@/server/cards/generic-cards';
 import { listStarterDecks } from '@/server/catalog/starter-decks';
 import { getDatabase } from '@/server/db';
+import { DEFAULT_PACK_OWNER, getAssetPack } from '@/server/packs/asset-packs';
 import { getGameSettings } from '@/server/settings/settings';
 import { requireAdmin } from '@/server/web/current-user';
 import { saveStarterDeckAction } from '../../actions';
@@ -48,6 +49,7 @@ async function Editor({ params }: Pick<PageProps<'/admin/starter-decks/[deckId]'
       initialCounts={counts}
       trunk={cards}
       rules={getGameSettings(db).deckRules}
+      pack={getAssetPack(db, DEFAULT_PACK_OWNER)}
       save={saveStarterDeckAction.bind(null, deck.id)}
       backHref="/admin/starter-decks"
     />

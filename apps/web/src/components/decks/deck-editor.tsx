@@ -13,6 +13,7 @@ import { CardLine } from '@/components/cards/card-line';
 import { CardView, type CardFace } from '@/components/cards/card-view';
 import { Button, buttonClasses } from '@/components/ui/button';
 import { Window } from '@/components/ui/window';
+import type { AssetPack } from '@/lib/asset-packs';
 import { ELEMENT_LABELS } from '@/lib/elements';
 import { DECK_NAME_MAX_LENGTH, type DeckContents } from '@/lib/validation/deck';
 import { describeViolation, violationKey } from '@/lib/deck-violations';
@@ -32,6 +33,8 @@ interface DeckEditorProps {
   /** Cards that may be added: a player's trunk, or every generic card for starter decks. */
   readonly trunk: readonly EditorCard[];
   readonly rules: DeckRules;
+  /** The pack cards are drawn with. */
+  readonly pack: AssetPack;
   /** Saves the deck; a server action bound to the deck being edited. */
   readonly save: (contents: DeckContents) => Promise<SaveDeckResult>;
   readonly backHref: string;
@@ -43,6 +46,7 @@ export function DeckEditor({
   initialCounts,
   trunk,
   rules,
+  pack,
   save: saveDeck,
   backHref,
 }: DeckEditorProps) {
@@ -162,7 +166,7 @@ export function DeckEditor({
                   aria-label={`Add ${card.name}`}
                   className="block w-full rounded-[3%/2.2%] transition enabled:cursor-pointer enabled:hover:-translate-y-1 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-cream"
                 >
-                  <CardView card={card} side="blue" />
+                  <CardView card={card} side="blue" pack={pack} />
                 </button>
                 <span className="absolute -right-2 -bottom-2 grid h-7 min-w-7 place-items-center rounded-full bg-cream px-1.5 text-xs font-bold text-ink ring-2 ring-window-bottom">
                   {card.owned === null ? '∞' : `${String(Math.max(left, 0))}/${String(card.owned)}`}

@@ -4,6 +4,7 @@ import { CardView } from '@/components/cards/card-view';
 import { toCardFace } from '@/components/cards/to-card-face';
 import { Window } from '@/components/ui/window';
 import { getDatabase } from '@/server/db';
+import { getAssetPack } from '@/server/packs/asset-packs';
 import { listTrunk, type TrunkQuantity } from '@/server/trunk/trunk';
 import { requireUser } from '@/server/web/current-user';
 
@@ -25,7 +26,9 @@ export default function TrunkPage() {
 
 async function TrunkGrid() {
   const user = await requireUser();
-  const entries = listTrunk(getDatabase(), user.id);
+  const db = getDatabase();
+  const entries = listTrunk(db, user.id);
+  const pack = getAssetPack(db, user.id);
 
   return (
     <Window className="mt-6 p-5">
@@ -33,7 +36,7 @@ async function TrunkGrid() {
       <ul className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
         {entries.map(({ card, quantity }) => (
           <li key={card.id} className="relative">
-            <CardView card={toCardFace(card)} side="blue" />
+            <CardView card={toCardFace(card)} side="blue" pack={pack} />
             <span
               className="absolute -right-2 -bottom-2 grid h-7 min-w-7 place-items-center rounded-full bg-cream px-1.5 text-xs font-bold text-ink ring-2 ring-window-bottom"
               aria-label={

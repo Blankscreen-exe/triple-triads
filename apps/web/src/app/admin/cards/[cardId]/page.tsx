@@ -6,6 +6,7 @@ import { ActionButton } from '@/components/ui/action-button';
 import { cardArtUrl } from '@/lib/media';
 import { getGenericCard } from '@/server/cards/generic-cards';
 import { getDatabase } from '@/server/db';
+import { DEFAULT_PACK_OWNER, getAssetPack } from '@/server/packs/asset-packs';
 import { getGameSettings } from '@/server/settings/settings';
 import { requireAdmin } from '@/server/web/current-user';
 import { deleteGenericCardAction, saveGenericCardAction } from '../../actions';
@@ -36,6 +37,7 @@ async function Form({ params }: Pick<PageProps<'/admin/cards/[cardId]'>, 'params
     <div className="space-y-6">
       <CardForm
         scoring={getGameSettings(db).scoring}
+        pack={getAssetPack(db, DEFAULT_PACK_OWNER)}
         action={saveGenericCardAction}
         cancelHref="/admin/cards"
         hiddenFields={{ cardId: card.id }}

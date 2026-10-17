@@ -7,6 +7,7 @@ import { ConfirmButton } from '@/components/ui/confirm-button';
 import { buttonClasses } from '@/components/ui/button';
 import { Window } from '@/components/ui/window';
 import { getDatabase } from '@/server/db';
+import { getAssetPack } from '@/server/packs/asset-packs';
 import { listTrunk } from '@/server/trunk/trunk';
 import { requireUser } from '@/server/web/current-user';
 import { deleteCardAction } from './actions';
@@ -36,7 +37,9 @@ export default function CardsPage() {
 
 async function CustomCardGrid() {
   const user = await requireUser();
-  const created = listTrunk(getDatabase(), user.id).filter((entry) => entry.card.kind === 'custom');
+  const db = getDatabase();
+  const created = listTrunk(db, user.id).filter((entry) => entry.card.kind === 'custom');
+  const pack = getAssetPack(db, user.id);
 
   if (created.length === 0) {
     return (
@@ -51,7 +54,7 @@ async function CustomCardGrid() {
       <ul className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
         {created.map(({ card }) => (
           <li key={card.id} className="space-y-2">
-            <CardView card={toCardFace(card)} side="blue" />
+            <CardView card={toCardFace(card)} side="blue" pack={pack} />
             <form action={deleteCardAction}>
               <input type="hidden" name="cardId" value={card.id} />
               <ConfirmButton

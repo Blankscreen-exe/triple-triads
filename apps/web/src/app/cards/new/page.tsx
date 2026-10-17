@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { getDatabase } from '@/server/db';
+import { getAssetPack } from '@/server/packs/asset-packs';
 import { getGameSettings } from '@/server/settings/settings';
 import { requireUser } from '@/server/web/current-user';
 import { CardForm } from '@/components/cards/card-form';
@@ -23,10 +24,12 @@ export default function NewCardPage() {
 }
 
 async function SignedInCardMaker() {
-  await requireUser();
+  const user = await requireUser();
+  const db = getDatabase();
   return (
     <CardForm
-      scoring={getGameSettings(getDatabase()).scoring}
+      scoring={getGameSettings(db).scoring}
+      pack={getAssetPack(db, user.id)}
       action={createCardAction}
       cancelHref="/cards"
     />

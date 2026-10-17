@@ -18,6 +18,7 @@ import { CardView } from '@/components/cards/card-view';
 import { Button, buttonClasses } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
 import { Window } from '@/components/ui/window';
+import type { AssetPack } from '@/lib/asset-packs';
 import { ELEMENT_LABELS, formatStat } from '@/lib/elements';
 import { CARD_ART_MAX_BYTES, CARD_ART_TYPES, CARD_NAME_MAX_LENGTH } from '@/lib/validation/card';
 
@@ -48,6 +49,8 @@ export interface CardFormValues {
 
 interface CardFormProps {
   readonly scoring: ScoringConfig;
+  /** The pack the preview is drawn with (the card owner's). */
+  readonly pack: AssetPack;
   readonly action: CardFormAction;
   readonly cancelHref: string;
   readonly initial?: CardFormValues;
@@ -69,6 +72,7 @@ const BLANK_CARD: CardFormValues = {
  */
 export function CardForm({
   scoring,
+  pack,
   action,
   cancelHref,
   initial = BLANK_CARD,
@@ -207,6 +211,7 @@ export function CardForm({
             artUrl: artUrl ?? initial.artUrl,
           }}
           side="blue"
+          pack={pack}
         />
         <p className="text-center text-sm text-slate-200" aria-live="polite">
           Score {rank.score} · {rank.stars} {rank.stars === 1 ? 'star' : 'stars'}

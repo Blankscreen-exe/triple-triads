@@ -6,6 +6,7 @@ const NAV_LINKS = [
   { href: '/play', label: 'Play' },
   { href: '/decks', label: 'Decks' },
   { href: '/cards', label: 'Card maker' },
+  { href: '/packs', label: 'Card style' },
   { href: '/trunk', label: 'Trunk' },
   { href: '/rankings', label: 'Rankings' },
 ] as const;

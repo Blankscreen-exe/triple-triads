@@ -25,6 +25,7 @@ import type { Logger } from '../logger';
 import { createDatabaseDeckProvider } from '../rooms/game-decks';
 import { recordMatch } from '../matches/matches';
 import { RoomManager } from '../rooms/room-manager';
+import { getAssetPack } from '../packs/asset-packs';
 import { getGameSettings } from '../settings/settings';
 
 export const SOCKET_PATH = '/socket.io';
@@ -78,6 +79,7 @@ export function createSocketServer(
   const rooms: RoomManager = new RoomManager({
     decks: createDatabaseDeckProvider(db),
     roomPolicy: () => getGameSettings(db).roomPolicy,
+    packFor: (userId) => getAssetPack(db, userId),
     onGameFinished: (game) => {
       logger.info(
         { roomId: game.roomId, result: game.result, forfeit: game.forfeit },

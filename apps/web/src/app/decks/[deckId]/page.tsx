@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { toCardFace } from '@/components/cards/to-card-face';
 import { getDatabase } from '@/server/db';
+import { getAssetPack } from '@/server/packs/asset-packs';
 import { listDecks } from '@/server/decks/decks';
 import { getGameSettings } from '@/server/settings/settings';
 import { listTrunk } from '@/server/trunk/trunk';
@@ -43,6 +44,7 @@ async function EditorLoader({ params }: Pick<PageProps<'/decks/[deckId]'>, 'para
       initialCounts={counts}
       trunk={trunk}
       rules={getGameSettings(db).deckRules}
+      pack={getAssetPack(db, user.id)}
       save={saveDeckAction.bind(null, deck.id)}
       backHref="/decks"
     />

@@ -17,8 +17,8 @@ export interface AssetPack {
   readonly id: string;
   readonly name: string;
   readonly images: AssetPackImages;
-  /** CSS font-family for card names; null uses the theme's display font. */
-  readonly fontFamily: string | null;
+  /** Font for card names, loaded with @font-face; null uses the theme's display font. */
+  readonly font: { readonly family: string; readonly url: string } | null;
 }
 
 const DEFAULT_PACK_PATH = '/packs/default';
@@ -36,5 +36,5 @@ export const DEFAULT_ASSET_PACK: AssetPack = {
     elements: `${DEFAULT_PACK_PATH}/elements.png`,
     stars: `${DEFAULT_PACK_PATH}/stars.png`,
   },
-  fontFamily: null,
+  font: null,
 };

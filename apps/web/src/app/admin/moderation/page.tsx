@@ -6,6 +6,7 @@ import { ActionButton } from '@/components/ui/action-button';
 import { Window } from '@/components/ui/window';
 import { listCustomCards } from '@/server/admin/moderation';
 import { getDatabase } from '@/server/db';
+import { DEFAULT_PACK_OWNER, getAssetPack } from '@/server/packs/asset-packs';
 import { requireAdmin } from '@/server/web/current-user';
 import { removeCustomCardAction } from '../actions';
 
@@ -27,7 +28,8 @@ export default function ModerationPage() {
 
 async function CustomCards() {
   await requireAdmin();
-  const entries = listCustomCards(getDatabase());
+  const db = getDatabase();
+  const entries = listCustomCards(db);
   if (entries.length === 0) {
     return (
       <Window className="mt-6 p-6 text-slate-200">Players have not made any cards yet.</Window>
@@ -38,7 +40,11 @@ async function CustomCards() {
       <ul className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
         {entries.map(({ card, creator }) => (
           <li key={card.id} className="space-y-2" aria-label={`${card.name} by ${creator}`}>
-            <CardView card={toCardFace(card)} side="red" />
+            <CardView
+              card={toCardFace(card)}
+              side="red"
+              pack={getAssetPack(db, card.creatorId ?? DEFAULT_PACK_OWNER)}
+            />
             <p className="truncate text-xs text-slate-300/80">by {creator}</p>
             <ActionButton
               variant="quiet"

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { CardForm } from '@/components/cards/card-form';
 import { getDatabase } from '@/server/db';
+import { DEFAULT_PACK_OWNER, getAssetPack } from '@/server/packs/asset-packs';
 import { getGameSettings } from '@/server/settings/settings';
 import { requireAdmin } from '@/server/web/current-user';
 import { saveGenericCardAction } from '../../actions';
@@ -23,9 +24,11 @@ export default function NewGenericCardPage() {
 
 async function Form() {
   await requireAdmin();
+  const db = getDatabase();
   return (
     <CardForm
-      scoring={getGameSettings(getDatabase()).scoring}
+      scoring={getGameSettings(db).scoring}
+      pack={getAssetPack(db, DEFAULT_PACK_OWNER)}
       action={saveGenericCardAction}
       cancelHref="/admin/cards"
     />

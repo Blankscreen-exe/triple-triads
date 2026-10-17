@@ -1,0 +1,82 @@
+/**
+ * The parts of an asset pack and their required sizes (design/SPEC.md, section 7.1). Shared by
+ * the upload form (instant feedback) and the server (authoritative checks).
+ */
+import { CARD_LAYOUT, type SpriteSheet } from '@triple-triad/card-layout';
+import type { AssetPackImages } from './asset-packs';
+
+export type ImagePart = keyof AssetPackImages;
+export type PackPart = ImagePart | 'font';
+
+export interface ImagePartSpec {
+  readonly part: ImagePart;
+  readonly label: string;
+  readonly description: string;
+  readonly width: number;
+  readonly height: number;
+}
+
+const card = { width: CARD_LAYOUT.width, height: CARD_LAYOUT.height };
+const sheet = <K extends string>(spec: SpriteSheet<K>) => ({
+  width: spec.cell[0] * spec.order.length,
+  height: spec.cell[1],
+});
+
+export const IMAGE_PARTS: readonly ImagePartSpec[] = [
+  {
+    part: 'bgBlue',
+    label: 'Blue background',
+    description: 'Behind cards on the blue side.',
+    ...card,
+  },
+  { part: 'bgRed', label: 'Red background', description: 'Behind cards on the red side.', ...card },
+  {
+    part: 'frame',
+    label: 'Frame',
+    description: 'Drawn over the art. Keep the inside transparent.',
+    ...card,
+  },
+  { part: 'cardBack', label: 'Card back', description: 'Face-down cards.', ...card },
+  {
+    part: 'digits',
+    label: 'Digits',
+    description: `One cell per value: ${CARD_LAYOUT.sheets.digits.order.join(' ')}.`,
+    ...sheet(CARD_LAYOUT.sheets.digits),
+  },
+  {
+    part: 'elements',
+    label: 'Element icons',
+    description: `One cell per element: ${CARD_LAYOUT.sheets.elements.order.join(', ')}.`,
+    ...sheet(CARD_LAYOUT.sheets.elements),
+  },
+  {
+    part: 'stars',
+    label: 'Stars',
+    description: 'Two cells: filled star, empty star.',
+    ...sheet(CARD_LAYOUT.sheets.stars),
+  },
+];
+
+export const PACK_PARTS: readonly PackPart[] = [...IMAGE_PARTS.map((spec) => spec.part), 'font'];
+
+/** File names used in the spec and in storage (e.g. "bg-blue"). */
+export const PART_FILE_NAMES: Readonly<Record<PackPart, string>> = {
+  bgBlue: 'bg-blue',
+  bgRed: 'bg-red',
+  frame: 'frame',
+  cardBack: 'card-back',
+  digits: 'digits',
+  elements: 'elements',
+  stars: 'stars',
+  font: 'font',
+};
+
+export function isPackPart(value: unknown): value is PackPart {
+  return typeof value === 'string' && (PACK_PARTS as readonly string[]).includes(value);
+}
+
+export const PACK_IMAGE_MAX_BYTES = 4 * 1024 * 1024;
+export const PACK_IMAGE_TYPES = ['image/png', 'image/webp'] as const;
+
+export const PACK_FONT_MAX_BYTES = 2 * 1024 * 1024;
+export const PACK_FONT_EXTENSIONS = ['.ttf', '.otf', '.woff2'] as const;

@@ -39,6 +39,7 @@ const NAME_FONT_SIZE = `${String(((layout.name[3] - layout.name[1]) * 0.6 * 100)
 export function CardView({ card, side, pack = DEFAULT_ASSET_PACK, className = '' }: CardViewProps) {
   return (
     <CardShell label={describeCard(card)} className={className}>
+      {pack.font && <PackFontFace font={pack.font} />}
       <ImageLayer url={side === 'blue' ? pack.images.bgBlue : pack.images.bgRed} />
       {card.artUrl && <ImageLayer url={card.artUrl} />}
       <ImageLayer url={pack.images.frame} />
@@ -78,7 +79,7 @@ export function CardView({ card, side, pack = DEFAULT_ASSET_PACK, className = ''
         style={{
           ...boxToPercent(layout.name),
           fontSize: NAME_FONT_SIZE,
-          fontFamily: pack.fontFamily ?? 'var(--font-display)',
+          fontFamily: pack.font ? `"${pack.font.family}"` : 'var(--font-display)',
         }}
       >
         <span className="truncate">{card.name}</span>
@@ -151,4 +152,16 @@ function Sprite<Key extends string>({
 
 function cssUrl(url: string): string {
   return `url(${JSON.stringify(url)})`;
+}
+
+/**
+ * Loads a pack's custom font. React hoists <style> tags with an `href` into the document head and
+ * keeps one per href, so many cards using the same pack load the font once.
+ */
+function PackFontFace({ font }: { readonly font: NonNullable<AssetPack['font']> }) {
+  return (
+    <style href={`pack-font-${font.family}`} precedence="default">
+      {`@font-face{font-family:${JSON.stringify(font.family)};src:url(${JSON.stringify(font.url)});font-display:swap}`}
+    </style>
+  );
 }

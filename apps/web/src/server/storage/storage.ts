@@ -36,6 +36,7 @@ const CONTENT_TYPES: Readonly<Record<string, string>> = {
   png: 'image/png',
   ttf: 'font/ttf',
   otf: 'font/otf',
+  woff2: 'font/woff2',
 };
 
 /** Stores files under a directory on disk; the content type follows from the file extension. */

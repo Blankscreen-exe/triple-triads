@@ -21,6 +21,8 @@ import {
   setDefaultStarterDeck,
 } from '@/server/catalog/starter-decks';
 import { getDatabase } from '@/server/db';
+import { DEFAULT_PACK_OWNER, resetPack } from '@/server/packs/asset-packs';
+import { handlePackReset, handlePackUpload, type PackFormResult } from '@/server/packs/pack-form';
 import { updateSetting, type SettingUpdate } from '@/server/settings/settings';
 import { getStorage } from '@/server/storage';
 import { requireAdmin } from '@/server/web/current-user';
@@ -192,6 +194,34 @@ export async function removeCustomCardAction(cardId: unknown): Promise<AdminActi
   if (!(await removeCustomCard(getDatabase(), getStorage(), cardId))) {
     return { ok: false, error: 'That card no longer exists.' };
   }
+  refresh();
+  return { ok: true };
+}
+
+// ---- Asset packs ---------------------------------------------------------------------------
+
+/** Replaces part of the default pack, which every player's pack builds on. */
+export async function uploadDefaultPackPart(formData: FormData): Promise<PackFormResult> {
+  await requireAdmin();
+  const result = await handlePackUpload(getDatabase(), getStorage(), DEFAULT_PACK_OWNER, formData);
+  if (result.ok) refresh();
+  return result;
+}
+
+export async function resetDefaultPackPart(part: unknown): Promise<PackFormResult> {
+  await requireAdmin();
+  const result = await handlePackReset(getDatabase(), getStorage(), DEFAULT_PACK_OWNER, part);
+  if (result.ok) refresh();
+  return result;
+}
+
+/** Moderation: removes everything a player uploaded to their pack. */
+export async function resetPlayerPackAction(userId: unknown): Promise<AdminActionResult> {
+  await requireAdmin();
+  if (typeof userId !== 'string' || userId === DEFAULT_PACK_OWNER) {
+    return { ok: false, error: 'Invalid request.' };
+  }
+  await resetPack(getDatabase(), getStorage(), userId);
   refresh();
   return { ok: true };
 }

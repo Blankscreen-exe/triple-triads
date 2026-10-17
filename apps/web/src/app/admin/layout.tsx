@@ -10,6 +10,7 @@ const SECTIONS = [
   { href: '/admin/users', label: 'Users' },
   { href: '/admin/cards', label: 'Generic cards' },
   { href: '/admin/starter-decks', label: 'Starter decks' },
+  { href: '/admin/packs', label: 'Card style' },
   { href: '/admin/settings', label: 'Settings' },
   { href: '/admin/moderation', label: 'Moderation' },
 ] as const;
