@@ -1,8 +1,8 @@
 /**
  * Database-backed login sessions.
  */
-import { and, eq, gt, lte } from 'drizzle-orm';
-import type { AppDatabase } from '../db/client';
+import { and, eq, gt, isNull, lte } from 'drizzle-orm';
+import type { AppDatabase, DbExecutor } from '../db/client';
 import { sessions, users, type UserRole } from '../db/schema';
 import { generateSessionToken, sessionIdFromToken } from './session-token';
 
@@ -29,7 +29,7 @@ export function createSession(db: AppDatabase, userId: string, now = new Date())
   return { token, expiresAt };
 }
 
-/** Returns the session's user, or null if the token is unknown or expired. */
+/** Returns the session's user, or null if the token is unknown or expired or the user is banned. */
 export function validateSessionToken(
   db: AppDatabase,
   token: string,
@@ -39,7 +39,13 @@ export function validateSessionToken(
     .select({ id: users.id, username: users.username, role: users.role })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
-    .where(and(eq(sessions.id, sessionIdFromToken(token)), gt(sessions.expiresAt, now)))
+    .where(
+      and(
+        eq(sessions.id, sessionIdFromToken(token)),
+        gt(sessions.expiresAt, now),
+        isNull(users.bannedAt),
+      ),
+    )
     .get();
   return row ?? null;
 }
@@ -52,4 +58,9 @@ export function deleteSession(db: AppDatabase, token: string): void {
 
 export function deleteExpiredSessions(db: AppDatabase, now = new Date()): number {
   return db.delete(sessions).where(lte(sessions.expiresAt, now)).run().changes;
+}
+
+/** Logs the user out everywhere. */
+export function deleteUserSessions(db: DbExecutor, userId: string): void {
+  db.delete(sessions).where(eq(sessions.userId, userId)).run();
 }

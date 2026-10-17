@@ -32,6 +32,8 @@ const LOBBY_CHANNEL = 'lobby';
 
 interface SocketData {
   user: SessionUser;
+  /** Kept to re-check the session before every command (logout and bans apply at once). */
+  sessionToken: string;
 }
 
 type GameServer = Server<
@@ -132,12 +134,13 @@ export function createSocketServer(
 
   io.use((socket, next) => {
     const token = readCookie(socket.request.headers.cookie, SESSION_COOKIE);
-    const user = token ? validateSessionToken(db, token) : null;
-    if (!user) {
+    const user = token === null ? null : validateSessionToken(db, token);
+    if (token === null || user === null) {
       next(new Error('UNAUTHENTICATED'));
       return;
     }
     socket.data.user = user;
+    socket.data.sessionToken = token;
     next();
   });
 
@@ -156,7 +159,7 @@ export function createSocketServer(
     });
 
     socket.on('room:create', (input, ack) => {
-      handle(createRoomSchema, input, ack, (data) => {
+      handle(socket, createRoomSchema, input, ack, (data) => {
         const result = rooms.createRoom(roomUser, data);
         if (result.ok) addPresence(result.data.roomId, socket);
         return result;
@@ -164,7 +167,7 @@ export function createSocketServer(
     });
 
     socket.on('room:join', (input, ack) => {
-      handle(joinRoomSchema, input, ack, (data) => {
+      handle(socket, joinRoomSchema, input, ack, (data) => {
         // Register first so the snapshot sent for this change reaches this socket.
         addPresence(data.roomId, socket);
         const result = rooms.joinRoom(roomUser, data);
@@ -181,7 +184,7 @@ export function createSocketServer(
     });
 
     socket.on('room:leave', (input, ack) => {
-      handle(roomIdSchema, input, ack, ({ roomId }) => {
+      handle(socket, roomIdSchema, input, ack, ({ roomId }) => {
         const result = rooms.leaveRoom(user.id, roomId);
         for (const other of presence.get(roomId)?.get(user.id) ?? []) {
           other.emit('room:closed', { roomId });
@@ -192,11 +195,13 @@ export function createSocketServer(
     });
 
     socket.on('game:move', (input, ack) => {
-      handle(moveSchema, input, ack, (data) => rooms.playMove(user.id, data));
+      handle(socket, moveSchema, input, ack, (data) => rooms.playMove(user.id, data));
     });
 
     socket.on('game:vote', (input, ack) => {
-      handle(voteSchema, input, ack, ({ roomId, choice }) => rooms.vote(user.id, roomId, choice));
+      handle(socket, voteSchema, input, ack, ({ roomId, choice }) =>
+        rooms.vote(user.id, roomId, choice),
+      );
     });
 
     socket.on('disconnect', (reason) => {
@@ -208,13 +213,23 @@ export function createSocketServer(
   });
 
   /** Validates the payload, runs the command and always answers the client. */
+  /**
+   * Re-checks the session, validates the payload, runs the command and always answers the
+   * client. A session that ended (logout, ban, password reset) disconnects the socket.
+   */
   function handle<Schema extends z.ZodType, T>(
+    socket: GameSocket,
     schema: Schema,
     input: unknown,
     ack: unknown,
     run: (data: z.infer<Schema>) => Ack<T>,
   ): void {
     const reply = typeof ack === 'function' ? (ack as (result: Ack<T>) => void) : () => undefined;
+    if (!validateSessionToken(db, socket.data.sessionToken)) {
+      reply({ ok: false, error: 'UNAUTHENTICATED' });
+      socket.disconnect(true);
+      return;
+    }
     const parsed = schema.safeParse(input);
     if (!parsed.success) {
       reply({ ok: false, error: 'INVALID_INPUT' });

@@ -3,7 +3,7 @@
  * server action that needs the user goes through here.
  */
 import 'server-only';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { connection } from 'next/server';
 import { cache } from 'react';
 import { validateSessionToken, type SessionUser } from '../auth/sessions';
@@ -23,5 +23,14 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
 export async function requireUser(): Promise<SessionUser> {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
+  return user;
+}
+
+/**
+ * The signed-in admin. Anyone else gets a 404, so the admin area does not reveal that it exists.
+ */
+export async function requireAdmin(): Promise<SessionUser> {
+  const user = await requireUser();
+  if (user.role !== 'admin') notFound();
   return user;
 }

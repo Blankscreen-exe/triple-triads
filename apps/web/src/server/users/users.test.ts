@@ -82,21 +82,27 @@ describe('authenticateUser', () => {
     const db = createTestDatabase();
     await registerUser(db, credentials);
 
-    const user = await authenticateUser(db, { ...credentials, username: 'squall' });
+    const result = await authenticateUser(db, { ...credentials, username: 'squall' });
 
-    expect(user).toMatchObject({ username: 'Squall', role: 'admin' });
+    expect(result).toMatchObject({ ok: true, user: { username: 'Squall', role: 'admin' } });
   });
 
-  it('returns null for a wrong password', async () => {
+  it('rejects a wrong password', async () => {
     const db = createTestDatabase();
     await registerUser(db, credentials);
 
-    expect(await authenticateUser(db, { ...credentials, password: 'wrong-password' })).toBeNull();
+    expect(await authenticateUser(db, { ...credentials, password: 'wrong-password' })).toEqual({
+      ok: false,
+      error: 'INVALID_CREDENTIALS',
+    });
   });
 
-  it('returns null for an unknown user', async () => {
+  it('rejects an unknown user', async () => {
     const db = createTestDatabase();
 
-    expect(await authenticateUser(db, credentials)).toBeNull();
+    expect(await authenticateUser(db, credentials)).toEqual({
+      ok: false,
+      error: 'INVALID_CREDENTIALS',
+    });
   });
 });

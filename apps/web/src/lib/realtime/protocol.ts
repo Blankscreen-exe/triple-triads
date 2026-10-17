@@ -173,6 +173,7 @@ export const ROOM_ERRORS = {
   NO_VOTE_OPEN: 'There is no rematch vote right now.',
   INVALID_INPUT: 'Invalid request.',
   SERVER_ERROR: 'Something went wrong. Please try again.',
+  UNAUTHENTICATED: 'Your session has ended. Please log in again.',
 } as const;
 export type RoomError = keyof typeof ROOM_ERRORS;
 

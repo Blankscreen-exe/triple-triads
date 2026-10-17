@@ -49,18 +49,28 @@ export async function registerUser(
   }
 }
 
-/** Returns the user if the credentials are correct, otherwise null. */
+export type AuthenticationResult =
+  | { readonly ok: true; readonly user: SessionUser }
+  | { readonly ok: false; readonly error: 'INVALID_CREDENTIALS' | 'BANNED' };
+
+/**
+ * Checks a username and password. A ban is only reported after the password is verified, so the
+ * response never reveals anything about an account to someone without its password.
+ */
 export async function authenticateUser(
   db: AppDatabase,
   { username, password }: Credentials,
-): Promise<SessionUser | null> {
+): Promise<AuthenticationResult> {
   const user = findUserByKey(db, usernameKey(username));
   if (!user) {
     await simulatePasswordVerification(password);
-    return null;
+    return { ok: false, error: 'INVALID_CREDENTIALS' };
   }
-  if (!(await verifyPassword(user.passwordHash, password))) return null;
-  return { id: user.id, username: user.username, role: user.role };
+  if (!(await verifyPassword(user.passwordHash, password))) {
+    return { ok: false, error: 'INVALID_CREDENTIALS' };
+  }
+  if (user.bannedAt) return { ok: false, error: 'BANNED' };
+  return { ok: true, user: { id: user.id, username: user.username, role: user.role } };
 }
 
 function findUserByKey(db: AppDatabase, key: string) {

@@ -12,7 +12,7 @@ import type {
   ServerToClientEvents,
 } from '@/lib/realtime/protocol';
 import { SESSION_COOKIE } from '../auth/session-cookie-name';
-import { createSession } from '../auth/sessions';
+import { createSession, deleteSession } from '../auth/sessions';
 import type { AppDatabase } from '../db/client';
 import { createTestDatabase, createTestUser } from '../testing/test-database';
 import { createSocketServer, SOCKET_PATH, type RealtimeServer } from './socket-server';
@@ -89,6 +89,24 @@ describe('socket server', () => {
     );
 
     expect(error.message).toBe('UNAUTHENTICATED');
+  });
+
+  it('refuses commands once the session has ended, and disconnects', async () => {
+    const user = await createTestUser(db, 'mallory');
+    const { token } = createSession(db, user.id);
+    const socket = client(token);
+    await new Promise<void>((resolve) => socket.once('connect', resolve));
+    const disconnected = new Promise<void>((resolve) =>
+      socket.once('disconnect', () => {
+        resolve();
+      }),
+    );
+
+    deleteSession(db, token);
+    const result = await socket.emitWithAck('room:create', ROOM);
+
+    expect(result).toEqual({ ok: false, error: 'UNAUTHENTICATED' });
+    await disconnected;
   });
 
   it('answers invalid payloads with INVALID_INPUT', async () => {

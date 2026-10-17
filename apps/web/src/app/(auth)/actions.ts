@@ -53,14 +53,17 @@ export async function logIn(_previous: AuthFormState, formData: FormData): Promi
     };
   }
 
-  const user = await authenticateUser(getDatabase(), parsed.data);
-  if (!user) {
+  const result = await authenticateUser(getDatabase(), parsed.data);
+  if (!result.ok) {
+    if (result.error === 'BANNED') {
+      return { error: 'This account has been suspended.', username: input.username };
+    }
     loginThrottle.recordAttempt(throttleKey);
     return failure;
   }
 
   loginThrottle.reset(throttleKey);
-  await startSession(user.id);
+  await startSession(result.user.id);
   redirect('/');
 }
 
