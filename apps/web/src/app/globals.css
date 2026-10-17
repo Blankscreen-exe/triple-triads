@@ -1,0 +1,55 @@
+@import 'tailwindcss';
+
+/*
+ * Balamb Classic theme (design/SPEC.md, section 12). Inspired by Final Fantasy VIII's menus.
+ * Reference mockup: design/themes/theme-balamb.html.
+ */
+@theme {
+  --color-night: #0a0f1f;
+  --color-night-glow: #22315a;
+
+  --color-window-top: #56688f;
+  --color-window-bottom: #1f2840;
+  --color-header-top: #4c5c80;
+  --color-header-bottom: #26304b;
+  --color-frame: #d6deef;
+
+  --color-cream: #f4ecd2;
+  --color-gold-light: #fbf3d6;
+  --color-gold: #c9b27a;
+  --color-ink: #1b2340;
+  --color-action: #3a6fd8;
+
+  --color-wood-light: #5a4630;
+  --color-wood-dark: #2b2117;
+  --color-wood-rim: #9c8458;
+
+  --color-score-blue: #8fb5ff;
+  --color-score-red: #ff9aa2;
+  --color-status-live: #c2424f;
+  --color-status-open: #3a8f5a;
+}
+
+/* Font families come from next/font (self-hosted) via CSS variables set in the root layout. */
+@theme inline {
+  --font-display: var(--font-cinzel), ui-serif, serif;
+  --font-body: var(--font-exo2), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-night);
+    background-image: radial-gradient(
+      ellipse at top,
+      var(--color-night-glow) 0%,
+      var(--color-night) 65%
+    );
+    color: var(--color-slate-100);
+    font-family: var(--font-body);
+  }
+}
