@@ -1,0 +1,6 @@
+pnpm-lock.yaml
+**/.next/
+**/dist/
+**/coverage/
+design/templates/
+design/themes/

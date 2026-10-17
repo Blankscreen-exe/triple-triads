@@ -1,0 +1,24 @@
+{
+  "name": "triple-triad",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Self-hosted online Triple Triad with custom cards, decks and asset packs.",
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @triple-triad/web dev",
+    "build": "pnpm -r build",
+    "start": "pnpm --filter @triple-triad/web start",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.9.10"
+  }
+}
