@@ -45,8 +45,9 @@ describe('basic capture', () => {
 
   it('captures several neighbours at once', () => {
     let board = emptyBoard();
-    for (const position of [1, 3, 5, 7] as const)
+    for (const position of [1, 3, 5, 7] as const) {
       board = withCard(board, position, card([1, 1, 1, 1]), 'blue');
+    }
     board = withCard(board, 4, card([2, 2, 2, 2]), 'red');
 
     const { captures } = place(board, 4, rules());

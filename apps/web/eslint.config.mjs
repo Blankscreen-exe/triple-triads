@@ -14,6 +14,8 @@ export default defineConfig([
     },
     rules: {
       '@typescript-eslint/consistent-type-imports': 'error',
+      // Braces whenever a body does not fit on the same line as its condition.
+      curly: ['error', 'multi-line'],
     },
   },
   globalIgnores(['.next/**', 'out/**', 'dist/**', 'next-env.d.ts']),

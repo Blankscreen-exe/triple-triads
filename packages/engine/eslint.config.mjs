@@ -20,6 +20,8 @@ export default defineConfig([
         { object: 'Date', property: 'now', message: 'The engine must not depend on the clock.' },
       ],
       '@typescript-eslint/consistent-type-imports': 'error',
+      // Braces whenever a body does not fit on the same line as its condition.
+      curly: ['error', 'multi-line'],
     },
   },
   {
