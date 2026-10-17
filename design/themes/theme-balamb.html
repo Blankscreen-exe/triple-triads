@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Triple Triad - Balamb Classic theme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Exo+2:wght@400;500;600;700&display=swap">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: { fontFamily: { display: ["'Cinzel', serif"], body: ["'Exo 2', sans-serif"] } } } };
+</script>
+</head>
+<body class="min-h-screen font-body text-slate-100 bg-[#0a0f1f] bg-[radial-gradient(ellipse_at_top,#22315a_0%,#0a0f1f_65%)]">
+<div id="app"></div>
+<script>
+const THEME_NAME = "Balamb Classic";
+const THEME_DESC = "Inspired by FF8's menus: blue-grey gradient windows with light borders, a wooden board and cream-gold accents.";
+
+// Theme: Tailwind class strings for every UI piece
+const T = {
+  "header": "sticky top-0 z-30 flex items-center justify-between px-6 py-3 bg-gradient-to-b from-[#4c5c80] to-[#26304b] border-b-2 border-[#d6deef]/70 shadow-lg",
+  "logo": "font-display text-xl font-bold uppercase tracking-[0.2em] text-[#f4ecd2] [text-shadow:0_2px_0_#000]",
+  "nav": "px-3 py-1.5 rounded text-sm text-slate-200/80 hover:text-white hover:bg-white/10",
+  "navActive": "px-3 py-1.5 rounded text-sm text-white bg-white/15 ring-1 ring-[#d6deef]/60",
+  "avatar": "grid place-items-center h-8 w-8 rounded-full bg-[#f4ecd2] text-[#1b2340] text-xs font-bold",
+  "subtle": "text-slate-300/70",
+  "pageNote": "text-slate-300/80",
+  "panel": "rounded-lg border-2 border-[#d6deef]/75 bg-gradient-to-b from-[#56688f]/85 to-[#1f2840]/95 shadow-[0_0_0_3px_#0a0f1f,0_10px_30px_rgba(0,0,0,.55)]",
+  "h2": "font-display text-lg font-bold tracking-wider text-[#f4ecd2]",
+  "chip": "px-2 py-0.5 rounded-sm text-[11px] uppercase tracking-wider border border-[#d6deef]/50 bg-black/20 text-slate-100",
+  "turn": "px-3 py-1 rounded-sm text-sm font-semibold bg-[#3a6fd8] ring-1 ring-white/60",
+  "timer": "font-display text-2xl tabular-nums text-[#f4ecd2]",
+  "board": "p-3 rounded-lg bg-gradient-to-br from-[#5a4630] to-[#2b2117] border-4 border-[#9c8458] shadow-inner",
+  "cell": "rounded-md bg-black/30 ring-1 ring-[#e3cf9e]/25",
+  "cellTarget": "ring-2 ring-[#f4ecd2] animate-pulse",
+  "card": "rounded-md ring-2 ring-[#ece6d2] shadow-[0_4px_10px_rgba(0,0,0,.6)]",
+  "blue": "bg-gradient-to-b from-[#6d9be6] via-[#3a64c4] to-[#1b2f7a]",
+  "red": "bg-gradient-to-b from-[#ec8a90] via-[#c2424f] to-[#6e1520]",
+  "art": "[filter:drop-shadow(0_4px_4px_rgba(0,0,0,.5))]",
+  "stat": "font-display font-black text-white [text-shadow:0_0.6cqw_0_#000,0_0_1.5cqw_#000]",
+  "elem": "[filter:drop-shadow(0_0_2px_#000)]",
+  "plate": "bg-gradient-to-t from-black/75 to-black/25",
+  "name": "font-display font-bold text-[#f4ecd2]",
+  "stars": "text-amber-300",
+  "back": "rounded-md ring-2 ring-[#ece6d2] bg-[#1d2a52] bg-[repeating-linear-gradient(45deg,#1d2a52_0_6px,#26386e_6px_12px)] shadow-[0_4px_10px_rgba(0,0,0,.6)]",
+  "selected": "-translate-x-5 [filter:drop-shadow(0_0_8px_#f4ecd2)]",
+  "scoreBlue": "font-display text-5xl font-black text-[#8fb5ff] [text-shadow:0_3px_0_#000]",
+  "scoreRed": "font-display text-5xl font-black text-[#ff9aa2] [text-shadow:0_3px_0_#000]",
+  "playerBox": "rounded-md border border-[#d6deef]/50 bg-black/25 px-3 py-2",
+  "btn": "px-4 py-2 rounded-md font-semibold text-[#1b2340] bg-gradient-to-b from-[#fbf3d6] to-[#c9b27a] border border-[#fff8e0] hover:brightness-110",
+  "btn2": "px-4 py-2 rounded-md font-semibold text-slate-100 bg-black/25 border border-[#d6deef]/60 hover:bg-white/10",
+  "input": "w-full rounded-md bg-black/30 border border-[#d6deef]/50 px-3 py-2 text-sm [color-scheme:dark] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f4ecd2]",
+  "track": "bg-black/40 ring-1 ring-[#d6deef]/50 peer-checked:bg-[#3a6fd8]",
+  "knob": "bg-[#f4ecd2]",
+  "roomRow": "rounded-md bg-black/20 border border-[#d6deef]/30 px-3 py-2.5 hover:bg-white/5",
+  "playing": "text-xs px-2 py-0.5 rounded-sm bg-[#c2424f]/70",
+  "waiting": "text-xs px-2 py-0.5 rounded-sm bg-[#3a8f5a]/80",
+  "result": "font-display text-3xl font-black tracking-widest text-[#f4ecd2] [text-shadow:0_3px_0_#000]",
+  "bar": "h-1.5 rounded-full bg-black/40 overflow-hidden",
+  "barFill": "h-full bg-[#f4ecd2]",
+  "badge": "bg-[#f4ecd2] text-[#1b2340] ring-2 ring-[#1f2840]",
+  "elemTile": "text-4xl opacity-40"
+};
+
+// ---- Mock data (placeholders; real cards use uploaded art and asset packs) ----
+const SCORE = {1:8, 2:15, 3:25, 4:38, 5:54, 6:73, 7:95, 8:120, 9:150, 10:190};
+const ELEMENT_BONUS = 10;
+const ELEM = {fire:'🔥', ice:'❄️', thunder:'⚡', earth:'🪨', poison:'☠️', wind:'🌪️', water:'💧', holy:'✨'};
+const C = {
+  emberimp:   {n:'Ember Imp',     s:[6,3,5,4],  e:'fire',    art:'👺'},
+  frostwisp:  {n:'Frost Wisp',    s:[4,6,2,7],  e:'ice',     art:'👻'},
+  stormhawk:  {n:'Storm Hawk',    s:[7,2,6,5],  e:'thunder', art:'🦅'},
+  sandlizard: {n:'Sand Lizard',   s:[1,4,1,5],               art:'🦎'},
+  bogbeetle:  {n:'Bog Beetle',    s:[3,5,2,1],  e:'poison',  art:'🪲'},
+  ironknight: {n:'Iron Knight',   s:[8,4,7,3],               art:'🛡️'},
+  tidesiren:  {n:'Tide Siren',    s:[5,8,3,6],  e:'water',   art:'🧜'},
+  lantern:    {n:'Lantern Ghost', s:[2,7,7,3],               art:'🏮'},
+  skywyrm:    {n:'Sky Wyrm',      s:[10,4,6,9], e:'wind',    art:'🐉'},
+  cactus:     {n:'Prickle Jack',  s:[6,2,6,3],  e:'earth',   art:'🌵'},
+  seraph:     {n:'Seraph',        s:[9,6,2,8],  e:'holy',    art:'👼'},
+  mushroom:   {n:'Spore Cap',     s:[5,1,1,3],               art:'🍄'},
+};
+// Board: index 0-8, left-to-right, top-to-bottom
+const TILES = {2:'thunder', 4:'fire', 6:'water'};
+const BOARD = [
+  {c:'stormhawk', side:'blue'}, {c:'bogbeetle', side:'red'}, null,
+  {c:'ironknight', side:'blue'}, {c:'emberimp', side:'blue'}, {c:'tidesiren', side:'red'},
+  null, {c:'lantern', side:'blue'}, null,
+];
+const TARGET = 8;
+const MY_HAND = ['skywyrm', 'frostwisp', 'cactus', 'mushroom'];
+const SELECTED = 1;
+const ROOMS = [
+  {n:'Friday Duel',          h:'blankscreen', r:['Same','Plus','Combo','Elemental'], st:'playing'},
+  {n:'No rules, just vibes', h:'Mira',        r:['Open'],                             st:'waiting'},
+  {n:'Elemental chaos',      h:'Kai',         r:['Elemental','Same Wall','Combo'],    st:'waiting', lock:true},
+  {n:'Ranked practice',      h:'Nova',        r:['Same','Plus'],                      st:'playing', lock:true},
+];
+const RULES = [['Show hands (Open)',false],['Same',true],['Plus',true],['Combo',true],['Same Wall',false],['Elemental',true],['Allow spectators',true]];
+const TRUNK = [['skywyrm','x1'],['seraph','x2'],['ironknight','x3'],['tidesiren','x2'],['stormhawk','∞'],['emberimp','x3'],
+               ['frostwisp','x2'],['lantern','x3'],['cactus','∞'],['bogbeetle','x3'],['sandlizard','x3'],['mushroom','x3']];
+
+// ---- Rendering ----
+const v = x => x === 10 ? 'A' : x;
+const BADGE = 'absolute -bottom-2 -right-2 z-10 grid place-items-center h-6 min-w-[1.5rem] px-1.5 rounded-full text-[11px] font-bold';
+
+function stars(c) {
+  const sc = c.s.reduce((a, x) => a + SCORE[x], 0) + (c.e ? ELEMENT_BONUS : 0);
+  return Math.min(5, Math.max(1, Math.round(sc / 100)));
+}
+
+function card(id, side) {
+  const c = C[id], st = stars(c);
+  return `<div class="relative aspect-[5/7] w-full overflow-hidden [container-type:inline-size] ${T.card} ${T[side]}">
+    <div class="absolute inset-x-0 top-[12%] bottom-[22%] grid place-items-center text-[50cqw] leading-none ${T.art}">${c.art}</div>
+    <div class="absolute left-[5%] top-[4%] grid w-[42%] grid-cols-3 text-center text-[15cqw] leading-[1.05] ${T.stat}">
+      <span></span><span>${v(c.s[0])}</span><span></span>
+      <span>${v(c.s[3])}</span><span></span><span>${v(c.s[1])}</span>
+      <span></span><span>${v(c.s[2])}</span><span></span>
+    </div>
+    ${c.e ? `<div class="absolute right-[5%] top-[4%] text-[14cqw] leading-none ${T.elem}">${ELEM[c.e]}</div>` : ''}
+    <div class="absolute inset-x-0 bottom-0 px-[6cqw] py-[3cqw] ${T.plate}">
+      <div class="truncate text-[9.5cqw] leading-tight ${T.name}">${c.n}</div>
+      <div class="text-[9cqw] leading-none ${T.stars}">${'★'.repeat(st)}<span class="opacity-25">${'★'.repeat(5 - st)}</span></div>
+    </div>
+  </div>`;
+}
+
+const back = () => `<div class="aspect-[5/7] w-full ${T.back}"></div>`;
+
+function hand(items, mine) {
+  return `<div class="flex flex-col">${items.map((html, i) =>
+    `<div class="relative transition ${i ? '-mt-[98%]' : ''} ${mine && i === SELECTED ? T.selected : ''}"
+          style="z-index:${mine && i === SELECTED ? 20 : i}">${html}</div>`).join('')}</div>`;
+}
+
+function player(name, meta, score, scoreCls, handHtml, deckLeft) {
+  return `<aside class="space-y-3">
+    <div class="${T.playerBox}"><div class="truncate font-semibold">${name}</div><div class="text-xs ${T.subtle}">${meta}</div></div>
+    ${handHtml}
+    <div class="flex items-end justify-between pt-2"><span class="text-xs ${T.subtle}">Deck ${deckLeft}</span><span class="leading-none ${scoreCls}">${score}</span></div>
+  </aside>`;
+}
+
+const cells = BOARD.map((b, i) => {
+  const el = TILES[i];
+  if (!b) return `<div class="relative grid aspect-[5/7] place-items-center ${T.cell} ${i === TARGET ? T.cellTarget : ''}">
+    ${el ? `<span class="${T.elemTile}">${ELEM[el]}</span>` : ''}</div>`;
+  const mod = el ? (C[b.c].e === el ? '+1' : '−1') : '';
+  return `<div class="relative">${card(b.c, b.side)}${mod ? `<span class="${BADGE} ${T.badge}">${mod}</span>` : ''}</div>`;
+}).join('');
+
+const chip = x => `<span class="${T.chip}">${x}</span>`;
+
+const toggle = ([label, on]) => `<label class="flex cursor-pointer select-none items-center justify-between gap-3 py-1.5">
+  <span class="text-sm">${label}</span>
+  <span class="relative inline-block h-5 w-9 shrink-0">
+    <input type="checkbox" class="peer sr-only" ${on ? 'checked' : ''}>
+    <span class="absolute inset-0 rounded-full transition ${T.track}"></span>
+    <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full transition peer-checked:translate-x-4 ${T.knob}"></span>
+  </span></label>`;
+
+const roomRow = r => `<div class="flex flex-wrap items-center justify-between gap-3 ${T.roomRow}">
+  <div class="min-w-0"><div class="truncate font-semibold">${r.lock ? '🔒 ' : ''}${r.n}</div><div class="text-xs ${T.subtle}">Host: ${r.h}</div></div>
+  <div class="flex flex-wrap gap-1">${r.r.map(chip).join('')}</div>
+  <div class="flex items-center gap-2">
+    <span class="${r.st === 'playing' ? T.playing : T.waiting}">${r.st === 'playing' ? 'In game' : 'Waiting'}</span>
+    ${r.st === 'playing' ? `<button class="${T.btn2} !px-3 !py-1 text-sm">Watch</button>` : `<button class="${T.btn} !px-3 !py-1 text-sm">Join</button>`}
+  </div></div>`;
+
+document.getElementById('app').innerHTML = `
+<header class="${T.header}">
+  <div class="flex items-baseline gap-3"><span class="${T.logo}">Triple Triad</span><span class="hidden text-xs sm:inline ${T.subtle}">${THEME_NAME} theme</span></div>
+  <nav class="hidden items-center gap-1 md:flex">${['Play','Trunk','Decks','Card Maker','Admin'].map((x, i) => `<a href="#" class="${i === 0 ? T.navActive : T.nav}">${x}</a>`).join('')}</nav>
+  <div class="flex items-center gap-2">${chip('Gold II · 1482 · W3')}<span class="${T.avatar}">BS</span></div>
+</header>
+<main class="mx-auto max-w-6xl space-y-6 px-4 py-6">
+  <p class="text-sm ${T.pageNote}">${THEME_DESC} <a href="index.html" class="underline">All themes</a></p>
+
+  <section class="${T.panel} p-4 sm:p-6">
+    <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <div><h2 class="${T.h2}">Friday Duel</h2><div class="mt-1.5 flex flex-wrap gap-1.5">${['Same','Plus','Combo','Elemental'].map(chip).join('')}</div></div>
+      <div class="flex items-center gap-3"><span class="${T.turn}">Your turn</span><span class="${T.timer}">0:24</span></div>
+    </div>
+    <div class="overflow-x-auto pb-2">
+      <div class="mx-auto grid w-max grid-cols-[110px_380px_110px] items-start gap-6 lg:grid-cols-[130px_440px_130px] lg:gap-8">
+        ${player('Mira', 'Silver I · 1310 · L1', 4, T.scoreRed, hand([back(), back(), back()], false), 14)}
+        <div class="${T.board}"><div class="grid grid-cols-3 gap-2">${cells}</div></div>
+        ${player('blankscreen', 'Gold II · 1482 · W3', 6, T.scoreBlue, hand(MY_HAND.map(id => card(id, 'blue')), true), 13)}
+      </div>
+    </div>
+  </section>
+
+  <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+    <div class="space-y-6">
+      <section class="${T.panel} p-4 sm:p-6">
+        <div class="mb-4 flex items-center justify-between"><h2 class="${T.h2}">Lobby</h2><span class="text-xs ${T.subtle}">${ROOMS.length} rooms</span></div>
+        <div class="space-y-2">${ROOMS.map(roomRow).join('')}</div>
+      </section>
+      <section class="${T.panel} p-4 sm:p-6">
+        <div class="mb-4 flex items-center justify-between"><h2 class="${T.h2}">Trunk</h2><span class="text-xs ${T.subtle}">Blue and red backgrounds</span></div>
+        <div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6">
+          ${TRUNK.map(([id, n], i) => `<div class="relative">${card(id, i % 2 ? 'red' : 'blue')}<span class="${BADGE} ${T.badge}">${n}</span></div>`).join('')}
+        </div>
+      </section>
+    </div>
+    <div class="space-y-6">
+      <section class="${T.panel} p-4 sm:p-6">
+        <h2 class="mb-4 ${T.h2}">Create room</h2>
+        <div class="space-y-3">
+          <input class="${T.input}" placeholder="Room name" value="Friday Duel">
+          <div class="grid grid-cols-2 gap-3">
+            <select class="${T.input}"><option>Starter: Wildlands</option><option>My Fire Deck</option></select>
+            <select class="${T.input}"><option>30s turns</option><option>60s turns</option><option>No timer</option></select>
+          </div>
+          <input class="${T.input}" type="password" placeholder="Password (optional)">
+          <div class="pt-1">${RULES.map(toggle).join('')}</div>
+          <button class="${T.btn} w-full">Create room</button>
+        </div>
+      </section>
+      <section class="${T.panel} p-4 text-center sm:p-6">
+        <div class="${T.result}">Victory</div>
+        <div class="mt-1 text-sm ${T.subtle}">6 – 4 · Rating +18 · Streak W4</div>
+        <div class="mt-4 flex gap-3"><button class="${T.btn} flex-1">Continue</button><button class="${T.btn2} flex-1">Leave</button></div>
+        <div class="mt-4 ${T.bar}"><div class="${T.barFill}" style="width:70%"></div></div>
+        <div class="mt-1.5 text-xs ${T.subtle}">Opponent voted Continue · 21s left</div>
+      </section>
+    </div>
+  </div>
+</main>`;
+</script>
+</body>
+</html>
