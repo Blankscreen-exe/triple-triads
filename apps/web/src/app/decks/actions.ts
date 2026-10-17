@@ -2,6 +2,7 @@
 
 import { refresh } from 'next/cache';
 import { redirect } from 'next/navigation';
+import type { SaveDeckResult } from '@/components/decks/deck-editor';
 import { deckContentsSchema, deckNameSchema } from '@/lib/validation/deck';
 import { getDatabase } from '@/server/db';
 import { createDeck, deleteDeck, saveDeck, type DeckEditError } from '@/server/decks/deck-editing';
@@ -41,8 +42,6 @@ export async function deleteDeckAction(formData: FormData): Promise<void> {
   if (deleteDeck(getDatabase(), user.id, deckId).ok) refresh();
 }
 
-export type SaveDeckResult = { readonly ok: true } | { readonly ok: false; readonly error: string };
-
 const SAVE_ERRORS: Record<DeckEditError, string> = {
   DECK_NOT_FOUND: 'That deck no longer exists.',
   DECK_LIMIT: 'You have reached the maximum number of decks.',
@@ -50,7 +49,10 @@ const SAVE_ERRORS: Record<DeckEditError, string> = {
   NOT_ENOUGH_COPIES: 'You do not own enough copies of a card in this deck.',
 };
 
-/** Called from the deck editor with plain data, so the input is validated like any request. */
+/**
+ * Bound to a deck id on the server (`saveDeckAction.bind(null, id)`) and called by the deck
+ * editor with plain data, so every argument is validated like any request.
+ */
 export async function saveDeckAction(deckId: unknown, contents: unknown): Promise<SaveDeckResult> {
   const user = await requireUser();
   if (typeof deckId !== 'string') return { ok: false, error: 'Invalid deck.' };

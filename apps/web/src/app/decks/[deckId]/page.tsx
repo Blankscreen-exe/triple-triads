@@ -7,7 +7,8 @@ import { listDecks } from '@/server/decks/decks';
 import { getGameSettings } from '@/server/settings/settings';
 import { listTrunk } from '@/server/trunk/trunk';
 import { requireUser } from '@/server/web/current-user';
-import { DeckEditor, type EditorCard } from './deck-editor';
+import { DeckEditor, type EditorCard } from '@/components/decks/deck-editor';
+import { saveDeckAction } from '../actions';
 
 export const metadata: Metadata = { title: 'Edit deck' };
 
@@ -38,11 +39,12 @@ async function EditorLoader({ params }: Pick<PageProps<'/decks/[deckId]'>, 'para
 
   return (
     <DeckEditor
-      deckId={deck.id}
       initialName={deck.name}
       initialCounts={counts}
       trunk={trunk}
       rules={getGameSettings(db).deckRules}
+      save={saveDeckAction.bind(null, deck.id)}
+      backHref="/decks"
     />
   );
 }

@@ -4,10 +4,11 @@ A self-hosted, two-player, browser-based version of **Triple Triad**, the card g
 Final Fantasy VIII, with player accounts, a Yu-Gi-Oh-style card collection, a custom card maker and
 uploadable art packs.
 
-> **Status:** in development. Working today: accounts, trunks and starter decks, live two-player
-> games (lobby, every FF8 rule, turn timers, spectators, reconnects, rematches), a card maker with
-> art uploads, a deck editor, and Elo ratings with tiers, streaks, match history and rankings. The
-> admin panel and custom asset packs are next — see [Roadmap](#roadmap).
+> **Status:** feature-complete except custom asset-pack uploads and deployment packaging. Working
+> today: accounts, trunks and starter decks, live two-player games (lobby, every FF8 rule, turn
+> timers, spectators, reconnects, rematches), a card maker with art uploads, a deck editor, Elo
+> ratings with match history and rankings, and an admin panel (users, generic cards, starter decks,
+> game settings, moderation). See [Roadmap](#roadmap).
 
 The full product specification lives in [`design/SPEC.md`](design/SPEC.md).
 
@@ -26,7 +27,11 @@ The full product specification lives in [`design/SPEC.md`](design/SPEC.md).
 - **Complete FF8 rule set**: Same, Same Wall, Plus, Combo chains and Elemental squares, plus this
   project's own draw-per-turn, deck-building and card-ranking rules.
 - **Careful authentication**: Argon2id password hashes (OWASP parameters), session tokens stored
-  only as SHA-256 hashes, constant-time responses for unknown users, and login throttling.
+  only as SHA-256 hashes, constant-time responses for unknown users, and login throttling. Live
+  game connections re-check the session on every action, so logouts, bans and password resets
+  apply immediately.
+- **Admin-configurable rules**: the card score table, deck limits and room policy live in the
+  database and apply immediately in both the web app and the game server.
 - **Integrity in the database, not just the code**: foreign keys, CHECK constraints for every enum
   and stat range, and a partial unique index allowing one default starter deck. Migrations are
   generated SQL, committed, applied automatically at startup, and covered by an upgrade test that
@@ -144,5 +149,5 @@ Run from the repository root; each runs across all workspace packages.
 5. ~~Lobby and live play: rooms, coin flip, turn timer, reconnects, rematch~~
 6. ~~Card maker and deck editor~~
 7. ~~Rating, tiers and streaks~~
-8. Admin panel
+8. ~~Admin panel~~
 9. Custom asset pack uploads, Docker image and VPS deployment guide

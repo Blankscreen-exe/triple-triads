@@ -9,7 +9,7 @@ import { getDatabase } from '@/server/db';
 import { listDecks } from '@/server/decks/decks';
 import { requireUser } from '@/server/web/current-user';
 import { deleteDeckAction, makeDeckActive } from './actions';
-import { describeViolation, violationKey } from './describe-violation';
+import { describeViolation, violationKey } from '@/lib/deck-violations';
 import { NewDeckForm } from './new-deck-form';
 
 export const metadata: Metadata = { title: 'Decks' };

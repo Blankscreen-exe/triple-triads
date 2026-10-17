@@ -20,7 +20,6 @@ import { TextField } from '@/components/ui/text-field';
 import { Window } from '@/components/ui/window';
 import { ELEMENT_LABELS, formatStat } from '@/lib/elements';
 import { CARD_ART_MAX_BYTES, CARD_ART_TYPES, CARD_NAME_MAX_LENGTH } from '@/lib/validation/card';
-import { createCardAction, type CardMakerState } from '../actions';
 
 const STAT_VALUES = Array.from(
   { length: MAX_STAT_VALUE - MIN_STAT_VALUE + 1 },
@@ -32,13 +31,54 @@ const SIDE_LABELS: Record<Side, string> = {
   bottom: 'Bottom',
   left: 'Left',
 };
-const INITIAL_STATE: CardMakerState = { error: null };
+/** What a card form's server action returns. */
+export interface CardFormState {
+  readonly error: string | null;
+}
 
-export function CardMaker({ scoring }: { readonly scoring: ScoringConfig }) {
-  const [state, formAction, isPending] = useActionState(createCardAction, INITIAL_STATE);
-  const [name, setName] = useState('');
-  const [stats, setStats] = useState<Stats>({ top: 5, right: 5, bottom: 5, left: 5 });
-  const [element, setElement] = useState<Element | null>(null);
+export type CardFormAction = (state: CardFormState, formData: FormData) => Promise<CardFormState>;
+
+export interface CardFormValues {
+  readonly name: string;
+  readonly stats: Stats;
+  readonly element: Element | null;
+  /** URL of the card's current art, if any. */
+  readonly artUrl: string | null;
+}
+
+interface CardFormProps {
+  readonly scoring: ScoringConfig;
+  readonly action: CardFormAction;
+  readonly cancelHref: string;
+  readonly initial?: CardFormValues;
+  /** Sent with the form, e.g. the id of the card being edited. */
+  readonly hiddenFields?: Readonly<Record<string, string>>;
+}
+
+const INITIAL_STATE: CardFormState = { error: null };
+const BLANK_CARD: CardFormValues = {
+  name: '',
+  stats: { top: 5, right: 5, bottom: 5, left: 5 },
+  element: null,
+  artUrl: null,
+};
+
+/**
+ * Card editor with a live preview: used by players (custom cards) and admins (generic cards).
+ * Stars are computed with the same engine function and settings the server uses.
+ */
+export function CardForm({
+  scoring,
+  action,
+  cancelHref,
+  initial = BLANK_CARD,
+  hiddenFields = {},
+}: CardFormProps) {
+  const [state, formAction, isPending] = useActionState(action, INITIAL_STATE);
+  const [name, setName] = useState(initial.name);
+  const [stats, setStats] = useState<Stats>(initial.stats);
+  const [element, setElement] = useState<Element | null>(initial.element);
+  // A newly chosen file (object URL) replaces the saved art in the preview.
   const [artUrl, setArtUrl] = useState<string | null>(null);
   const [artError, setArtError] = useState<string | null>(null);
 
@@ -67,6 +107,9 @@ export function CardMaker({ scoring }: { readonly scoring: ScoringConfig }) {
             });
           }}
         >
+          {Object.entries(hiddenFields).map(([fieldName, value]) => (
+            <input key={fieldName} type="hidden" name={fieldName} value={value} />
+          ))}
           <TextField
             label="Name"
             name="name"
@@ -124,8 +167,11 @@ export function CardMaker({ scoring }: { readonly scoring: ScoringConfig }) {
               }}
             />
             <p id="art-hint" className="mt-1 text-xs text-slate-300/70">
-              Optional. PNG, WebP or JPEG up to 5 MB. Best: 1024 × 1434 with a transparent
-              background (see the artist templates).
+              {initial.artUrl
+                ? 'Optional: choose a file to replace the current art. '
+                : 'Optional. '}
+              PNG, WebP or JPEG up to 5 MB. Best: 1024 × 1434 with a transparent background (see the
+              artist templates).
             </p>
             {artError && (
               <p role="alert" className="mt-1 text-sm text-status-live">
@@ -144,7 +190,7 @@ export function CardMaker({ scoring }: { readonly scoring: ScoringConfig }) {
             <Button type="submit" disabled={isPending || !rank.allowed || artError !== null}>
               {isPending ? 'Saving…' : 'Save card'}
             </Button>
-            <Link href="/cards" className={buttonClasses('secondary')}>
+            <Link href={cancelHref} className={buttonClasses('secondary')}>
               Cancel
             </Link>
           </div>
@@ -153,7 +199,13 @@ export function CardMaker({ scoring }: { readonly scoring: ScoringConfig }) {
 
       <div className="space-y-3">
         <CardView
-          card={{ name: name.trim() || 'New card', stats, element, stars: rank.stars, artUrl }}
+          card={{
+            name: name.trim() || 'New card',
+            stats,
+            element,
+            stars: rank.stars,
+            artUrl: artUrl ?? initial.artUrl,
+          }}
           side="blue"
         />
         <p className="text-center text-sm text-slate-200" aria-live="polite">

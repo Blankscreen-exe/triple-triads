@@ -14,9 +14,8 @@ import { CardView, type CardFace } from '@/components/cards/card-view';
 import { Button, buttonClasses } from '@/components/ui/button';
 import { Window } from '@/components/ui/window';
 import { ELEMENT_LABELS } from '@/lib/elements';
-import { DECK_NAME_MAX_LENGTH } from '@/lib/validation/deck';
-import { describeViolation, violationKey } from '../describe-violation';
-import { saveDeckAction } from '../actions';
+import { DECK_NAME_MAX_LENGTH, type DeckContents } from '@/lib/validation/deck';
+import { describeViolation, violationKey } from '@/lib/deck-violations';
 
 /** A card the player owns, as the editor needs it. */
 export interface EditorCard extends CardFace {
@@ -25,15 +24,28 @@ export interface EditorCard extends CardFace {
   readonly owned: number | null;
 }
 
+export type SaveDeckResult = { readonly ok: true } | { readonly ok: false; readonly error: string };
+
 interface DeckEditorProps {
-  readonly deckId: string;
   readonly initialName: string;
   readonly initialCounts: Readonly<Record<string, number>>;
+  /** Cards that may be added: a player's trunk, or every generic card for starter decks. */
   readonly trunk: readonly EditorCard[];
   readonly rules: DeckRules;
+  /** Saves the deck; a server action bound to the deck being edited. */
+  readonly save: (contents: DeckContents) => Promise<SaveDeckResult>;
+  readonly backHref: string;
 }
 
-export function DeckEditor({ deckId, initialName, initialCounts, trunk, rules }: DeckEditorProps) {
+/** Deck editor used for players' decks and for admins' starter decks. */
+export function DeckEditor({
+  initialName,
+  initialCounts,
+  trunk,
+  rules,
+  save: saveDeck,
+  backHref,
+}: DeckEditorProps) {
   const DECK_SIZE = rules.size;
   const [name, setName] = useState(initialName);
   const [counts, setCounts] = useState<Readonly<Record<string, number>>>(initialCounts);
@@ -77,7 +89,7 @@ export function DeckEditor({ deckId, initialName, initialCounts, trunk, rules }:
 
   const save = () => {
     startSaving(async () => {
-      const result = await saveDeckAction(deckId, {
+      const result = await saveDeck({
         name,
         entries: Object.entries(counts).map(([cardId, quantity]) => ({ cardId, quantity })),
       });
@@ -240,7 +252,7 @@ export function DeckEditor({ deckId, initialName, initialCounts, trunk, rules }:
           <Button onClick={save} disabled={isSaving || name.trim() === ''} className="flex-1">
             {isSaving ? 'Saving…' : 'Save deck'}
           </Button>
-          <Link href="/decks" className={buttonClasses('secondary')}>
+          <Link href={backHref} className={buttonClasses('secondary')}>
             Back
           </Link>
         </div>

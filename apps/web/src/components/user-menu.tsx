@@ -36,9 +36,12 @@ export async function UserMenu() {
       <span className="text-sm text-slate-100">
         {user.username}
         {user.role === 'admin' && (
-          <span className="ml-2 rounded-sm border border-frame/50 px-1.5 py-0.5 text-[10px] tracking-wider uppercase">
+          <Link
+            href="/admin"
+            className="ml-2 rounded-sm border border-frame/50 px-1.5 py-0.5 text-[10px] tracking-wider uppercase hover:bg-white/10"
+          >
             Admin
-          </span>
+          </Link>
         )}
       </span>
       <form action={logOut}>

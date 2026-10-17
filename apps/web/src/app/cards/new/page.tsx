@@ -3,7 +3,8 @@ import { Suspense } from 'react';
 import { getDatabase } from '@/server/db';
 import { getGameSettings } from '@/server/settings/settings';
 import { requireUser } from '@/server/web/current-user';
-import { CardMaker } from './card-maker';
+import { CardForm } from '@/components/cards/card-form';
+import { createCardAction } from '../actions';
 
 export const metadata: Metadata = { title: 'New card' };
 
@@ -23,5 +24,11 @@ export default function NewCardPage() {
 
 async function SignedInCardMaker() {
   await requireUser();
-  return <CardMaker scoring={getGameSettings(getDatabase()).scoring} />;
+  return (
+    <CardForm
+      scoring={getGameSettings(getDatabase()).scoring}
+      action={createCardAction}
+      cancelHref="/cards"
+    />
+  );
 }

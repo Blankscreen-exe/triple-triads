@@ -29,3 +29,11 @@ export async function logIn(page: Page, username: string, password = PASSWORD) {
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Log in' }).click();
 }
+
+/** Created by global.setup.ts before any other test, so it is the admin. */
+export const ADMIN = { username: 'e2e-admin', password: 'admin password 123' } as const;
+
+export async function logInAsAdmin(page: Page) {
+  await logIn(page, ADMIN.username, ADMIN.password);
+  await expect(page.getByText(`Welcome back, ${ADMIN.username}`)).toBeVisible();
+}

@@ -20,7 +20,15 @@ export default defineConfig({
     baseURL: BASE_URL,
     trace: 'retain-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    // Creates the admin account first: on a fresh database, the first sign-up becomes admin.
+    { name: 'setup', testMatch: /global\.setup\.ts/ },
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
+    },
+  ],
   webServer: {
     command: `node scripts/remove-dir.mjs ${DATA_DIR} && node --enable-source-maps dist/server.mjs`,
     url: `${BASE_URL}/healthz`,
