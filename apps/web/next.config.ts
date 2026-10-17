@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   // Workspace packages ship TypeScript source.
-  transpilePackages: ['@triple-triad/engine'],
+  transpilePackages: ['@triple-triad/card-layout', '@triple-triad/engine'],
   turbopack: {
     rules: {
       '*.css': {

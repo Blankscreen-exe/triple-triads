@@ -5,7 +5,8 @@ Final Fantasy VIII, with player accounts, a Yu-Gi-Oh-style card collection, a cu
 uploadable art packs.
 
 > **Status:** in development. Working today: the complete rules engine, accounts (sign-up, login,
-> sessions), every player's trunk and starter decks, and choosing an active deck. Lobby, live play,
+> sessions), every player's trunk and starter decks, choosing an active deck, and the card renderer
+> with the default asset pack. Lobby, live play,
 > card maker, deck editor and admin panel are next — see [Roadmap](#roadmap).
 
 The full product specification lives in [`design/SPEC.md`](design/SPEC.md).
@@ -58,12 +59,13 @@ Inside `apps/web/src`:
 | `server/web/` | The only code that touches Next.js request APIs (cookies, current user).           |
 | `lib/`        | Code shared by server and browser (validation rules, formatting).                  |
 
-| Path                | What it is                                                                     |
-| ------------------- | ------------------------------------------------------------------------------ |
-| `packages/engine`   | Rules engine. Framework-free TypeScript, unit-tested to ≥ 95 % coverage.       |
-| `apps/web`          | Next.js app and the custom server (`src/server`) that hosts it with Socket.IO. |
-| `design/`           | Specification, card layout (`card-layout.json`), artist templates and mockups. |
-| `.github/workflows` | CI: formatting, lint, type-check, tests, coverage gate, build and end-to-end.  |
+| Path                   | What it is                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| `packages/engine`      | Rules engine. Framework-free TypeScript, unit-tested to ≥ 95 % coverage.       |
+| `apps/web`             | Next.js app and the custom server (`src/server`) that hosts it with Socket.IO. |
+| `packages/card-layout` | Card face layout (positions of every element) shared by renderer and tools.    |
+| `design/`              | Specification, artist templates and theme mockups.                             |
+| `.github/workflows`    | CI: formatting, lint, type-check, tests, coverage gate, build and end-to-end.  |
 
 ### Engine at a glance
 
@@ -133,7 +135,7 @@ Run from the repository root; each runs across all workspace packages.
 1. ~~Project setup: monorepo, strict TypeScript, lint, tests, CI, custom server, theme~~
 2. ~~Rules engine with tests~~
 3. ~~Accounts, trunk and starter decks (SQLite)~~
-4. Card renderer and default asset pack
+4. ~~Card renderer and default asset pack~~
 5. Lobby and live play: rooms, coin flip, turn timer, reconnects, rematch
 6. Card maker and deck editor
 7. Rating, tiers and streaks

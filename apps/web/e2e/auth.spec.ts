@@ -1,34 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-
-const PASSWORD = 'correct horse battery';
-
-/** A username no other test (or retry) will use. */
-function uniqueUsername(): string {
-  return `p${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`.slice(0, 20);
-}
-
-async function submitSignUp(page: Page, username: string, password = PASSWORD) {
-  await page.goto('/signup');
-  await page.getByLabel('Username').fill(username);
-  await page.getByLabel('Password').fill(password);
-  await page.getByRole('button', { name: 'Sign up' }).click();
-}
-
-/** Signs up and waits until the session is established (the app redirects home). */
-async function signUp(page: Page, username: string) {
-  await submitSignUp(page, username);
-  await expect(page.getByText(`Welcome back, ${username}`)).toBeVisible();
-}
-
-/** The form's error message (Next.js renders its own, empty, route-announcer alert too). */
-const formError = (page: Page) => page.locator('form').getByRole('alert');
-
-async function logIn(page: Page, username: string, password = PASSWORD) {
-  await page.goto('/login');
-  await page.getByLabel('Username').fill(username);
-  await page.getByLabel('Password').fill(password);
-  await page.getByRole('button', { name: 'Log in' }).click();
-}
+import { expect, test } from '@playwright/test';
+import { formError, logIn, signUp, submitSignUp, uniqueUsername } from './helpers';
 
 test('a new player signs up and gets the starter decks', async ({ page }) => {
   const username = uniqueUsername();
