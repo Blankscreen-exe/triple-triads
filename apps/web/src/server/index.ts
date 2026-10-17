@@ -63,7 +63,7 @@ async function main(): Promise<void> {
     });
   });
 
-  const io = createSocketServer(httpServer, logger);
+  const realtime = createSocketServer(httpServer, { db, logger });
 
   await new Promise<void>((resolve, reject) => {
     httpServer.once('error', reject);
@@ -85,13 +85,17 @@ async function main(): Promise<void> {
 
     stopSessionCleanup();
     // Closing Socket.IO also closes the underlying HTTP server.
-    void io.close((error) => {
-      if (error) logger.error({ err: error }, 'error while closing the server');
-      void app.close().finally(() => {
+    realtime
+      .close()
+      .then(() => app.close())
+      .then(() => {
         closeDatabase(db);
-        process.exit(error ? 1 : 0);
+        process.exit(0);
+      })
+      .catch((error: unknown) => {
+        logger.error({ err: error }, 'error while shutting down');
+        process.exit(1);
       });
-    });
   };
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);

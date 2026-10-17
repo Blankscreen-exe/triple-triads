@@ -1,8 +1,6 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-
-/** Shared with the Socket.IO server, which reads the same cookie from the handshake. */
-export const SESSION_COOKIE = 'tt_session';
+import { SESSION_COOKIE } from '../auth/session-cookie-name';
 
 export async function readSessionToken(): Promise<string | null> {
   return (await cookies()).get(SESSION_COOKIE)?.value ?? null;
