@@ -150,6 +150,7 @@ export class RoomManager {
       this.#changed(room);
       return ok(null);
     }
+    if (input.as === 'spectator' && room.spectators.has(user.id)) return ok(null);
     if (room.passwordHash !== null && !passwordMatches(room.passwordHash, input.password)) {
       return fail('WRONG_PASSWORD');
     }

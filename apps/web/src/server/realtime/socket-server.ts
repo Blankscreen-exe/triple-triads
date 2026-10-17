@@ -161,7 +161,14 @@ export function createSocketServer(
         // Register first so the snapshot sent for this change reaches this socket.
         addPresence(data.roomId, socket);
         const result = rooms.joinRoom(roomUser, data);
-        if (!result.ok) removePresence(data.roomId, socket);
+        if (!result.ok) {
+          removePresence(data.roomId, socket);
+          return result;
+        }
+        // Always give the joining connection the current state, even when the join changed
+        // nothing (e.g. a spectator re-opening the room page).
+        const snapshot = rooms.snapshot(data.roomId, user.id);
+        if (snapshot) socket.emit('room:state', snapshot);
         return result;
       });
     });

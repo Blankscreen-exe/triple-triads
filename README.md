@@ -4,10 +4,10 @@ A self-hosted, two-player, browser-based version of **Triple Triad**, the card g
 Final Fantasy VIII, with player accounts, a Yu-Gi-Oh-style card collection, a custom card maker and
 uploadable art packs.
 
-> **Status:** in development. Working today: the complete rules engine, accounts (sign-up, login,
-> sessions), every player's trunk and starter decks, choosing an active deck, and the card renderer
-> with the default asset pack. Lobby, live play,
-> card maker, deck editor and admin panel are next — see [Roadmap](#roadmap).
+> **Status:** in development. Working today: accounts, trunks and starter decks, the card renderer,
+> and **live two-player games**: a lobby with rooms, every FF8 rule, turn timers, spectators,
+> reconnects and rematches. Card maker, deck editor, ratings and the admin panel are next — see
+> [Roadmap](#roadmap).
 
 The full product specification lives in [`design/SPEC.md`](design/SPEC.md).
 
@@ -16,8 +16,11 @@ The full product specification lives in [`design/SPEC.md`](design/SPEC.md).
 - **Pure, deterministic rules engine** (`packages/engine`): no I/O, no clock, no `Math.random()`.
   Game state is plain immutable data and every random decision comes from a seed stored in the
   state, so any game can be replayed exactly from its seed and moves. Enforced by lint rules.
-- **Server-authoritative multiplayer**: clients send intents, the server validates every move with
-  the engine and sends each player a _view_ that hides the opponent's hand and both draw piles.
+- **Server-authoritative multiplayer**: clients send intents over a typed, zod-validated Socket.IO
+  protocol; the server validates every move with the engine and sends each participant a
+  personalised snapshot that hides the opponent's hand and both draw piles. The room manager's
+  clock, randomness and deck loading are injected, so turn timers, reconnect windows and rematch
+  votes are tested deterministically.
 - **One process, one port**: a custom Node server hosts Next.js, the Socket.IO real-time channel
   and a health check, so it runs the same behind a local tunnel or on a VPS.
 - **Complete FF8 rule set**: Same, Same Wall, Plus, Combo chains and Elemental squares, plus this
@@ -136,7 +139,7 @@ Run from the repository root; each runs across all workspace packages.
 2. ~~Rules engine with tests~~
 3. ~~Accounts, trunk and starter decks (SQLite)~~
 4. ~~Card renderer and default asset pack~~
-5. Lobby and live play: rooms, coin flip, turn timer, reconnects, rematch
+5. ~~Lobby and live play: rooms, coin flip, turn timer, reconnects, rematch~~
 6. Card maker and deck editor
 7. Rating, tiers and streaks
 8. Admin panel

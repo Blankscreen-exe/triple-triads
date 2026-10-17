@@ -197,6 +197,16 @@ describe('spectators', () => {
     expect(snapshot?.game?.cards).toEqual({});
   });
 
+  it('are not asked for the password again while they are watching', () => {
+    const manager = createManager();
+    startedGame(manager, roomInput({ password: 'secret' }));
+    manager.joinRoom(carol, { roomId: 'room-1', password: 'secret', as: 'spectator' });
+
+    expect(manager.joinRoom(carol, { roomId: 'room-1', password: '', as: 'spectator' }).ok).toBe(
+      true,
+    );
+  });
+
   it('are turned away when the room does not allow them', () => {
     const manager = createManager();
     manager.createRoom(alice, roomInput({ options: options({ allowSpectators: false }) }));

@@ -28,6 +28,50 @@
   --color-score-red: #ff9aa2;
   --color-status-live: #c2424f;
   --color-status-open: #3a8f5a;
+
+  /* Game animations (used with motion-safe: so reduced-motion users skip them). */
+  --animate-card-drop: card-drop 260ms ease-out;
+  --animate-card-flip: card-flip 450ms ease-out;
+  --animate-banner: banner 1.6s ease-out forwards;
+
+  @keyframes card-drop {
+    from {
+      opacity: 0;
+      transform: translateY(-12%) scale(1.08);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes card-flip {
+    from {
+      transform: perspective(600px) rotateY(90deg);
+    }
+    to {
+      transform: perspective(600px) rotateY(0deg);
+    }
+  }
+
+  @keyframes banner {
+    0% {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    15% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+    75% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1);
+    }
+  }
 }
 
 /* Font families come from next/font (self-hosted) via CSS variables set in the root layout. */

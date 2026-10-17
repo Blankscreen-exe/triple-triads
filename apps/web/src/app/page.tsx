@@ -51,11 +51,11 @@ async function Welcome() {
         )}
       </p>
       <div className="flex justify-center gap-3">
-        <Link href="/decks" className={buttonClasses('primary')}>
-          Your decks
+        <Link href="/play" className={buttonClasses('primary')}>
+          Play
         </Link>
-        <Link href="/trunk" className={buttonClasses('secondary')}>
-          Your trunk
+        <Link href="/decks" className={buttonClasses('secondary')}>
+          Your decks
         </Link>
       </div>
     </div>

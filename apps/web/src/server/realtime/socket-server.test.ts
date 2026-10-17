@@ -161,6 +161,20 @@ describe('socket server', () => {
     expect(update.game?.cards[card.card.id]).toBeDefined();
   });
 
+  it('sends the current state to a connection that re-joins a room it is already in', async () => {
+    const alice = await signedInClient('alice');
+    const carol = await signedInClient('carol');
+    const created = await alice.emitWithAck('room:create', ROOM);
+    if (!created.ok) throw new Error(created.error);
+    const { roomId } = created.data;
+    await carol.emitWithAck('room:join', { roomId, password: '', as: 'spectator' });
+
+    const state = nextEvent(carol, 'room:state');
+    await carol.emitWithAck('room:join', { roomId, password: '', as: 'spectator' });
+
+    expect((await state).you.role).toBe('spectator');
+  });
+
   it('pauses the game when a player closes their last connection', async () => {
     const alice = await signedInClient('alice');
     const bob = await signedInClient('bob');
