@@ -2,8 +2,10 @@
 
 import { ELEMENTAL_MODES, type ElementalMode } from '@triple-triad/engine';
 import { useRouter } from 'next/navigation';
-import { useId, useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { SelectField } from '@/components/ui/select-field';
+import { Toggle } from '@/components/ui/toggle';
 import { TextField } from '@/components/ui/text-field';
 import { createRoom } from '@/lib/realtime/hooks';
 import {
@@ -15,12 +17,7 @@ import {
   type RoomOptions,
   type TurnSeconds,
 } from '@/lib/realtime/protocol';
-
-const DEFAULT_OPTIONS: RoomOptions = {
-  rules: { open: false, same: true, plus: true, combo: true, sameWall: false, elemental: 'off' },
-  turnSeconds: 30,
-  allowSpectators: true,
-};
+import type { LockableOption, RoomPolicy } from '@/lib/validation/settings';
 
 const ELEMENTAL_LABELS: Record<ElementalMode, string> = {
   off: 'Off',
@@ -37,11 +34,20 @@ const RULE_TOGGLES: readonly { key: RuleToggle; label: string; hint: string }[] 
   { key: 'combo', label: 'Combo', hint: 'Same/Plus captures chain on' },
 ];
 
-export function CreateRoomForm({ defaultName }: { readonly defaultName: string }) {
+interface CreateRoomFormProps {
+  readonly defaultName: string;
+  /** The admin's room policy: starting values, and options hosts may not change. */
+  readonly policy: RoomPolicy;
+}
+
+const LOCKED_HINT = 'Set by the admin';
+
+export function CreateRoomForm({ defaultName, policy }: CreateRoomFormProps) {
   const router = useRouter();
   const [name, setName] = useState(defaultName);
   const [password, setPassword] = useState('');
-  const [options, setOptions] = useState(DEFAULT_OPTIONS);
+  const [options, setOptions] = useState(policy.defaults);
+  const locked = new Set<LockableOption>(policy.locked);
   const [error, setError] = useState<RoomError | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -93,6 +99,8 @@ export function CreateRoomForm({ defaultName }: { readonly defaultName: string }
         <SelectField
           label="Turn timer"
           value={String(options.turnSeconds)}
+          disabled={locked.has('turnSeconds')}
+          {...(locked.has('turnSeconds') && { hint: LOCKED_HINT })}
           onChange={(value) => {
             setOptions((current) => ({ ...current, turnSeconds: parseTurnSeconds(value) }));
           }}
@@ -106,6 +114,8 @@ export function CreateRoomForm({ defaultName }: { readonly defaultName: string }
         <SelectField
           label="Elemental"
           value={options.rules.elemental}
+          disabled={locked.has('elemental')}
+          {...(locked.has('elemental') && { hint: LOCKED_HINT })}
           onChange={(value) => {
             setRule('elemental', ELEMENTAL_MODES.find((mode) => mode === value) ?? 'off');
           }}
@@ -124,8 +134,9 @@ export function CreateRoomForm({ defaultName }: { readonly defaultName: string }
           <Toggle
             key={key}
             label={label}
-            hint={hint}
+            hint={locked.has(key) ? `${hint} · ${LOCKED_HINT}` : hint}
             checked={options.rules[key]}
+            disabled={locked.has(key)}
             onChange={(checked) => {
               setRule(key, checked);
             }}
@@ -134,6 +145,8 @@ export function CreateRoomForm({ defaultName }: { readonly defaultName: string }
         <Toggle
           label="Allow spectators"
           checked={options.allowSpectators}
+          disabled={locked.has('allowSpectators')}
+          {...(locked.has('allowSpectators') && { hint: LOCKED_HINT })}
           onChange={(checked) => {
             setOptions((current) => ({ ...current, allowSpectators: checked }));
           }}
@@ -154,68 +167,4 @@ export function CreateRoomForm({ defaultName }: { readonly defaultName: string }
 
 function parseTurnSeconds(value: string): TurnSeconds {
   return TURN_TIMER_OPTIONS.find((option) => String(option) === value) ?? null;
-}
-
-function SelectField({
-  label,
-  value,
-  onChange,
-  children,
-}: {
-  readonly label: string;
-  readonly value: string;
-  readonly onChange: (value: string) => void;
-  readonly children: ReactNode;
-}) {
-  const id = useId();
-  return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-100">
-        {label}
-      </label>
-      <select
-        id={id}
-        value={value}
-        onChange={(event) => {
-          onChange(event.target.value);
-        }}
-        className="mt-1 w-full rounded-md border border-frame/50 bg-black/30 px-3 py-2 text-sm text-slate-100 [color-scheme:dark] focus:ring-2 focus:ring-cream focus:outline-none"
-      >
-        {children}
-      </select>
-    </div>
-  );
-}
-
-function Toggle({
-  label,
-  hint,
-  checked,
-  onChange,
-}: {
-  readonly label: string;
-  readonly hint?: string;
-  readonly checked: boolean;
-  readonly onChange: (checked: boolean) => void;
-}) {
-  return (
-    <label className="flex cursor-pointer items-center justify-between gap-3 py-1">
-      <span>
-        <span className="block text-sm text-slate-100">{label}</span>
-        {hint && <span className="block text-xs text-slate-300/70">{hint}</span>}
-      </span>
-      <span className="relative inline-block h-5 w-9 shrink-0">
-        <input
-          type="checkbox"
-          className="peer sr-only"
-          checked={checked}
-          onChange={(event) => {
-            onChange(event.target.checked);
-          }}
-        />
-        <span className="absolute inset-0 rounded-full bg-black/40 ring-1 ring-frame/50 transition peer-checked:bg-action peer-focus-visible:ring-2 peer-focus-visible:ring-cream" />
-        <span className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-cream transition peer-checked:translate-x-4" />
-      </span>
-    </label>
-  );
 }

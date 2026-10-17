@@ -8,6 +8,7 @@ import {
   isStatValue,
   rankCard,
   type Element,
+  type ScoringConfig,
   type Side,
   type Stats,
 } from '@triple-triad/engine';
@@ -33,7 +34,7 @@ const SIDE_LABELS: Record<Side, string> = {
 };
 const INITIAL_STATE: CardMakerState = { error: null };
 
-export function CardMaker() {
+export function CardMaker({ scoring }: { readonly scoring: ScoringConfig }) {
   const [state, formAction, isPending] = useActionState(createCardAction, INITIAL_STATE);
   const [name, setName] = useState('');
   const [stats, setStats] = useState<Stats>({ top: 5, right: 5, bottom: 5, left: 5 });
@@ -49,7 +50,7 @@ export function CardMaker() {
     [artUrl],
   );
 
-  const rank = rankCard(stats, element);
+  const rank = rankCard(stats, element, scoring);
 
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_280px]">
@@ -93,7 +94,7 @@ export function CardMaker() {
             </div>
           </fieldset>
 
-          <ElementSelect value={element} onChange={setElement} />
+          <ElementSelect value={element} bonus={scoring.elementBonus} onChange={setElement} />
 
           <div>
             <label htmlFor="art" className="block text-sm font-medium text-slate-100">
@@ -205,9 +206,11 @@ function StatSelect({
 
 function ElementSelect({
   value,
+  bonus,
   onChange,
 }: {
   readonly value: Element | null;
+  readonly bonus: number;
   readonly onChange: (value: Element | null) => void;
 }) {
   return (
@@ -227,7 +230,7 @@ function ElementSelect({
         <option value="">None</option>
         {ELEMENTS.map((element) => (
           <option key={element} value={element}>
-            {ELEMENT_LABELS[element]} (+10 score)
+            {ELEMENT_LABELS[element]} (+{bonus} score)
           </option>
         ))}
       </select>

@@ -7,9 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Window } from '@/components/ui/window';
 import { joinRoom, useLobby } from '@/lib/realtime/hooks';
 import { ROOM_ERRORS, type RoomError, type RoomSummary } from '@/lib/realtime/protocol';
+import type { RoomPolicy } from '@/lib/validation/settings';
 import { CreateRoomForm } from './create-room-form';
 
-export function Lobby({ username }: { readonly username: string }) {
+export function Lobby({
+  username,
+  policy,
+}: {
+  readonly username: string;
+  readonly policy: RoomPolicy;
+}) {
   const rooms = useLobby();
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -33,7 +40,7 @@ export function Lobby({ username }: { readonly username: string }) {
         <h2 className="mb-4 font-display text-lg font-bold tracking-wider text-cream">
           Create room
         </h2>
-        <CreateRoomForm defaultName={`${username}'s room`} />
+        <CreateRoomForm defaultName={`${username}'s room`} policy={policy} />
       </Window>
     </div>
   );

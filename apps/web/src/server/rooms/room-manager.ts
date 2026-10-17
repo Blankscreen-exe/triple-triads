@@ -34,6 +34,7 @@ import type {
   RoomSummary,
   VoteChoice,
 } from '@/lib/realtime/protocol';
+import { DEFAULT_ROOM_POLICY, applyRoomPolicy, type RoomPolicy } from '@/lib/validation/settings';
 import type { DeckProvider } from './game-decks';
 import type { ActiveGame, FinishedGame, Room, RoomUser, Seat } from './model';
 import { colorOf, snapshotFor, summarizeRoom } from './snapshot';
@@ -61,6 +62,8 @@ export interface RoomManagerDeps {
   readonly newSeed?: () => number;
   readonly newRoomId?: () => string;
   readonly packFor?: (userId: string) => AssetPack;
+  /** The admin's room policy: defaults and locked options (read on each room creation). */
+  readonly roomPolicy?: () => RoomPolicy;
   /** How long a disconnected player has to come back (spec: 2 minutes). */
   readonly reconnectGraceMs?: number;
   /** How long the rematch vote stays open (spec: 30 seconds). */
@@ -89,6 +92,7 @@ export class RoomManager {
       newSeed: () => randomInt(2 ** 32 - 1),
       newRoomId: () => randomUUID(),
       packFor: () => DEFAULT_ASSET_PACK,
+      roomPolicy: () => DEFAULT_ROOM_POLICY,
       reconnectGraceMs: RECONNECT_GRACE_MS,
       rematchVoteMs: REMATCH_VOTE_MS,
       ...deps,
@@ -128,7 +132,7 @@ export class RoomManager {
       id: this.#deps.newRoomId(),
       name: input.name.trim(),
       passwordHash: input.password ? hashPassword(input.password) : null,
-      options: input.options,
+      options: applyRoomPolicy(input.options, this.#deps.roomPolicy()),
       createdAt: this.#deps.now(),
       hostId: user.id,
       seats: [seat.data],

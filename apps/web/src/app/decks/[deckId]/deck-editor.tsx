@@ -1,9 +1,9 @@
 'use client';
 
 import {
-  DEFAULT_DECK_RULES,
   ELEMENTS,
   validateDeck,
+  type DeckRules,
   type DeckViolation,
   type Element,
 } from '@triple-triad/engine';
@@ -30,11 +30,11 @@ interface DeckEditorProps {
   readonly initialName: string;
   readonly initialCounts: Readonly<Record<string, number>>;
   readonly trunk: readonly EditorCard[];
+  readonly rules: DeckRules;
 }
 
-const DECK_SIZE = DEFAULT_DECK_RULES.size;
-
-export function DeckEditor({ deckId, initialName, initialCounts, trunk }: DeckEditorProps) {
+export function DeckEditor({ deckId, initialName, initialCounts, trunk, rules }: DeckEditorProps) {
+  const DECK_SIZE = rules.size;
   const [name, setName] = useState(initialName);
   const [counts, setCounts] = useState<Readonly<Record<string, number>>>(initialCounts);
   const [query, setQuery] = useState('');
@@ -53,6 +53,7 @@ export function DeckEditor({ deckId, initialName, initialCounts, trunk }: DeckEd
         stars: card.stars,
       })),
     ),
+    rules,
   );
 
   const remaining = (card: EditorCard) =>

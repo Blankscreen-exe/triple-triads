@@ -15,6 +15,7 @@ import {
   trunkCards,
   users,
 } from '../db/schema';
+import { getGameSettings } from '../settings/settings';
 
 export interface DeckEntry {
   readonly card: CardSummary;
@@ -80,6 +81,7 @@ export function grantStarterDecks(tx: DbExecutor, userId: string): string | null
 }
 
 export function listDecks(db: DbExecutor, userId: string): DeckSummary[] {
+  const { scoring, deckRules } = getGameSettings(db);
   const user = db
     .select({ activeDeckId: users.activeDeckId })
     .from(users)
@@ -109,7 +111,7 @@ export function listDecks(db: DbExecutor, userId: string): DeckSummary[] {
   return ownDecks.map((deck) => {
     const entries = rows
       .filter((row) => row.deckId === deck.id)
-      .map((row) => ({ card: toCardSummary(row.card), quantity: row.quantity }))
+      .map((row) => ({ card: toCardSummary(row.card, scoring), quantity: row.quantity }))
       .sort((a, b) => compareCards(a.card, b.card));
     return {
       id: deck.id,
@@ -117,7 +119,7 @@ export function listDecks(db: DbExecutor, userId: string): DeckSummary[] {
       isActive: deck.id === user?.activeDeckId,
       entries,
       size: entries.reduce((total, entry) => total + entry.quantity, 0),
-      violations: validateDeck(expandEntries(entries)),
+      violations: validateDeck(expandEntries(entries), deckRules),
     };
   });
 }

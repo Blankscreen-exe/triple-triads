@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
+import { getDatabase } from '@/server/db';
+import { getGameSettings } from '@/server/settings/settings';
 import { requireUser } from '@/server/web/current-user';
 import { CardMaker } from './card-maker';
 
@@ -21,5 +23,5 @@ export default function NewCardPage() {
 
 async function SignedInCardMaker() {
   await requireUser();
-  return <CardMaker />;
+  return <CardMaker scoring={getGameSettings(getDatabase()).scoring} />;
 }

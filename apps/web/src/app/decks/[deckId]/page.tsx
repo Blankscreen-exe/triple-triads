@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { toCardFace } from '@/components/cards/to-card-face';
 import { getDatabase } from '@/server/db';
 import { listDecks } from '@/server/decks/decks';
+import { getGameSettings } from '@/server/settings/settings';
 import { listTrunk } from '@/server/trunk/trunk';
 import { requireUser } from '@/server/web/current-user';
 import { DeckEditor, type EditorCard } from './deck-editor';
@@ -36,6 +37,12 @@ async function EditorLoader({ params }: Pick<PageProps<'/decks/[deckId]'>, 'para
   const counts = Object.fromEntries(deck.entries.map((entry) => [entry.card.id, entry.quantity]));
 
   return (
-    <DeckEditor deckId={deck.id} initialName={deck.name} initialCounts={counts} trunk={trunk} />
+    <DeckEditor
+      deckId={deck.id}
+      initialName={deck.name}
+      initialCounts={counts}
+      trunk={trunk}
+      rules={getGameSettings(db).deckRules}
+    />
   );
 }

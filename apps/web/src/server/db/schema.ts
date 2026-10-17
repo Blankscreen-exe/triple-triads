@@ -52,6 +52,8 @@ export const users = sqliteTable(
     draws: integer('draws').notNull().default(0),
     /** Positive for consecutive wins, negative for consecutive losses. Draws leave it unchanged. */
     streak: integer('streak').notNull().default(0),
+    /** Set while the account is banned: it cannot log in and has no sessions. */
+    bannedAt: integer('banned_at', { mode: 'timestamp_ms' }),
     createdAt: createdAt(),
   },
   (table) => [
@@ -234,3 +236,12 @@ export const starterDeckCards = sqliteTable(
     check('starter_deck_cards_quantity_positive', sql`${table.quantity} > 0`),
   ],
 );
+
+/** Admin-editable game settings, one JSON value per key (validated by the settings service). */
+export const settings = sqliteTable('settings', {
+  key: text('key').primaryKey(),
+  value: text('value', { mode: 'json' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});

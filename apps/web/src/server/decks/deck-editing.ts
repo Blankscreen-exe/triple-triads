@@ -7,11 +7,11 @@
  * breaks them cannot be taken into a game.
  */
 import { randomUUID } from 'node:crypto';
-import { DEFAULT_DECK_RULES } from '@triple-triad/engine';
 import { and, asc, count, eq, ne, sql } from 'drizzle-orm';
 import type { DeckContents } from '@/lib/validation/deck';
 import type { AppDatabase } from '../db/client';
 import { deckCards, decks, users } from '../db/schema';
+import { getGameSettings } from '../settings/settings';
 import { listTrunk } from '../trunk/trunk';
 
 export const MAX_DECKS_PER_PLAYER = 30;
@@ -45,7 +45,7 @@ export function saveDeck(
   if (!ownsDeck(db, userId, deckId)) return { ok: false, error: 'DECK_NOT_FOUND' };
 
   const total = entries.reduce((sum, entry) => sum + entry.quantity, 0);
-  if (total > DEFAULT_DECK_RULES.size) return { ok: false, error: 'TOO_MANY_CARDS' };
+  if (total > getGameSettings(db).deckRules.size) return { ok: false, error: 'TOO_MANY_CARDS' };
 
   const available = new Map(listTrunk(db, userId).map((entry) => [entry.card.id, entry.quantity]));
   for (const { cardId, quantity } of entries) {

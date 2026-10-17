@@ -2,11 +2,12 @@
  * Player-made cards (design/SPEC.md, sections 4.3 and 6). The creator owns unlimited copies.
  */
 import { randomUUID } from 'node:crypto';
-import { DEFAULT_SCORING, rankCard, type ScoringConfig } from '@triple-triad/engine';
+import { rankCard } from '@triple-triad/engine';
 import { and, count, eq } from 'drizzle-orm';
 import type { CardInput } from '@/lib/validation/card';
 import type { AppDatabase } from '../db/client';
 import { cards } from '../db/schema';
+import { getGameSettings } from '../settings/settings';
 import type { FileStorage } from '../storage/storage';
 import { processCardArt, type CardArtError } from './card-art';
 
@@ -25,8 +26,8 @@ export async function createCustomCard(
   creatorId: string,
   input: CardInput,
   art: Buffer | null,
-  scoring: ScoringConfig = DEFAULT_SCORING,
 ): Promise<CreateCardResult> {
+  const { scoring } = getGameSettings(db);
   if (!rankCard(input.stats, input.element, scoring).allowed) {
     return { ok: false, error: 'TOO_STRONG' };
   }

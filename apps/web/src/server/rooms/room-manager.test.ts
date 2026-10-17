@@ -131,6 +131,22 @@ describe('creating and joining rooms', () => {
     expect(events.lobbyChanged).toHaveBeenCalled();
   });
 
+  it('applies the admin’s locked room options', () => {
+    const manager = new RoomManager({
+      decks: deckProvider,
+      events: events as unknown as RoomEvents,
+      newRoomId: () => 'room-1',
+      roomPolicy: () => ({
+        defaults: options({ turnSeconds: 60 }),
+        locked: ['turnSeconds'],
+      }),
+    });
+
+    manager.createRoom(alice, roomInput({ options: options({ turnSeconds: null }) }));
+
+    expect(manager.listRooms()[0]?.options.turnSeconds).toBe(60);
+  });
+
   it('needs a usable active deck', () => {
     const manager = createManager();
 

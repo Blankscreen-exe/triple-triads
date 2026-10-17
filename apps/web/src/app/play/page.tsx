@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
+import { getDatabase } from '@/server/db';
+import { getGameSettings } from '@/server/settings/settings';
 import { requireUser } from '@/server/web/current-user';
 import { Lobby } from './lobby';
 
@@ -21,5 +23,5 @@ export default function PlayPage() {
 
 async function LobbyLoader() {
   const user = await requireUser();
-  return <Lobby username={user.username} />;
+  return <Lobby username={user.username} policy={getGameSettings(getDatabase()).roomPolicy} />;
 }

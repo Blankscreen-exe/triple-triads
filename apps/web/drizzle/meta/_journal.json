@@ -15,6 +15,13 @@
       "when": 1792278234687,
       "tag": "0001_player_ratings_and_matches",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792278770166,
+      "tag": "0002_admin_settings_and_bans",
+      "breakpoints": true
     }
   ]
 }
