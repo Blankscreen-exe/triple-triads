@@ -74,7 +74,7 @@ Inside `apps/web/src`:
 | `packages/engine`      | Rules engine. Framework-free TypeScript, unit-tested to ≥ 95 % coverage.       |
 | `apps/web`             | Next.js app and the custom server (`src/server`) that hosts it with Socket.IO. |
 | `packages/card-layout` | Card face layout (positions of every element) shared by renderer and tools.    |
-| `design/`              | Specification, artist templates and theme mockups.                             |
+| `design/`              | Specification, art tools (templates, default pack) and theme mockups.          |
 | `.github/workflows`    | CI: formatting, lint, type-check, tests, coverage gate, build and end-to-end.  |
 
 ### Engine at a glance

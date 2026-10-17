@@ -1,6 +1,6 @@
 """Generate measurement templates from packages/card-layout/src/card-layout.json.
 
-Outputs (in design/templates/):
+Outputs (in apps/web/public/templates/, downloadable from the app's /templates page):
   card-template-lines.png    - card outlines only, transparent (drop on top of your PSD)
   card-template-labeled.png  - card outlines + labels and pixel coordinates, white background
   frame-template-lines.png         - frame outlines only, transparent (for frame.png)
@@ -19,7 +19,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 DESIGN = Path(__file__).resolve().parent.parent
-OUT = DESIGN / "templates"
+OUT = DESIGN.parent / "apps" / "web" / "public" / "templates"
 LAYOUT = json.loads((DESIGN.parent / "packages" / "card-layout" / "src" / "card-layout.json").read_text())
 
 W, H = LAYOUT["width"], LAYOUT["height"]
