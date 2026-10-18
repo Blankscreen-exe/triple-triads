@@ -10,14 +10,15 @@ interface RoundAnnounceProps {
 export function RoundAnnounce({ round, turn }: RoundAnnounceProps) {
   const [visible, setVisible] = useState<number | null>(null);
   const [phase, setPhase] = useState<'enter' | 'exit'>('enter');
-  const prevRound = useRef<number | null>(null);
+  const mountTurn = useRef(turn);
+  const prevRound = useRef(round);
 
   useEffect(() => {
-    const isNewRound = prevRound.current !== null && round !== prevRound.current;
-    const isFirstMount = prevRound.current === null && turn <= 1;
+    const isRoundChange = round !== prevRound.current;
+    const isFirstRound = prevRound.current === round && mountTurn.current <= 1 && visible === null;
     prevRound.current = round;
 
-    if (!isNewRound && !isFirstMount) return;
+    if (!isRoundChange && !isFirstRound) return;
 
     setPhase('enter');
     setVisible(round);
@@ -28,7 +29,7 @@ export function RoundAnnounce({ round, turn }: RoundAnnounceProps) {
       clearTimeout(exitTimer);
       clearTimeout(hideTimer);
     };
-  }, [round, turn]);
+  }, [round]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (visible === null) return null;
 
