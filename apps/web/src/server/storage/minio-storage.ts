@@ -80,6 +80,16 @@ export function createMinioStorage(options: MinioStorageOptions): FileStorage {
       }
       if (names.length > 0) await client.removeObjects(bucket, names);
     },
+
+    async list() {
+      await ensureBucket();
+      const keys: string[] = [];
+      const listing: AsyncIterable<BucketItem> = client.listObjectsV2(bucket, '', true);
+      for await (const item of listing) {
+        if (item.name && isValidStorageKey(item.name)) keys.push(item.name);
+      }
+      return keys;
+    },
   };
 }
 

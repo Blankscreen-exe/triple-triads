@@ -97,6 +97,17 @@ describe.each(BACKENDS.filter((backend) => backend.enabled))('$name storage', (b
     expect(await storage.get('cards/abcd/c.webp')).not.toBeNull();
   });
 
+  it('lists every stored file by key', async () => {
+    expect(await storage.list()).toEqual([]);
+    await storage.put('cards/abc/a.webp', Buffer.from('a'), 'image/webp');
+    await storage.put('packs/default/nested/b.png', Buffer.from('b'), 'image/png');
+
+    expect((await storage.list()).toSorted()).toEqual([
+      'cards/abc/a.webp',
+      'packs/default/nested/b.png',
+    ]);
+  });
+
   it('refuses keys that could escape the storage area', async () => {
     await expect(storage.put('../outside.webp', Buffer.from('x'), 'image/webp')).rejects.toThrow();
     expect(await storage.get('cards/../../secret')).toBeNull();
