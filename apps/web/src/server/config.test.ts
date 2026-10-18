@@ -12,7 +12,37 @@ describe('loadConfig', () => {
       logLevel: 'info',
       dataDir: resolve('data'),
       databasePath: resolve('data', 'triple-triad.db'),
+      secureCookies: false,
+      storage: { driver: 'local', dir: resolve('data', 'uploads') },
     });
+  });
+
+  it('makes cookies HTTPS-only in production unless told otherwise', () => {
+    expect(loadConfig({ NODE_ENV: 'production' }).secureCookies).toBe(true);
+    expect(loadConfig({ NODE_ENV: 'production', SECURE_COOKIES: 'false' }).secureCookies).toBe(
+      false,
+    );
+  });
+
+  it('configures MinIO storage and requires its credentials', () => {
+    expect(
+      loadConfig({
+        STORAGE_DRIVER: 'minio',
+        MINIO_ENDPOINT: 'minio.internal',
+        MINIO_ACCESS_KEY: 'key',
+        MINIO_SECRET_KEY: 'secret',
+        MINIO_USE_SSL: 'true',
+      }).storage,
+    ).toEqual({
+      driver: 'minio',
+      endPoint: 'minio.internal',
+      port: 9000,
+      useSSL: true,
+      accessKey: 'key',
+      secretKey: 'secret',
+      bucket: 'triple-triad',
+    });
+    expect(() => loadConfig({ STORAGE_DRIVER: 'minio' })).toThrow(/MINIO_ENDPOINT/);
   });
 
   it('reads and converts values', () => {

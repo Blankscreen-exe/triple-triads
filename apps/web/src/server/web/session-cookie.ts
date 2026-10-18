@@ -1,6 +1,7 @@
 import 'server-only';
 import { cookies } from 'next/headers';
 import { SESSION_COOKIE } from '../auth/session-cookie-name';
+import { loadConfig } from '../config';
 
 export async function readSessionToken(): Promise<string | null> {
   return (await cookies()).get(SESSION_COOKIE)?.value ?? null;
@@ -9,7 +10,7 @@ export async function readSessionToken(): Promise<string | null> {
 export async function setSessionCookie(token: string, expiresAt: Date): Promise<void> {
   (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: loadConfig(process.env).secureCookies,
     sameSite: 'lax',
     path: '/',
     expires: expiresAt,

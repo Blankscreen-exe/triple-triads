@@ -39,6 +39,11 @@ const CONTENT_TYPES: Readonly<Record<string, string>> = {
   woff2: 'font/woff2',
 };
 
+/** The content type served for a key, from its extension (both backends use this). */
+export function contentTypeFor(key: string): string {
+  return CONTENT_TYPES[key.slice(key.lastIndexOf('.') + 1)] ?? 'application/octet-stream';
+}
+
 /** Stores files under a directory on disk; the content type follows from the file extension. */
 export function createLocalStorage(rootDir: string): FileStorage {
   const root = resolve(rootDir);
@@ -62,8 +67,7 @@ export function createLocalStorage(rootDir: string): FileStorage {
       if (!isValidStorageKey(key)) return null;
       try {
         const data = await readFile(pathFor(key));
-        const extension = key.slice(key.lastIndexOf('.') + 1);
-        return { data, contentType: CONTENT_TYPES[extension] ?? 'application/octet-stream' };
+        return { data, contentType: contentTypeFor(key) };
       } catch (error) {
         if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return null;
         throw error;
