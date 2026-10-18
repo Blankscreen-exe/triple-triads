@@ -17,6 +17,7 @@
     "test": "pnpm -r test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "fix": "pnpm -r exec eslint --fix . && prettier --write .",
     "test:e2e": "pnpm --filter @triple-triad/web test:e2e"
   },
   "devDependencies": {

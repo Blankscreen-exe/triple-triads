@@ -1,0 +1,46 @@
+# Triple Triad with Docker Compose. See docs/DEPLOYMENT.md.
+#
+#   docker compose up -d --build                    # app only, uploads on the data volume
+#   docker compose --profile minio up -d --build    # app + MinIO (set STORAGE_DRIVER=minio in .env)
+
+services:
+  app:
+    build: .
+    image: triple-triad:latest
+    restart: unless-stopped
+    # Published on this machine only: put a tunnel or reverse proxy in front for internet access.
+    # Set APP_PORT in .env to use another port.
+    ports:
+      - '127.0.0.1:${APP_PORT:-3000}:3000'
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - data:/data
+    depends_on:
+      minio:
+        condition: service_healthy
+        required: false
+
+  minio:
+    profiles: [minio]
+    # MinIO no longer publishes community images to Docker Hub; this is the last Bitnami build.
+    # Any S3-compatible server works: see "Storage" in docs/DEPLOYMENT.md.
+    image: bitnamilegacy/minio:2025.5.24
+    restart: unless-stopped
+    # The same credentials the app uses (from .env). Optional here so that Compose works without
+    # them when this profile is off; the app refuses to start with STORAGE_DRIVER=minio and no keys.
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-}
+    volumes:
+      - minio-data:/bitnami/minio/data
+    healthcheck:
+      test: ['CMD', 'curl', '-sf', 'http://localhost:9000/minio/health/live']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  data:
+  minio-data:

@@ -1,0 +1,22 @@
+# Keep the build context small and free of local state; dependencies are installed in the image.
+**/node_modules
+**/.next
+**/dist
+**/coverage
+**/*.tsbuildinfo
+**/next-env.d.ts
+**/test-results
+**/playwright-report
+**/.e2e-data
+apps/web/data
+.git
+.github
+.vscode
+.idea
+design
+docs
+**/.env
+**/.env.*
+*.log
+Dockerfile
+docker-compose.yml

@@ -1,7 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 3100;
-const BASE_URL = `http://127.0.0.1:${String(PORT)}`;
+/**
+ * Set E2E_BASE_URL to test a server that is already running, such as the Docker image, instead of
+ * starting the local build. It must have a fresh database (the setup creates the first account).
+ */
+const EXTERNAL_URL = process.env['E2E_BASE_URL'];
+const BASE_URL = EXTERNAL_URL ?? `http://127.0.0.1:${String(PORT)}`;
 /** Throwaway data directory: every run starts from an empty database. */
 const DATA_DIR = '.e2e-data';
 
@@ -29,18 +34,20 @@ export default defineConfig({
       dependencies: ['setup'],
     },
   ],
-  webServer: {
-    command: `node scripts/remove-dir.mjs ${DATA_DIR} && node --enable-source-maps dist/server.mjs`,
-    url: `${BASE_URL}/healthz`,
-    reuseExistingServer: false,
-    // Server logs appear in the test output; raise verbosity with E2E_LOG_LEVEL=debug.
-    stdout: 'pipe',
-    timeout: 60_000,
-    env: {
-      NODE_ENV: 'production',
-      PORT: String(PORT),
-      DATA_DIR,
-      LOG_LEVEL: process.env['E2E_LOG_LEVEL'] ?? 'warn',
-    },
-  },
+  webServer: EXTERNAL_URL
+    ? undefined
+    : {
+        command: `node scripts/remove-dir.mjs ${DATA_DIR} && node --enable-source-maps dist/server.mjs`,
+        url: `${BASE_URL}/healthz`,
+        reuseExistingServer: false,
+        // Server logs appear in the test output; raise verbosity with E2E_LOG_LEVEL=debug.
+        stdout: 'pipe',
+        timeout: 60_000,
+        env: {
+          NODE_ENV: 'production',
+          PORT: String(PORT),
+          DATA_DIR,
+          LOG_LEVEL: process.env['E2E_LOG_LEVEL'] ?? 'warn',
+        },
+      },
 });

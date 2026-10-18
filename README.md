@@ -4,11 +4,10 @@ A self-hosted, two-player, browser-based version of **Triple Triad**, the card g
 Final Fantasy VIII, with player accounts, a Yu-Gi-Oh-style card collection, a custom card maker and
 uploadable art packs.
 
-> **Status:** feature-complete except custom asset-pack uploads and deployment packaging. Working
-> today: accounts, trunks and starter decks, live two-player games (lobby, every FF8 rule, turn
-> timers, spectators, reconnects, rematches), a card maker with art uploads, a deck editor, Elo
-> ratings with match history and rankings, and an admin panel (users, generic cards, starter decks,
-> game settings, moderation). See [Roadmap](#roadmap).
+> **Status:** feature-complete for the first release: accounts, trunks and starter decks, live
+> two-player games (lobby, every FF8 rule, turn timers, spectators, reconnects, rematches), a card
+> maker with art uploads, a deck editor, custom card styles, Elo ratings with match history and
+> rankings, an admin panel, and a Docker image with a deployment guide. See [Roadmap](#roadmap).
 
 The full product specification lives in [`design/SPEC.md`](design/SPEC.md).
 
@@ -37,9 +36,15 @@ The full product specification lives in [`design/SPEC.md`](design/SPEC.md).
   generated SQL, committed, applied automatically at startup, and covered by an upgrade test that
   migrates a populated database and checks no rows are lost (SQLite table rebuilds can silently
   cascade-delete).
+- **Per-player card styles**: every part of the card design (backgrounds, frame, digit, element
+  and star sprite sheets, name font) can be replaced by each player, layered over an
+  admin-editable default. Each card is drawn in its owner's style, including in live games.
+  Uploads are checked for exact pixel sizes, re-encoded, and fonts are verified by signature.
+- **Pluggable storage**: uploads go to a local folder or any S3-compatible bucket (MinIO) behind
+  one interface, with one contract test suite run against both backends in CI.
 - **Tested at every level**: engine unit tests, data-layer tests against a real in-memory SQLite
   with the real migrations (no mocks), and Playwright end-to-end tests against the production
-  build.
+  build (also runnable against the Docker image).
 
 ## Architecture
 
@@ -52,10 +57,10 @@ Browser ──HTTP──▶ ┌────────────────�
                   │                        │                                                │
                   │            ┌───────────┴────────────┐                                   │
                   │            ▼                        ▼                                   │
-                  │   packages/engine           SQLite (Drizzle ORM)                        │
-                  │   pure rules: moves,        users, sessions, cards, trunk,              │
-                  │   captures, scoring,        decks, starter decks                        │
-                  │   ranking, deck checks                                                  │
+                  │   packages/engine           SQLite (Drizzle ORM)     File storage       │
+                  │   pure rules: moves,        users, sessions, cards,  local folder or    │
+                  │   captures, scoring,        trunk, decks, matches,   MinIO / S3: card   │
+                  │   ranking, deck checks      settings, card styles    art, card styles   │
                   └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -102,16 +107,19 @@ pnpm install
 pnpm dev            # http://127.0.0.1:3000
 ```
 
-Configuration is read from environment variables (or `apps/web/.env`), validated at startup.
-See [`apps/web/.env.example`](apps/web/.env.example):
+Configuration is read from environment variables (or `apps/web/.env`, see
+[`apps/web/.env.example`](apps/web/.env.example)) and validated at startup. The main settings:
 
-| Variable    | Default       | Description                                                  |
-| ----------- | ------------- | ------------------------------------------------------------ |
-| `HOST`      | `127.0.0.1`   | Interface to bind to. Use `0.0.0.0` inside a container.      |
-| `PORT`      | `3000`        | HTTP and WebSocket port.                                     |
-| `LOG_LEVEL` | `info`        | `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent` |
-| `NODE_ENV`  | `development` | `development`, `production` or `test`.                       |
-| `DATA_DIR`  | `./data`      | Where the SQLite database and uploaded files are stored.     |
+| Variable         | Default     | Description                                                  |
+| ---------------- | ----------- | ------------------------------------------------------------ |
+| `HOST`           | `127.0.0.1` | Interface to bind to. Use `0.0.0.0` inside a container.      |
+| `PORT`           | `3000`      | HTTP and WebSocket port.                                     |
+| `LOG_LEVEL`      | `info`      | `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent` |
+| `DATA_DIR`       | `./data`    | Where the SQLite database and local uploads are stored.      |
+| `STORAGE_DRIVER` | `local`     | `local` or `minio` (any S3-compatible server).               |
+
+All settings, including MinIO and `SECURE_COOKIES`, are listed in
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md#settings).
 
 The database is created and migrated on first start, and the default cards and starter decks are
 inserted. **The first account to sign up becomes the admin.**
@@ -125,20 +133,30 @@ pnpm start          # serves on HOST:PORT; GET /healthz returns {"status":"ok"}
 
 The server shuts down gracefully on `SIGINT`/`SIGTERM`.
 
+### Docker and hosting
+
+```bash
+docker compose up -d --build    # http://127.0.0.1:3000, data in a Docker volume
+```
+
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) covers running on your own computer or a VPS, Cloudflare
+tunnels and reverse proxies, MinIO storage, backups, updates and every setting.
+
 ## Scripts
 
 Run from the repository root; each runs across all workspace packages.
 
-| Command          | Does                                         |
-| ---------------- | -------------------------------------------- |
-| `pnpm dev`       | Start the app with hot reload.               |
-| `pnpm build`     | Production build.                            |
-| `pnpm start`     | Run the production build.                    |
-| `pnpm test`      | Unit tests (Vitest).                         |
-| `pnpm test:e2e`  | End-to-end tests (Playwright); build first.  |
-| `pnpm lint`      | ESLint (strict, type-aware).                 |
-| `pnpm typecheck` | TypeScript in strict mode.                   |
-| `pnpm format`    | Format with Prettier (`format:check` in CI). |
+| Command          | Does                                                                                        |
+| ---------------- | ------------------------------------------------------------------------------------------- |
+| `pnpm dev`       | Start the app with hot reload.                                                              |
+| `pnpm build`     | Production build.                                                                           |
+| `pnpm start`     | Run the production build.                                                                   |
+| `pnpm test`      | Unit tests (Vitest).                                                                        |
+| `pnpm test:e2e`  | End-to-end tests (Playwright); build first, or set `E2E_BASE_URL` to test a running server. |
+| `pnpm lint`      | ESLint (strict, type-aware).                                                                |
+| `pnpm typecheck` | TypeScript in strict mode.                                                                  |
+| `pnpm format`    | Format with Prettier (`format:check` in CI).                                                |
+| `pnpm fix`       | Apply ESLint fixes, then format.                                                            |
 
 ## Roadmap
 
@@ -150,4 +168,4 @@ Run from the repository root; each runs across all workspace packages.
 6. ~~Card maker and deck editor~~
 7. ~~Rating, tiers and streaks~~
 8. ~~Admin panel~~
-9. Custom asset pack uploads, Docker image and VPS deployment guide
+9. ~~Custom asset pack uploads, Docker image and VPS deployment guide~~

@@ -73,3 +73,32 @@ jobs:
           name: playwright-traces
           path: apps/web/test-results/
           retention-days: 7
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: triple-triad:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test (container becomes healthy and serves pages)
+        run: |
+          docker run -d --name app -p 127.0.0.1:3000:3000 triple-triad:ci
+          for _ in $(seq 1 30); do
+            if [ "$(docker inspect -f '{{.State.Health.Status}}' app)" = healthy ]; then
+              curl -sf -o /dev/null http://127.0.0.1:3000/login && exit 0
+            fi
+            sleep 2
+          done
+          docker logs app
+          exit 1
