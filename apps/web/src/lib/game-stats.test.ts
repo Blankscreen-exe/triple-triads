@@ -41,7 +41,8 @@ function emptyCell(): Board[number] {
 const BASE_MATCH: MatchSnapshot = {
   format: 'until-winner',
   round: 1,
-  drawnRounds: [],
+  roundResults: [],
+  seriesScore: { red: 0, blue: 0 },
   nextRoundAt: null,
   cardsLeft: { red: 10, blue: 10 },
 };
@@ -209,14 +210,15 @@ describe('computeGameStats', () => {
     expect(stats.endGame?.sweep).toBeNull();
   });
 
-  it('computes match-level rounds won from drawn rounds', () => {
+  it('computes match-level rounds won from round results', () => {
     const match: MatchSnapshot = {
       ...BASE_MATCH,
       round: 3,
-      drawnRounds: [
-        { red: 5, blue: 5 },
-        { red: 6, blue: 4 },
+      roundResults: [
+        { winner: null, score: { red: 5, blue: 5 } },
+        { winner: 'red', score: { red: 6, blue: 4 } },
       ],
+      seriesScore: { red: 1, blue: 0 },
     };
     const snap = makeSnapshot({ match });
     const stats = computeGameStats(snap, EMPTY_ACCUMULATOR);

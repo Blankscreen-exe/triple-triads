@@ -109,6 +109,7 @@ describe('applyRoomPolicy', () => {
       turnSeconds: null,
       allowSpectators: false,
       format: 'single' as const,
+      carryHand: false,
     };
 
     expect(applyRoomPolicy(requested, { ...policy, locked: [...policy.locked] })).toEqual({
@@ -116,6 +117,7 @@ describe('applyRoomPolicy', () => {
       turnSeconds: 30,
       allowSpectators: false,
       format: 'until-winner',
+      carryHand: false,
     });
   });
 });

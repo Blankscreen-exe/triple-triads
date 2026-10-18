@@ -22,7 +22,7 @@ type Client = ClientSocket<ServerToClientEvents, ClientToServerEvents>;
 const ROOM: CreateRoomInput = {
   name: 'Integration room',
   password: '',
-  options: { rules: BASIC_RULES, turnSeconds: null, allowSpectators: true, format: 'single' },
+  options: { rules: BASIC_RULES, turnSeconds: null, allowSpectators: true, format: 'single', carryHand: false },
   hostColor: 'red',
 };
 

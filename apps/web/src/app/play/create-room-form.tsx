@@ -194,6 +194,19 @@ export function CreateRoomForm({ defaultName, policy }: CreateRoomFormProps) {
             setOptions((current) => ({ ...current, allowSpectators: checked }));
           }}
         />
+        <Toggle
+          label="Carry hand"
+          hint={
+            locked.has('carryHand')
+              ? `Unplaced cards stay in hand next round · ${LOCKED_HINT}`
+              : 'Unplaced cards stay in hand next round'
+          }
+          checked={options.carryHand}
+          disabled={locked.has('carryHand')}
+          onChange={(checked) => {
+            setOptions((current) => ({ ...current, carryHand: checked }));
+          }}
+        />
       </fieldset>
 
       {error && (

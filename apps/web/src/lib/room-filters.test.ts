@@ -31,6 +31,7 @@ const room = (
       turnSeconds,
       allowSpectators: true,
       format: 'until-winner',
+      carryHand: false,
     },
     status: 'waiting',
     players: ['Squall'],

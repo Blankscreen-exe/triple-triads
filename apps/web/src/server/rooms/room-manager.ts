@@ -321,8 +321,9 @@ export class RoomManager {
       round: 0,
       firstPlayerId,
       decks: new Map(room.seats.map((seat) => [seat.user.id, seat.deck.cards])),
-      drawnRounds: [],
+      roundResults: [],
       nextRoundAt: null,
+      carriedHands: new Map(),
     };
     this.#startRound(room, firstPlayerId, reason);
   }
@@ -331,7 +332,6 @@ export class RoomManager {
   #startRound(room: Room, firstPlayerId: string, reason: FirstPlayerReason): void {
     const match = room.match;
     if (!match) throw new Error('A round needs a match');
-    // Colours are fixed by the host's choice; turn order is decided separately.
     const host = room.seats.find((seat) => seat.user.id === room.hostId);
     const guest = room.seats.find((seat) => seat.user.id !== room.hostId);
     if (!host || !guest) throw new Error('A game needs two seated players');
@@ -340,14 +340,31 @@ export class RoomManager {
 
     match.round += 1;
     match.nextRoundAt = null;
+
+    const carryHand = room.options.carryHand;
+    const carriedRed = carryHand ? (match.carriedHands.get(red.user.id) ?? []) : [];
+    const carriedBlue = carryHand ? (match.carriedHands.get(blue.user.id) ?? []) : [];
+    const carriedIds = { red: new Set(carriedRed.map((c) => c.id)), blue: new Set(carriedBlue.map((c) => c.id)) };
+
+    const redDeck = deckOf(match, red.user.id);
+    const blueDeck = deckOf(match, blue.user.id);
+    const filteredRedDeck = carryHand ? removeCarriedFromDeck(redDeck, carriedIds.red) : redDeck;
+    const filteredBlueDeck = carryHand ? removeCarriedFromDeck(blueDeck, carriedIds.blue) : blueDeck;
+
     const faces = new Map<string, CardInfo>([...red.deck.faces, ...blue.deck.faces]);
+    let state = createGame({
+      rules: room.options.rules,
+      decks: { red: filteredRedDeck, blue: filteredBlueDeck },
+      seed: this.#deps.newSeed(),
+      firstPlayer,
+    });
+
+    if (carryHand && (carriedRed.length > 0 || carriedBlue.length > 0)) {
+      state = injectCarriedHands(state, carriedRed, carriedBlue);
+    }
+
     room.game = {
-      state: createGame({
-        rules: room.options.rules,
-        decks: { red: deckOf(match, red.user.id), blue: deckOf(match, blue.user.id) },
-        seed: this.#deps.newSeed(),
-        firstPlayer,
-      }),
+      state,
       players: {
         red: { user: red.user, pack: red.pack },
         blue: { user: blue.user, pack: blue.pack },
@@ -422,8 +439,8 @@ export class RoomManager {
   }
 
   /**
-   * A round is over. Its placed cards are used up; a drawn round leads to another after a short
-   * break if the match format allows and both decks can still play one. Otherwise the match ends.
+   * A round is over. In best-of-3, all 3 rounds are played (or until decks run out).
+   * The match winner is whoever won the most rounds.
    */
   #endRound(room: Room, game: ActiveGame, result: GameResult): void {
     const match = room.match;
@@ -438,20 +455,42 @@ export class RoomManager {
     };
     for (const color of PLAYER_COLORS) match.decks.set(game.players[color].user.id, decks[color]);
 
-    if (result.winner !== null || room.options.format === 'single' || !canPlayRound(decks)) {
-      this.#finishMatch(room, result, false);
+    match.roundResults.push({ winner: result.winner, score: result.score });
+
+    if (room.options.carryHand) {
+      for (const color of PLAYER_COLORS) {
+        const userId = game.players[color].user.id;
+        const handCards = game.state.players[color].hand.map((inst) => inst.card);
+        match.carriedHands.set(userId, handCards);
+      }
+    }
+
+    if (room.options.format === 'single' || match.roundResults.length >= 3 || !canPlayRound(decks)) {
+      this.#finishMatchBySeriesScore(room, false);
       return;
     }
 
-    match.drawnRounds.push(result.score);
     match.nextRoundAt = this.#deps.now() + this.#deps.roundBreakMs;
-    // After a drawn round, the other player starts the next one.
     const nextFirstPlayerId = game.players[opponentOf(game.firstPlayer)].user.id;
     room.timers.round = setTimeout(() => {
       room.timers.round = null;
       this.#startRound(room, nextFirstPlayerId, 'round-drawn');
       this.#changed(room);
     }, this.#deps.roundBreakMs);
+  }
+
+  #finishMatchBySeriesScore(room: Room, forfeit: boolean): void {
+    const match = room.match;
+    if (!match) return;
+    const wins = { red: 0, blue: 0 };
+    for (const r of match.roundResults) {
+      if (r.winner === 'red') wins.red++;
+      else if (r.winner === 'blue') wins.blue++;
+    }
+    const lastResult = match.roundResults[match.roundResults.length - 1];
+    const winner = wins.red > wins.blue ? 'red' : wins.blue > wins.red ? 'blue' : null;
+    const score = lastResult?.score ?? { red: 5, blue: 5 };
+    this.#finishMatch(room, { winner, score }, forfeit);
   }
 
   /** The match is decided (or forfeited): record it and open the rematch vote. */
@@ -479,19 +518,14 @@ export class RoomManager {
       }) ?? null;
 
     if (!forfeit && room.seats.length === 2) {
-      // The loser starts the next match; after a drawn match, whoever started it starts again.
       room.rematch = {
-        deadline: this.#deps.now() + this.#deps.rematchVoteMs,
+        deadline: 0,
         votes: new Map(room.seats.map((seat) => [seat.user.id, null])),
         nextFirstPlayerId: result.winner
           ? game.players[opponentOf(result.winner)].user.id
           : match.firstPlayerId,
         nextFirstPlayerReason: result.winner ? 'lost-last-game' : 'last-game-drawn',
       };
-      room.timers.rematch = setTimeout(() => {
-        room.timers.rematch = null;
-        this.#onRematchTimeout(room);
-      }, this.#deps.rematchVoteMs);
     }
   }
 
@@ -615,6 +649,39 @@ function deckOf(match: Match, userId: string): readonly CardDefinition[] {
   const deck = match.decks.get(userId);
   if (!deck) throw new Error(`No deck for player ${userId} in this match`);
   return deck;
+}
+
+function removeCarriedFromDeck(
+  deck: readonly CardDefinition[],
+  carriedIds: Set<string>,
+): readonly CardDefinition[] {
+  if (carriedIds.size === 0) return deck;
+  const remaining = [...deck];
+  for (const id of carriedIds) {
+    const index = remaining.findIndex((c) => c.id === id);
+    if (index !== -1) remaining.splice(index, 1);
+  }
+  return remaining;
+}
+
+function injectCarriedHands(
+  state: GameState,
+  carriedRed: readonly CardDefinition[],
+  carriedBlue: readonly CardDefinition[],
+): GameState {
+  const inject = (color: 'red' | 'blue', carried: readonly CardDefinition[]) => {
+    if (carried.length === 0) return state.players[color];
+    const player = state.players[color];
+    const extraInstances = carried.map((card, i) => ({
+      instanceId: `${color}-carry-${String(i)}`,
+      card,
+    }));
+    return { ...player, hand: [...player.hand, ...extraInstances] };
+  };
+  return {
+    ...state,
+    players: { red: inject('red', carriedRed), blue: inject('blue', carriedBlue) },
+  };
 }
 
 /** The position where a card was just placed. */

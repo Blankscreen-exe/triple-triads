@@ -61,6 +61,7 @@ export const roomOptionsSchema = z.object({
   allowSpectators: z.boolean(),
   // Defaulted so room policies saved before this option existed still load.
   format: z.enum(MATCH_FORMATS).default('until-winner'),
+  carryHand: z.boolean().default(false),
 });
 export type RoomOptions = z.infer<typeof roomOptionsSchema>;
 
@@ -147,12 +148,19 @@ export type MatchOutcome = Readonly<Record<PlayerColor, PlayerOutcome>>;
  */
 export type FirstPlayerReason = 'coin-flip' | 'lost-last-game' | 'last-game-drawn' | 'round-drawn';
 
+export interface RoundResult {
+  readonly winner: PlayerColor | null;
+  readonly score: Score;
+}
+
 export interface MatchSnapshot {
   readonly format: MatchFormat;
   /** The round being played, or the one just finished. Starts at 1. */
   readonly round: number;
-  /** Final scores of the earlier rounds of this match, which were all draws. */
-  readonly drawnRounds: readonly Score[];
+  /** Results of completed earlier rounds of this match. */
+  readonly roundResults: readonly RoundResult[];
+  /** Rounds won by each player so far in this match. */
+  readonly seriesScore: Readonly<Record<PlayerColor, number>>;
   /** Between rounds: when the next round starts (server clock, ms). */
   readonly nextRoundAt: number | null;
   /** Cards each player has not yet placed in this match. */

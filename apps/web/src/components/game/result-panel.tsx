@@ -4,16 +4,13 @@ import type { RoomSnapshot, VoteChoice } from '@/lib/realtime/protocol';
 import { formatStreak, tierFor } from '@/lib/rating';
 import { Button } from '../ui/button';
 import { Window } from '../ui/window';
-import { Countdown } from './countdown';
 
 interface ResultPanelProps {
   readonly room: RoomSnapshot;
-  readonly clockOffset: number;
   readonly onVote: (choice: VoteChoice) => void;
 }
 
-/** End-of-game summary with the rematch vote (design/SPEC.md, 9.7). */
-export function ResultPanel({ room, clockOffset, onVote }: ResultPanelProps) {
+export function ResultPanel({ room, onVote }: ResultPanelProps) {
   const game = room.game;
   const result = game?.view.result;
   if (!game || !result) return null;
@@ -41,11 +38,10 @@ export function ResultPanel({ room, clockOffset, onVote }: ResultPanelProps) {
       <p className="mt-1 text-sm text-slate-300/80">
         Red {score} Blue{game.forfeit && ' · by forfeit'}
       </p>
-      {game.match.round > 1 && (
+      {game.match.roundResults.length > 0 && (
         <p className="text-xs text-slate-300/80">
-          {result.winner === null
-            ? `All ${String(game.match.round)} rounds drawn`
-            : `Won in round ${String(game.match.round)}`}
+          Series: Red {game.match.seriesScore.red} – {game.match.seriesScore.blue} Blue
+          {' · '}Round {game.match.round} of 3
         </p>
       )}
       {you && game.outcome && <RatingChange outcome={game.outcome[you]} />}
@@ -77,9 +73,8 @@ export function ResultPanel({ room, clockOffset, onVote }: ResultPanelProps) {
           )}
           <p className="text-xs text-slate-300/70">
             {otherVotes.some(([, vote]) => vote === 'continue')
-              ? 'Your opponent wants a rematch. '
+              ? 'Your opponent wants a rematch.'
               : ''}
-            Vote closes in <Countdown deadline={room.rematch.deadline} clockOffset={clockOffset} />
           </p>
         </div>
       )}

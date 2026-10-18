@@ -219,7 +219,7 @@ function Table({
       )}
       {view.result && game.match.nextRoundAt === null && (
         <div className="mx-auto max-w-sm">
-          <ResultPanel room={snapshot} clockOffset={room.clockOffset} onVote={room.vote} />
+          <ResultPanel room={snapshot} onVote={room.vote} />
         </div>
       )}
       {gameStats && (
@@ -256,9 +256,13 @@ function StatusLine({
     // Between rounds: say so at the top too, as the details below the board may be off-screen.
     const { nextRoundAt, round } = game.match;
     if (nextRoundAt === null) return null;
+    const roundWinner = game.view.result.winner;
+    const roundLabel = roundWinner
+      ? `${game.players[roundWinner].username} won round ${round}`
+      : `Round ${round} was a draw`;
     return (
       <p className="text-center text-sm" role="status">
-        Round {round} was a draw · Round {round + 1} in{' '}
+        {roundLabel} · Round {round + 1} in{' '}
         <Countdown deadline={nextRoundAt} clockOffset={clockOffset} />
       </p>
     );
@@ -279,7 +283,9 @@ function StatusLine({
     <div className="space-y-1.5 text-center" role="status">
       {game.match.format === 'until-winner' && (
         <p className="font-display text-xs tracking-[0.2em] text-slate-400 uppercase">
-          Round {game.match.round}
+          Round {game.match.round} of 3
+          {(game.match.seriesScore.red > 0 || game.match.seriesScore.blue > 0) &&
+            ` · ${game.match.seriesScore.red}–${game.match.seriesScore.blue}`}
         </p>
       )}
       {game.view.turn === 1 && (
@@ -345,10 +351,13 @@ function RoundBreak({
   return (
     <Window className="space-y-2 p-5 text-center" aria-live="polite">
       <h2 className="font-display text-2xl font-black tracking-widest text-cream [text-shadow:0_3px_0_#000]">
-        Round {match.round}: draw
+        {result.winner
+          ? `Round ${match.round}: ${players[result.winner].username} wins`
+          : `Round ${match.round}: draw`}
       </h2>
       <p className="text-sm text-slate-300/80">
         Red {result.score.red} – {result.score.blue} Blue
+        {' · '}Series {match.seriesScore.red}–{match.seriesScore.blue}
       </p>
       <p className="text-sm text-slate-100">
         Round {match.round + 1} starts in{' '}

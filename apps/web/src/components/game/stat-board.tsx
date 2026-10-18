@@ -102,19 +102,17 @@ function Scoreboard({
       <div className="mt-3 space-y-2">
         <ScoreRow
           label="Rounds won"
-          red={stats.match.roundsWon.red}
-          blue={stats.match.roundsWon.blue}
+          red={match.seriesScore.red}
+          blue={match.seriesScore.blue}
         />
         <ScoreRow
           label="Cards left"
-          red={stats.match.cardsRemaining.red}
-          blue={stats.match.cardsRemaining.blue}
+          red={match.cardsLeft.red}
+          blue={match.cardsLeft.blue}
         />
-        {match.round > 1 && (
-          <p className="text-center text-[10px] text-slate-400">
-            Round {match.round}
-          </p>
-        )}
+        <p className="text-center text-[10px] text-slate-400">
+          Round {match.round} of 3
+        </p>
       </div>
     </div>
   );

@@ -7,7 +7,6 @@ import type {
   GameResult,
   GameState,
   PlayerColor,
-  Score,
 } from '@triple-triad/engine';
 import type { AssetPack } from '@/lib/asset-packs';
 import type {
@@ -63,7 +62,12 @@ export interface ActiveGame {
   outcome: MatchOutcome | null;
 }
 
-/** A match: one or more rounds, until someone wins (see RoomOptions.format). */
+export interface RoundOutcome {
+  readonly winner: PlayerColor | null;
+  readonly score: { readonly red: number; readonly blue: number };
+}
+
+/** A match: best of 3 rounds (see RoomOptions.format). */
 export interface Match {
   /** The round being played, or the one just finished. Starts at 1. */
   round: number;
@@ -71,10 +75,12 @@ export interface Match {
   readonly firstPlayerId: string;
   /** Each player's deck for the rest of the match, by user id: placed cards are used up. */
   readonly decks: Map<string, readonly CardDefinition[]>;
-  /** Final scores of the drawn rounds so far. */
-  readonly drawnRounds: Score[];
+  /** Results of completed rounds. */
+  readonly roundResults: RoundOutcome[];
   /** Between rounds: when the next round starts. */
   nextRoundAt: number | null;
+  /** Unplaced hand cards from the previous round, by user id (for carryHand mode). */
+  readonly carriedHands: Map<string, readonly CardDefinition[]>;
 }
 
 export interface RematchVote {

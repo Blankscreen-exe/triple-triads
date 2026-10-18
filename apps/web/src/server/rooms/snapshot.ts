@@ -125,15 +125,24 @@ function matchSnapshot(room: Room, game: ActiveGame): MatchSnapshot {
   const cardsLeft = Object.fromEntries(
     PLAYER_COLORS.map((color) => {
       const deck = match?.decks.get(game.players[color].user.id) ?? [];
-      // During a round the decks still include this round's cards; they are used up at its end.
       const placedThisRound = game.result === null ? game.state.players[color].placedCount : 0;
       return [color, deck.length - placedThisRound];
     }),
   ) as MatchSnapshot['cardsLeft'];
+  const roundResults = (match?.roundResults ?? []).map((r) => ({
+    winner: r.winner,
+    score: r.score,
+  }));
+  const seriesScore = { red: 0, blue: 0 };
+  for (const r of roundResults) {
+    if (r.winner === 'red') seriesScore.red++;
+    else if (r.winner === 'blue') seriesScore.blue++;
+  }
   return {
     format: room.options.format,
     round: match?.round ?? 1,
-    drawnRounds: match?.drawnRounds ?? [],
+    roundResults,
+    seriesScore,
     nextRoundAt: match?.nextRoundAt ?? null,
     cardsLeft,
   };

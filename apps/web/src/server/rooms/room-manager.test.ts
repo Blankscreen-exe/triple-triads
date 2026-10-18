@@ -2,7 +2,6 @@ import { BASIC_RULES, POSITIONS, type CardDefinition, type StatValue } from '@tr
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   RECONNECT_GRACE_MS,
-  REMATCH_VOTE_MS,
   ROUND_BREAK_MS,
   type CardInfo,
   type CreateRoomInput,
@@ -72,6 +71,7 @@ const options = (overrides: Partial<RoomOptions> = {}): RoomOptions => ({
   turnSeconds: 30,
   allowSpectators: true,
   format: 'single',
+  carryHand: false,
   ...overrides,
 });
 
@@ -382,7 +382,7 @@ describe('finishing and rematches', () => {
     expect(finished).toHaveLength(1);
     expect(finished[0]).toMatchObject({ roomId, forfeit: false });
     expect(snapshot?.rematch).toEqual({
-      deadline: Date.now() + REMATCH_VOTE_MS,
+      deadline: 0,
       votes: { alice: null, bob: null },
     });
   });
@@ -434,17 +434,17 @@ describe('finishing and rematches', () => {
     expect(snapshot?.rematch).toBeNull();
   });
 
-  it('treats no vote as leaving once the vote times out', () => {
+  it('keeps the rematch vote open indefinitely', () => {
     const manager = createManager();
     const roomId = startedGame(manager);
     playToEnd(manager, roomId);
     manager.vote(alice.id, roomId, 'continue');
 
-    vi.advanceTimersByTime(REMATCH_VOTE_MS);
+    vi.advanceTimersByTime(5 * 60_000);
 
-    expect(manager.snapshot(roomId, alice.id)?.seats.map((seat) => seat.username)).toEqual([
-      'Alice',
-    ]);
+    const snapshot = manager.snapshot(roomId, alice.id);
+    expect(snapshot?.rematch?.votes).toEqual({ alice: 'continue', bob: null });
+    expect(snapshot?.seats.map((seat) => seat.username)).toEqual(['Alice', 'Bob']);
   });
 });
 
@@ -547,7 +547,8 @@ describe('matches of several rounds', () => {
     expect(between?.game?.match).toEqual({
       format: 'until-winner',
       round: 1,
-      drawnRounds: [{ red: 5, blue: 5 }],
+      roundResults: [{ winner: null, score: { red: 5, blue: 5 } }],
+      seriesScore: { red: 0, blue: 0 },
       nextRoundAt: Date.now() + ROUND_BREAK_MS,
       // Carol (red) went first and placed 5 cards; Dave placed 4.
       cardsLeft: { red: 15, blue: 16 },
@@ -595,28 +596,34 @@ describe('matches of several rounds', () => {
     const next = manager.snapshot(roomId, carol.id)?.game;
     expect(next?.match).toMatchObject({
       round: 1,
-      drawnRounds: [],
+      roundResults: [],
+      seriesScore: { red: 0, blue: 0 },
       cardsLeft: { red: 20, blue: 20 },
     });
     expect(next?.firstPlayer).toEqual({ color: 'red', reason: 'last-game-drawn' });
   });
 
-  it('ends as soon as a round has a winner', () => {
+  it('plays all 3 rounds even if one player wins early; match winner has most round wins', () => {
     const manager = createManager();
     const roomId = startedGame(manager, untilWinner(), true, erin, dave);
 
-    // Round 1: Erin only plays 5s, so nothing is captured.
+    // Round 1: Erin only plays 5s, so nothing is captured — draw.
     for (let turn = 0; turn < 9; turn++) playPreferring(manager, roomId, 'erin-five');
     expect(manager.snapshot(roomId, erin.id)?.game?.view.result?.winner).toBeNull();
     vi.advanceTimersByTime(ROUND_BREAK_MS);
 
-    // Round 2: her 9s beat Dave's 5s.
+    // Round 2: her 9s beat Dave's 5s — Erin wins this round.
     for (let turn = 0; turn < 9; turn++) playPreferring(manager, roomId, 'erin-nine');
+    expect(manager.snapshot(roomId, erin.id)?.status).toBe('playing');
+    expect(manager.snapshot(roomId, erin.id)?.game?.match.seriesScore).toEqual({ red: 1, blue: 0 });
+    vi.advanceTimersByTime(ROUND_BREAK_MS);
+
+    // Round 3: Erin plays remaining cards (mix of 5s and 9s).
+    playToEnd(manager, roomId);
 
     expect(manager.snapshot(roomId, erin.id)?.status).toBe('finished');
     expect(finished).toHaveLength(1);
-    expect(finished[0]).toMatchObject({ rounds: 2, result: { winner: 'red' } });
-    // The loser starts the next match.
+    expect(finished[0]).toMatchObject({ rounds: 3, result: { winner: 'red' } });
     expect(manager.snapshot(roomId, erin.id)?.rematch).not.toBeNull();
   });
 

@@ -175,13 +175,8 @@ function computeEndGameStats(board: Board): EndGameStats | null {
 }
 
 function computeMatchStats(match: MatchSnapshot): MatchLevelStats {
-  const roundsWon = { red: 0, blue: 0 };
-  for (const score of match.drawnRounds) {
-    if (score.red > score.blue) roundsWon.red++;
-    else if (score.blue > score.red) roundsWon.blue++;
-  }
   return {
-    roundsWon,
+    roundsWon: { ...match.seriesScore },
     cardsRemaining: match.cardsLeft,
   };
 }

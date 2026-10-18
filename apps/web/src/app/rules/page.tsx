@@ -19,7 +19,6 @@ import { STARTING_RATING, TIERS } from '@/lib/rating';
 import {
   MATCH_FORMAT_LABELS,
   RECONNECT_GRACE_MS,
-  REMATCH_VOTE_MS,
   ROUND_BREAK_MS,
   TURN_TIMER_OPTIONS,
 } from '@/lib/realtime/protocol';
@@ -246,8 +245,8 @@ export default function RulesPage() {
           <ul className="list-disc space-y-2 pl-5">
             <li>
               Once a match is decided, both players vote to <strong>play again</strong> or{' '}
-              <strong>leave</strong> within {seconds(REMATCH_VOTE_MS)} seconds; not voting counts as
-              leaving. If both play again, a new match starts with full decks and the same rules.
+              <strong>leave</strong>. If both play again, a new match starts with full decks and the
+              same rules.
             </li>
             <li>
               The <strong>loser starts</strong> the next match. After a drawn match, the player who
