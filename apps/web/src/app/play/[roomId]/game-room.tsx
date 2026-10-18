@@ -237,7 +237,7 @@ function Table({
         )}
       </div>
       {view.result && game.match.nextRoundAt === null && (
-        <ResultPanel room={snapshot} onVote={room.vote} />
+        <ResultPanel room={snapshot} onVote={room.vote} stats={gameStats} />
       )}
     </>
   );

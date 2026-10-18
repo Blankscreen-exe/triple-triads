@@ -1,19 +1,24 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import type { PlayerColor } from '@triple-triad/engine';
+import type { GameStats } from '@/lib/game-stats';
 import type { RoomSnapshot, VoteChoice } from '@/lib/realtime/protocol';
 import { formatStreak, tierFor } from '@/lib/rating';
+import { StatBoard } from './stat-board';
 import { Button } from '../ui/button';
 import { Window } from '../ui/window';
 
 interface ResultPanelProps {
   readonly room: RoomSnapshot;
   readonly onVote: (choice: VoteChoice) => void;
+  readonly stats: GameStats | null;
 }
 
-export function ResultPanel({ room, onVote }: ResultPanelProps) {
+export function ResultPanel({ room, onVote, stats }: ResultPanelProps) {
   const game = room.game;
   const result = game?.view.result;
+  const [showPerf, setShowPerf] = useState(false);
   if (!game || !result) return null;
 
   const you = room.you.color;
@@ -26,6 +31,32 @@ export function ResultPanel({ room, onVote }: ResultPanelProps) {
           ? 'Victory'
           : 'Defeat';
   const score = `${String(result.score.red)} – ${String(result.score.blue)}`;
+  const players: Record<PlayerColor, string> = {
+    red: game.players.red.username,
+    blue: game.players.blue.username,
+  };
+
+  if (showPerf && stats) {
+    return (
+      <div className="fixed inset-0 z-40 flex items-center justify-center bg-night/60 backdrop-blur-sm">
+        <div className="mx-4 w-full max-w-md">
+          <StatBoard
+            stats={stats}
+            players={players}
+            match={game.match}
+            gameOver={result !== null}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPerf(false)}
+            className="mt-3 w-full text-center text-sm text-slate-300/80 hover:text-cream"
+          >
+            Back to results
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-night/60 backdrop-blur-sm">
@@ -46,6 +77,16 @@ export function ResultPanel({ room, onVote }: ResultPanelProps) {
 
         {room.you.role === 'player' && (
           <RematchVote room={room} onVote={onVote} />
+        )}
+
+        {stats && (
+          <button
+            type="button"
+            onClick={() => setShowPerf(true)}
+            className="mt-3 text-sm text-slate-300/80 hover:text-cream"
+          >
+            Performance
+          </button>
         )}
       </Window>
     </div>
