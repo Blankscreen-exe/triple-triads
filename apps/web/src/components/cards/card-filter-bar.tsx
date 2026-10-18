@@ -38,6 +38,8 @@ interface CardFilterBarProps {
   /** How many cards match, out of how many, for the result count. */
   readonly shown: number;
   readonly total: number;
+  /** `row` for a full-width bar; `sidebar` stacks the controls for a narrow column. */
+  readonly layout?: 'row' | 'sidebar';
 }
 
 /** Search, filter and sort controls for a list of cards. Controlled: the caller owns the state. */
@@ -47,6 +49,7 @@ export function CardFilterBar({
   showSource = false,
   shown,
   total,
+  layout = 'row',
 }: CardFilterBarProps) {
   const update = (changes: Partial<CardFilters>) => {
     onChange({ ...filters, ...changes });
@@ -54,13 +57,17 @@ export function CardFilterBar({
 
   return (
     <div role="search" aria-label="Filter cards" className="space-y-3">
-      <div className="flex flex-wrap items-end gap-3">
+      <div
+        className={
+          layout === 'row' ? 'flex flex-wrap items-end gap-3' : 'grid grid-cols-2 items-end gap-2'
+        }
+      >
         <TextField
           label="Search"
           type="search"
           placeholder="Card name"
           value={filters.query}
-          className="min-w-40 flex-1"
+          className={layout === 'row' ? 'min-w-40 flex-1' : 'col-span-2'}
           onChange={(event) => {
             update({ query: event.target.value });
           }}

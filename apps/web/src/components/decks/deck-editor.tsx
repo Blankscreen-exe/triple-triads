@@ -4,7 +4,6 @@ import { validateDeck, type DeckRules, type DeckViolation } from '@triple-triad/
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import { CardFilterBar } from '@/components/cards/card-filter-bar';
-import { CardLine } from '@/components/cards/card-line';
 import { CardView, type CardFace } from '@/components/cards/card-view';
 import { Button, buttonClasses } from '@/components/ui/button';
 import { Window } from '@/components/ui/window';
@@ -93,113 +92,47 @@ export function DeckEditor({
     });
   };
 
+  // The deck's cards, strongest first, like everywhere else cards are listed.
+  const deckInOrder = applyFilters(deckCards, NO_FILTERS);
+
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <Window className="p-5">
-        <div className="mb-4">
-          <CardFilterBar
-            filters={filters}
-            onChange={setFilters}
-            showSource={hasMixedSources(trunk)}
-            shown={visible.length}
-            total={trunk.length}
-          />
+      <Window className="flex flex-col gap-4 p-5" aria-label="Deck">
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="min-w-48 flex-1 text-sm">
+            <span className="block text-slate-100">Deck name</span>
+            <input
+              value={name}
+              maxLength={DECK_NAME_MAX_LENGTH}
+              onChange={(event) => {
+                setName(event.target.value);
+                setStatus(null);
+              }}
+              className="mt-1 w-full rounded-md border border-frame/50 bg-black/30 px-3 py-2 font-display font-bold text-cream"
+            />
+          </label>
+          <div className="flex gap-3">
+            <Button onClick={save} disabled={isSaving || name.trim() === ''}>
+              {isSaving ? 'Saving…' : 'Save deck'}
+            </Button>
+            <Link href={backHref} className={buttonClasses('secondary')}>
+              Back
+            </Link>
+          </div>
         </div>
-
-        <ul
-          aria-label="Your trunk"
-          className="grid grid-cols-3 gap-4 sm:grid-cols-4 xl:grid-cols-5"
-        >
-          {visible.map((card) => {
-            const left = remaining(card);
-            const canAdd = left > 0 && size < DECK_SIZE;
-            return (
-              <li key={card.id} className="relative">
-                <button
-                  type="button"
-                  disabled={!canAdd}
-                  onClick={() => {
-                    change(card.id, 1);
-                  }}
-                  aria-label={`Add ${card.name}`}
-                  className="block w-full rounded-[3%/2.2%] transition enabled:cursor-pointer enabled:hover:-translate-y-1 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-cream"
-                >
-                  <CardView card={card} side="blue" pack={pack} />
-                </button>
-                <span className="absolute -right-2 -bottom-2 grid h-7 min-w-7 place-items-center rounded-full bg-cream px-1.5 text-xs font-bold text-ink ring-2 ring-window-bottom">
-                  {card.owned === null ? '∞' : `${String(Math.max(left, 0))}/${String(card.owned)}`}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-        {visible.length === 0 && <p className="text-sm text-slate-300/80">No cards match.</p>}
-      </Window>
-
-      <Window className="flex flex-col gap-4 p-5 lg:sticky lg:top-20 lg:self-start">
-        <label className="text-sm">
-          <span className="block text-slate-100">Deck name</span>
-          <input
-            value={name}
-            maxLength={DECK_NAME_MAX_LENGTH}
-            onChange={(event) => {
-              setName(event.target.value);
-              setStatus(null);
-            }}
-            className="mt-1 w-full rounded-md border border-frame/50 bg-black/30 px-3 py-2 font-display font-bold text-cream"
-          />
-        </label>
 
         <p className="text-sm" aria-live="polite">
           <span className={size === DECK_SIZE ? 'text-cream' : 'text-slate-100'}>
             {size} / {DECK_SIZE} cards
           </span>
           {size >= DECK_SIZE && (
-            <span className="block text-xs text-slate-300/80">
+            <span className="ml-2 text-xs text-slate-300/80">
               The deck is full. Remove a card to add another.
             </span>
           )}
         </p>
 
         <ViolationList violations={violations} />
-
-        <ul aria-label="Deck contents" className="max-h-[50vh] space-y-1.5 overflow-y-auto pr-1">
-          {deckCards.map((card) => (
-            <li key={card.id} className="flex items-center gap-2">
-              <div className="min-w-0 flex-1">
-                <CardLine
-                  name={card.name}
-                  stats={card.stats}
-                  element={card.element}
-                  stars={card.stars}
-                  count={`×${String(counts[card.id] ?? 0)}`}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <IconButton
-                  label={`Add another ${card.name}`}
-                  disabled={remaining(card) <= 0 || size >= DECK_SIZE}
-                  onClick={() => {
-                    change(card.id, 1);
-                  }}
-                >
-                  +
-                </IconButton>
-                <IconButton
-                  label={`Remove one ${card.name}`}
-                  onClick={() => {
-                    change(card.id, -1);
-                  }}
-                >
-                  −
-                </IconButton>
-              </div>
-            </li>
-          ))}
-        </ul>
-        {deckCards.length === 0 && (
-          <p className="text-sm text-slate-300/80">Click cards on the left to add them.</p>
-        )}
 
         {status && (
           <p
@@ -210,15 +143,110 @@ export function DeckEditor({
           </p>
         )}
 
-        <div className="flex gap-3">
-          <Button onClick={save} disabled={isSaving || name.trim() === ''} className="flex-1">
-            {isSaving ? 'Saving…' : 'Save deck'}
-          </Button>
-          <Link href={backHref} className={buttonClasses('secondary')}>
-            Back
-          </Link>
-        </div>
-        {trunk.length === 0 && <p className="text-sm text-slate-300/80">Your trunk is empty.</p>}
+        {deckInOrder.length === 0 ? (
+          <p className="py-10 text-center text-sm text-slate-300/80">
+            This deck is empty. Click cards in your trunk to add them.
+          </p>
+        ) : (
+          <ul
+            aria-label="Deck contents"
+            className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5"
+          >
+            {deckInOrder.map((card) => {
+              const count = counts[card.id] ?? 0;
+              return (
+                <li key={card.id} className="space-y-2">
+                  <div className="relative">
+                    <CardView card={card} side="blue" pack={pack} />
+                    <span
+                      className="absolute -right-2 -bottom-2 grid h-7 min-w-7 place-items-center rounded-full bg-cream px-1.5 text-xs font-bold text-ink ring-2 ring-window-bottom"
+                      aria-label={`${String(count)} in the deck`}
+                    >
+                      ×{count}
+                    </span>
+                  </div>
+                  <div className="flex justify-center gap-2">
+                    <IconButton
+                      label={`Remove one ${card.name}`}
+                      onClick={() => {
+                        change(card.id, -1);
+                      }}
+                    >
+                      −
+                    </IconButton>
+                    <IconButton
+                      label={`Add another ${card.name}`}
+                      disabled={remaining(card) <= 0 || size >= DECK_SIZE}
+                      onClick={() => {
+                        change(card.id, 1);
+                      }}
+                    >
+                      +
+                    </IconButton>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Window>
+
+      <Window
+        className="flex flex-col gap-3 p-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:self-start"
+        aria-label="Your trunk"
+      >
+        <h2 className="font-display text-lg font-bold tracking-wider text-cream">Your trunk</h2>
+        <CardFilterBar
+          layout="sidebar"
+          filters={filters}
+          onChange={setFilters}
+          showSource={hasMixedSources(trunk)}
+          shown={visible.length}
+          total={trunk.length}
+        />
+        {visible.length === 0 ? (
+          <p className="text-sm text-slate-300/80">
+            {trunk.length === 0 ? 'Your trunk is empty.' : 'No cards match.'}
+          </p>
+        ) : (
+          <ul
+            aria-label="Trunk cards"
+            className="grid min-h-0 grid-cols-3 gap-x-3 gap-y-4 overflow-y-auto overscroll-contain px-1 pt-1 pb-3"
+          >
+            {visible.map((card) => {
+              const left = remaining(card);
+              const canAdd = left > 0 && size < DECK_SIZE;
+              return (
+                <li key={card.id} className="relative">
+                  <button
+                    type="button"
+                    disabled={!canAdd}
+                    onClick={() => {
+                      change(card.id, 1);
+                    }}
+                    aria-label={`Add ${card.name}`}
+                    title={card.name}
+                    className="block w-full rounded-[3%/2.2%] transition enabled:cursor-pointer enabled:hover:-translate-y-0.5 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-cream"
+                  >
+                    <CardView card={card} side="blue" pack={pack} />
+                  </button>
+                  <span
+                    className="absolute -right-1.5 -bottom-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-cream px-1 text-[10px] font-bold text-ink ring-2 ring-window-bottom"
+                    aria-label={
+                      card.owned === null
+                        ? 'Unlimited copies'
+                        : `${String(Math.max(left, 0))} of ${String(card.owned)} copies left`
+                    }
+                  >
+                    {card.owned === null
+                      ? '∞'
+                      : `${String(Math.max(left, 0))}/${String(card.owned)}`}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </Window>
     </div>
   );

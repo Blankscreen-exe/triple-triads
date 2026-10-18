@@ -60,6 +60,20 @@ test('each deck can be edited on its own page, or deleted', async ({ page }) => 
   await expect(page.getByRole('heading', { name: 'Edit deck' })).toBeVisible();
   await expect(page.getByLabel('Deck name', { exact: true })).toHaveValue('Vanguard');
 
+  // The deck fills the main section as full cards; the trunk is a sidebar of small cards.
+  const deck = page.getByRole('region', { name: 'Deck' });
+  const trunk = page.getByRole('region', { name: 'Your trunk' });
+  await expect(deck.getByRole('list', { name: 'Deck contents' }).getByRole('img')).not.toHaveCount(
+    0,
+  );
+  await expect(
+    trunk.getByRole('list', { name: 'Trunk cards' }).getByRole('button'),
+  ).not.toHaveCount(0);
+  await deck.getByRole('button', { name: 'Remove one Sky Wyrm' }).click();
+  await expect(deck).toContainText('19 / 20 cards');
+  await trunk.getByRole('button', { name: 'Add Sky Wyrm' }).click();
+  await expect(deck).toContainText('20 / 20 cards');
+
   await page.goto('/decks');
   page.once('dialog', (dialog) => void dialog.accept());
   await deckList(page)
