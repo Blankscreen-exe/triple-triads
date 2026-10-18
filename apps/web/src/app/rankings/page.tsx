@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
+import { connection } from 'next/server';
 import { Suspense } from 'react';
 import { Window } from '@/components/ui/window';
 import { formatStreak, tierFor } from '@/lib/rating';
 import { getDatabase } from '@/server/db';
 import { leaderboard } from '@/server/matches/matches';
-import { requireUser } from '@/server/web/current-user';
 
 export const metadata: Metadata = { title: 'Rankings' };
 
@@ -23,7 +23,8 @@ export default function RankingsPage() {
 }
 
 async function RankingTable() {
-  await requireUser();
+  // Public, but always current: render on each request, never at build time.
+  await connection();
   const players = leaderboard(getDatabase());
 
   if (players.length === 0) {

@@ -93,3 +93,28 @@ test('signed-out visitors are sent from the profile to the login page', async ({
 
   await expect(page).toHaveURL('/login');
 });
+
+test('signed-out visitors only see the public pages in the header', async ({ page }) => {
+  const nav = page.getByRole('navigation', { name: 'Main' });
+  const tabs = () => nav.getByRole('link').allTextContents();
+
+  await page.goto('/');
+  await expect.poll(tabs).toEqual(['Rankings', 'Rules']);
+  await nav.getByRole('link', { name: 'Rankings' }).click();
+  await expect(page).toHaveURL('/rankings');
+  await expect(page.getByRole('heading', { name: 'Rankings', level: 1 })).toBeVisible();
+
+  await signUp(page, uniqueUsername());
+  await expect
+    .poll(tabs)
+    .toEqual([
+      'Profile',
+      'Play',
+      'Decks',
+      'Card maker',
+      'Card style',
+      'Trunk',
+      'Rankings',
+      'Rules',
+    ]);
+});
