@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { PlayerColor } from '@triple-triad/engine';
 
 interface CoinFlipProps {
@@ -12,21 +12,22 @@ interface CoinFlipProps {
 }
 
 export function CoinFlip({ winnerColor, winnerName, round, turn, reason }: CoinFlipProps) {
-  const [phase, setPhase] = useState<'spin' | 'result' | 'exit' | null>(() =>
-    reason === 'coin-flip' && round === 1 && turn <= 1 ? 'spin' : null,
+  const shouldPlay = reason === 'coin-flip' && round === 1 && turn <= 1;
+  const [phase, setPhase] = useState<'spin' | 'result' | 'exit' | null>(
+    shouldPlay ? 'spin' : null,
   );
 
   useEffect(() => {
-    if (phase !== 'spin') return undefined;
-    const resultTimer = setTimeout(() => setPhase('result'), 1900);
-    const exitTimer = setTimeout(() => setPhase('exit'), 3400);
-    const hideTimer = setTimeout(() => setPhase(null), 4100);
+    if (!shouldPlay) return undefined;
+    const t1 = setTimeout(() => setPhase('result'), 1900);
+    const t2 = setTimeout(() => setPhase('exit'), 3400);
+    const t3 = setTimeout(() => setPhase(null), 4100);
     return () => {
-      clearTimeout(resultTimer);
-      clearTimeout(exitTimer);
-      clearTimeout(hideTimer);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
     };
-  }, [phase]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (phase === null) return null;
 
@@ -36,7 +37,6 @@ export function CoinFlip({ winnerColor, winnerName, round, turn, reason }: CoinF
     <div
       className={`pointer-events-none fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 transition-opacity duration-700 ${phase === 'exit' ? 'opacity-0' : 'opacity-100'}`}
     >
-      {/* Coin */}
       <div
         className="motion-safe:animate-coin-spin"
         style={{ perspective: '800px' }}
@@ -46,7 +46,6 @@ export function CoinFlip({ winnerColor, winnerName, round, turn, reason }: CoinF
         </div>
       </div>
 
-      {/* Result text */}
       {(phase === 'result' || phase === 'exit') && (
         <div className="motion-safe:animate-coin-result text-center">
           <p className={`font-display text-2xl font-black tracking-[0.15em] uppercase sm:text-3xl ${color} [text-shadow:0_3px_8px_rgba(0,0,0,0.8),0_2px_0_#000]`}>
