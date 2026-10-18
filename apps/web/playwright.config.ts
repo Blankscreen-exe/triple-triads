@@ -18,6 +18,9 @@ export default defineConfig({
   // One browser at a time. Launching several Chromium instances at once can stall slower
   // machines for long enough to time out the first navigation; the suite is fast either way.
   workers: 1,
+  // Signing up (Argon2 hashing) and server actions can take a few seconds on a busy machine; the
+  // default 5 s wait for assertions made the suite flaky there without catching real bugs.
+  expect: { timeout: 10_000 },
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 1 : 0,
   reporter: process.env['CI'] ? 'github' : 'list',
