@@ -24,6 +24,7 @@ export function summarizeRoom(room: Room): RoomSummary {
     status: room.status,
     players: room.seats.map((seat) => seat.user.username),
     spectators: room.spectators.size,
+    createdAt: room.createdAt,
   };
 }
 

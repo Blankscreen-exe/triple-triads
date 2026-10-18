@@ -8,8 +8,16 @@ import { Button } from '@/components/ui/button';
 import { Window } from '@/components/ui/window';
 import { joinRoom, useLobby } from '@/lib/realtime/hooks';
 import { ROOM_ERRORS, type RoomError, type RoomSummary } from '@/lib/realtime/protocol';
+import {
+  applyRoomFilters,
+  hasOpenSeat,
+  roomFiltersFromSearchParams,
+  roomFiltersToSearchParams,
+} from '@/lib/room-filters';
+import { useSearchParamState } from '@/lib/use-search-param-state';
 import type { RoomPolicy } from '@/lib/validation/settings';
 import { CreateRoomForm } from './create-room-form';
+import { RoomFilterBar } from './room-filter-bar';
 
 export function Lobby({
   username,
@@ -19,23 +27,38 @@ export function Lobby({
   readonly policy: RoomPolicy;
 }) {
   const rooms = useLobby();
+  const [filters, setFilters] = useSearchParamState(
+    roomFiltersFromSearchParams,
+    roomFiltersToSearchParams,
+  );
+  const visible = rooms === null ? [] : applyRoomFilters(rooms, filters);
+
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <Window className="p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-lg font-bold tracking-wider text-cream">Rooms</h2>
-          <span className="text-xs text-slate-300/70">
-            {rooms === null ? 'Connecting…' : `${String(rooms.length)} open`}
-          </span>
-        </div>
-        {rooms?.length === 0 && (
+      <Window className="space-y-4 p-5" aria-label="Rooms">
+        <h2 className="font-display text-lg font-bold tracking-wider text-cream">Rooms</h2>
+        <RoomFilterBar
+          filters={filters}
+          onChange={setFilters}
+          shown={visible.length}
+          total={rooms?.length ?? 0}
+        />
+        {rooms === null ? (
+          <p className="text-sm text-slate-300/80">Connecting…</p>
+        ) : rooms.length === 0 ? (
           <p className="text-sm text-slate-300/80">No rooms yet. Create one and invite a friend.</p>
+        ) : visible.length === 0 ? (
+          <p className="py-6 text-center text-sm text-slate-300">No rooms match these filters.</p>
+        ) : (
+          <ul
+            className="max-h-[min(40rem,65vh)] space-y-2 overflow-y-auto overscroll-contain pr-1"
+            aria-label="Open rooms"
+          >
+            {visible.map((room) => (
+              <RoomRow key={room.id} room={room} />
+            ))}
+          </ul>
         )}
-        <ul className="space-y-2" aria-label="Open rooms">
-          {rooms?.map((room) => (
-            <RoomRow key={room.id} room={room} />
-          ))}
-        </ul>
       </Window>
       <Window className="p-5">
         <h2 className="mb-4 font-display text-lg font-bold tracking-wider text-cream">
@@ -52,7 +75,7 @@ function RoomRow({ room }: { readonly room: RoomSummary }) {
   const [joining, setJoining] = useState<'player' | 'spectator' | null>(null);
   const [password, setPassword] = useState('');
   const [error, setError] = useState<RoomError | null>(null);
-  const canPlay = room.players.length < 2;
+  const canPlay = hasOpenSeat(room);
 
   const join = async (as: 'player' | 'spectator') => {
     const result = await joinRoom(room.id, password, as);
@@ -69,7 +92,10 @@ function RoomRow({ room }: { readonly room: RoomSummary }) {
   };
 
   return (
-    <li className="rounded-md border border-frame/30 bg-black/20 px-3 py-2.5">
+    <li
+      aria-label={room.name}
+      className="rounded-md border border-frame/30 bg-black/20 px-3 py-2.5"
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="truncate font-semibold text-slate-100">

@@ -97,6 +97,8 @@ export interface RoomSummary {
   readonly status: RoomStatus;
   readonly players: readonly string[];
   readonly spectators: number;
+  /** When the room was created (server clock, ms). */
+  readonly createdAt: number;
 }
 
 export interface SeatInfo {
