@@ -1,15 +1,14 @@
 'use client';
 
-import { usePathname, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 import {
   applyFilters,
   filtersFromSearchParams,
   filtersToSearchParams,
   hasMixedSources,
-  type CardFilters,
   type FilterableCard,
 } from '@/lib/card-filters';
+import { useSearchParamState } from '@/lib/use-search-param-state';
 import { CardFilterBar } from './card-filter-bar';
 
 export interface FilterableCardItem {
@@ -28,16 +27,7 @@ interface FilterableCardGridProps {
  * back button or a shared link keeps them; filtering itself happens instantly in the browser.
  */
 export function FilterableCardGrid({ items }: FilterableCardGridProps) {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const filters = filtersFromSearchParams(new URLSearchParams(searchParams.toString()));
-
-  const setFilters = (next: CardFilters) => {
-    const query = filtersToSearchParams(next, new URLSearchParams(searchParams.toString()));
-    const search = query.toString();
-    // Replace rather than push: each keystroke should not become a history entry.
-    window.history.replaceState(null, '', search === '' ? pathname : `${pathname}?${search}`);
-  };
+  const [filters, setFilters] = useSearchParamState(filtersFromSearchParams, filtersToSearchParams);
 
   const cards = items.map((item) => item.card);
   const byCard = new Map(items.map((item) => [item.card, item]));
