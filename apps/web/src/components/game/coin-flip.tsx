@@ -12,14 +12,12 @@ interface CoinFlipProps {
 }
 
 export function CoinFlip({ winnerColor, winnerName, round, turn, reason }: CoinFlipProps) {
-  const [phase, setPhase] = useState<'idle' | 'spin' | 'result' | 'exit' | null>(null);
-  const shown = useRef(false);
-  const mountTurn = useRef(turn);
+  const [phase, setPhase] = useState<'spin' | 'result' | 'exit' | null>(() =>
+    reason === 'coin-flip' && round === 1 && turn <= 1 ? 'spin' : null,
+  );
 
   useEffect(() => {
-    if (reason !== 'coin-flip' || round !== 1 || mountTurn.current > 1 || shown.current) return;
-    shown.current = true;
-    setPhase('spin');
+    if (phase !== 'spin') return undefined;
     const resultTimer = setTimeout(() => setPhase('result'), 1900);
     const exitTimer = setTimeout(() => setPhase('exit'), 3400);
     const hideTimer = setTimeout(() => setPhase(null), 4100);
@@ -28,9 +26,9 @@ export function CoinFlip({ winnerColor, winnerName, round, turn, reason }: CoinF
       clearTimeout(exitTimer);
       clearTimeout(hideTimer);
     };
-  }, [reason, round]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase]);
 
-  if (phase === null || phase === 'idle') return null;
+  if (phase === null) return null;
 
   const color = winnerColor === 'red' ? 'text-score-red' : 'text-score-blue';
 

@@ -8,28 +8,29 @@ interface RoundAnnounceProps {
 }
 
 export function RoundAnnounce({ round, turn }: RoundAnnounceProps) {
-  const [visible, setVisible] = useState<number | null>(null);
+  const [visible, setVisible] = useState<number | null>(() => (turn <= 1 ? round : null));
   const [phase, setPhase] = useState<'enter' | 'exit'>('enter');
-  const mountTurn = useRef(turn);
   const prevRound = useRef(round);
 
   useEffect(() => {
-    const isRoundChange = round !== prevRound.current;
-    const isFirstRound = prevRound.current === round && mountTurn.current <= 1 && visible === null;
-    prevRound.current = round;
+    if (visible !== null) {
+      const exitTimer = setTimeout(() => setPhase('exit'), 1200);
+      const hideTimer = setTimeout(() => setVisible(null), 2000);
+      return () => {
+        clearTimeout(exitTimer);
+        clearTimeout(hideTimer);
+      };
+    }
+    return undefined;
+  }, [visible]);
 
-    if (!isRoundChange && !isFirstRound) return;
-
-    setPhase('enter');
-    setVisible(round);
-
-    const exitTimer = setTimeout(() => setPhase('exit'), 1200);
-    const hideTimer = setTimeout(() => setVisible(null), 2000);
-    return () => {
-      clearTimeout(exitTimer);
-      clearTimeout(hideTimer);
-    };
-  }, [round]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (round !== prevRound.current) {
+      prevRound.current = round;
+      setPhase('enter');
+      setVisible(round);
+    }
+  }, [round]);
 
   if (visible === null) return null;
 
