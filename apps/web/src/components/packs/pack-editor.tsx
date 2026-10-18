@@ -5,6 +5,8 @@ import {
   IMAGE_PARTS,
   PACK_FONT_EXTENSIONS,
   PACK_IMAGE_TYPES,
+  PART_FILE_NAMES,
+  templateUrl,
   type PackPart,
 } from '@/lib/asset-pack-spec';
 import type { AssetPack } from '@/lib/asset-packs';
@@ -45,6 +47,18 @@ export function PackEditor({ pack, replaced, upload, reset }: PackEditorProps) {
             accept={PACK_IMAGE_TYPES.join(',')}
             previewUrl={pack.images[spec.part]}
             expectedSize={[spec.width, spec.height]}
+            downloads={[
+              ...spec.templates.map((template) => ({
+                label: template.label,
+                href: templateUrl(template),
+                fileName: template.file,
+              })),
+              {
+                label: 'Current image',
+                href: pack.images[spec.part],
+                fileName: `${PART_FILE_NAMES[spec.part]}.png`,
+              },
+            ]}
             isReplaced={replaced.includes(spec.part)}
             upload={upload}
             reset={reset}
@@ -56,6 +70,17 @@ export function PackEditor({ pack, replaced, upload, reset }: PackEditorProps) {
           description="Used for card names. TTF, OTF or WOFF2, up to 2 MB."
           accept={PACK_FONT_EXTENSIONS.join(',')}
           previewUrl={null}
+          downloads={
+            pack.font
+              ? [
+                  {
+                    label: 'Current font',
+                    href: pack.font.url,
+                    fileName: `font${pack.font.url.slice(pack.font.url.lastIndexOf('.'))}`,
+                  },
+                ]
+              : []
+          }
           isReplaced={replaced.includes('font')}
           upload={upload}
           reset={reset}
@@ -87,6 +112,7 @@ function PartRow({
   accept,
   previewUrl,
   expectedSize,
+  downloads,
   isReplaced,
   upload,
   reset,
@@ -97,6 +123,8 @@ function PartRow({
   readonly accept: string;
   readonly previewUrl: string | null;
   readonly expectedSize?: readonly [number, number];
+  /** Files to start from: templates at the exact size, and the file currently in use. */
+  readonly downloads: readonly Download[];
   readonly isReplaced: boolean;
   readonly upload: PackEditorProps['upload'];
   readonly reset: PackEditorProps['reset'];
@@ -142,6 +170,22 @@ function PartRow({
           </span>
         </div>
         <p className="text-xs text-slate-300/80">{description}</p>
+        {downloads.length > 0 && (
+          <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+            <span className="text-slate-400">Download:</span>
+            {downloads.map((download) => (
+              <a
+                key={download.label}
+                href={download.href}
+                download={download.fileName}
+                aria-label={`Download ${download.label.toLowerCase()} for ${label}`}
+                className="text-cream underline decoration-cream/40 underline-offset-2 hover:decoration-cream"
+              >
+                {download.label}
+              </a>
+            ))}
+          </p>
+        )}
         {error && (
           <p role="alert" className="mt-1 text-sm text-status-live">
             {error}
@@ -180,6 +224,13 @@ function PartRow({
       </div>
     </Window>
   );
+}
+
+interface Download {
+  readonly label: string;
+  readonly href: string;
+  /** Suggested file name when saved. */
+  readonly fileName: string;
 }
 
 /** Checks an image's pixel size in the browser before uploading it. */

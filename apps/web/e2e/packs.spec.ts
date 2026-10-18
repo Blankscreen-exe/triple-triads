@@ -48,12 +48,38 @@ test('an image of the wrong size is refused with the size it needs', async ({ pa
 test('the art templates can be downloaded', async ({ page, request }) => {
   await page.goto('/templates');
   const links = page.getByRole('link', { name: /\.png$/ });
-  await expect(links).toHaveCount(9);
+  await expect(links).toHaveCount(11);
 
   for (const href of await links.evaluateAll((anchors) =>
     anchors.map((a) => a.getAttribute('href')),
   )) {
     const response = await request.get(href ?? '');
     expect(response.status(), href ?? '').toBe(200);
+  }
+});
+
+test('every card style part offers templates and its current image to download', async ({
+  page,
+}) => {
+  await signUp(page, uniqueUsername());
+  await page.goto('/packs');
+
+  const frame = page.getByRole('region', { name: 'Frame' });
+  const download = page.waitForEvent('download');
+  await frame.getByRole('link', { name: 'Download guide lines for Frame' }).click();
+  expect((await download).suggestedFilename()).toBe('frame-template-lines.png');
+  await expect(
+    frame.getByRole('link', { name: 'Download current image for Frame' }),
+  ).toHaveAttribute('download', 'frame.png');
+
+  const links = page.getByRole('link', { name: /^Download / });
+  // Seven image parts, each with its templates and its current image (no custom font yet).
+  expect(await links.count()).toBeGreaterThanOrEqual(14);
+  for (const href of await links.evaluateAll((anchors) =>
+    anchors.map((a) => a.getAttribute('href') ?? ''),
+  )) {
+    const response = await page.request.get(href);
+    expect(response.status(), href).toBe(200);
+    expect(response.headers()['content-type'], href).toBe('image/png');
   }
 });

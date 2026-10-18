@@ -22,6 +22,11 @@ const TEMPLATES = [
     note: 'For the blue and red backgrounds.',
   },
   {
+    title: 'Card back',
+    files: ['card-back-template-lines.png', 'card-back-template-labeled.png'],
+    note: 'The whole card face-down; nothing is drawn on top.',
+  },
+  {
     title: 'Sprite sheets',
     files: ['sheet-digits.png', 'sheet-elements.png', 'sheet-stars.png'],
     note: 'One cell per digit, element or star, in order.',

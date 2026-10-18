@@ -7,6 +7,8 @@ Outputs (in apps/web/public/templates/, downloadable from the app's /templates p
   frame-template-labeled.png       - frame outlines + labels, white background
   background-template-lines.png    - background outlines only, transparent (for bg-blue.png / bg-red.png)
   background-template-labeled.png  - background outlines + labels, white background
+  card-back-template-lines.png     - card edge and centre only, transparent (for card-back.png)
+  card-back-template-labeled.png   - card back size and notes, white background
   sheet-digits.png           - asset sheet grid for stat characters 1-9, A
   sheet-elements.png         - asset sheet grid for element icons
   sheet-stars.png            - asset sheet grid for stars
@@ -139,6 +141,22 @@ def draw_frame_labels(d):
     d.text((320, 3), f"CARD {W}x{H} (5:7)   |   FRAME {B}px", font=fs, fill=FRAME)
 
 
+def draw_card_back_lines(d):
+    box(d, (0, 0, W, H), EDGE)
+    cx, cy = W // 2, H // 2
+    d.line((cx - 24, cy, cx + 24, cy), fill=FRAME, width=LINE)
+    d.line((cx, cy - 24, cx, cy + 24), fill=FRAME, width=LINE)
+
+
+def draw_card_back_labels(d):
+    f, fs = font(18), font(13)
+    d.text((300, 600), f"CARD BACK  {W}x{H}", font=f, fill=FRAME)
+    d.text((300, 630), f"Export the full {W}x{H} canvas as card-back.png.", font=fs, fill=FRAME)
+    d.text((300, 650), "Nothing is drawn on top: no frame, numbers or name. The whole image shows.", font=fs, fill=FRAME)
+    d.text((300, 670), "Used for face-down cards, such as your opponent's hand.", font=fs, fill=HINT)
+    d.text((320, 3), f"CARD {W}x{H} (5:7)", font=fs, fill=FRAME)
+
+
 def make_sheet(name, spec):
     cw, ch = spec["cell"]
     order = spec["order"]
@@ -184,6 +202,16 @@ def main():
     draw_background_lines(d)
     draw_background_labels(d)
     bg_labeled.save(OUT / "background-template-labeled.png")
+
+    back_lines = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    draw_card_back_lines(ImageDraw.Draw(back_lines))
+    back_lines.save(OUT / "card-back-template-lines.png")
+
+    back_labeled = Image.new("RGBA", (W, H), (255, 255, 255, 255))
+    d = ImageDraw.Draw(back_labeled)
+    draw_card_back_lines(d)
+    draw_card_back_labels(d)
+    back_labeled.save(OUT / "card-back-template-labeled.png")
 
     for name, spec in LAYOUT["sheets"].items():
         make_sheet(name, spec)
