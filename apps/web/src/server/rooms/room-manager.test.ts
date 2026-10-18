@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CardInfo, CreateRoomInput, RoomOptions } from '@/lib/realtime/protocol';
 import type { DeckProvider } from './game-decks';
 import type { FinishedGame, GameDeck, RoomUser } from './model';
-import { RECONNECT_GRACE_MS, REMATCH_VOTE_MS, RoomManager, type RoomEvents } from './room-manager';
+import { RECONNECT_GRACE_MS, REMATCH_VOTE_MS } from '@/lib/realtime/protocol';
+import { RoomManager, type RoomEvents } from './room-manager';
 
 const alice: RoomUser = { id: 'alice', username: 'Alice' };
 const bob: RoomUser = { id: 'bob', username: 'Bob' };

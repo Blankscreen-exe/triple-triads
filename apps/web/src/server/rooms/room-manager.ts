@@ -22,17 +22,19 @@ import {
   type Position,
 } from '@triple-triad/engine';
 import { DEFAULT_ASSET_PACK, type AssetPack } from '@/lib/asset-packs';
-import type {
-  Ack,
-  CardInfo,
-  CreateRoomInput,
-  JoinRoomInput,
-  MatchOutcome,
-  MoveInput,
-  RoomError,
-  RoomSnapshot,
-  RoomSummary,
-  VoteChoice,
+import {
+  RECONNECT_GRACE_MS,
+  REMATCH_VOTE_MS,
+  type Ack,
+  type CardInfo,
+  type CreateRoomInput,
+  type JoinRoomInput,
+  type MatchOutcome,
+  type MoveInput,
+  type RoomError,
+  type RoomSnapshot,
+  type RoomSummary,
+  type VoteChoice,
 } from '@/lib/realtime/protocol';
 import { DEFAULT_ROOM_POLICY, applyRoomPolicy, type RoomPolicy } from '@/lib/validation/settings';
 import type { DeckProvider } from './game-decks';
@@ -69,9 +71,6 @@ export interface RoomManagerDeps {
   /** How long the rematch vote stays open (spec: 30 seconds). */
   readonly rematchVoteMs?: number;
 }
-
-export const RECONNECT_GRACE_MS = 2 * 60 * 1000;
-export const REMATCH_VOTE_MS = 30 * 1000;
 
 type Result<T = null> = Ack<T>;
 

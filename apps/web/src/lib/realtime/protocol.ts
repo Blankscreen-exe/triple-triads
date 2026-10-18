@@ -21,6 +21,11 @@ import type { DescribableCard } from '../describe-card';
 export const TURN_TIMER_OPTIONS = [30, 60, null] as const;
 export type TurnSeconds = (typeof TURN_TIMER_OPTIONS)[number];
 
+/** How long a disconnected player has to come back before forfeiting. */
+export const RECONNECT_GRACE_MS = 2 * 60 * 1000;
+/** How long the continue/leave vote after a game stays open. */
+export const REMATCH_VOTE_MS = 30 * 1000;
+
 export const ROOM_NAME_MAX_LENGTH = 40;
 export const ROOM_PASSWORD_MAX_LENGTH = 64;
 
