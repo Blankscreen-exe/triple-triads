@@ -187,57 +187,59 @@ function Table({
   };
 
   return (
-    <div className="space-y-5">
-      <StatusLine
-        snapshot={snapshot}
-        clockOffset={room.clockOffset}
-        myTurn={myTurn}
-        hasSelection={!!selection}
-      />
-      <div className="flex items-start justify-center gap-3 sm:gap-6">
-        {side(left)}
-        <div className="relative w-[clamp(240px,48vw,460px)]">
-          <Board
-            game={game}
-            canPlace={myTurn && selection !== null}
-            onPlace={place}
-            acceptsDrop={myTurn}
-            drag={drag.drag}
-          />
-          <CaptureBanner game={game} />
+    <>
+      <div className="space-y-5">
+        <StatusLine
+          snapshot={snapshot}
+          clockOffset={room.clockOffset}
+          myTurn={myTurn}
+          hasSelection={!!selection}
+        />
+        <div className="flex items-start justify-center gap-3 sm:gap-6">
+          {side(left)}
+          <div className="relative w-[clamp(240px,48vw,460px)]">
+            <Board
+              game={game}
+              canPlace={myTurn && selection !== null}
+              onPlace={place}
+              acceptsDrop={myTurn}
+              drag={drag.drag}
+            />
+            <CaptureBanner game={game} />
+          </div>
+          {side(right)}
         </div>
-        {side(right)}
-      </div>
-      <DragGhost controls={drag}>
-        {draggedFace && (
-          <CardView card={draggedFace} side={right} pack={game.players[right].pack} />
+        <DragGhost controls={drag}>
+          {draggedFace && (
+            <CardView card={draggedFace} side={right} pack={game.players[right].pack} />
+          )}
+        </DragGhost>
+        {game.match.format === 'until-winner' && (
+          <RoundAnnounce round={game.match.round} turn={view.turn} />
         )}
-      </DragGhost>
-      {game.match.format === 'until-winner' && (
-        <RoundAnnounce round={game.match.round} turn={view.turn} />
-      )}
-      {view.result && game.match.nextRoundAt !== null && (
-        <div className="mx-auto max-w-sm">
-          <RoundBreak snapshot={snapshot} clockOffset={room.clockOffset} />
-        </div>
-      )}
+        {view.result && game.match.nextRoundAt !== null && (
+          <div className="mx-auto max-w-sm">
+            <RoundBreak snapshot={snapshot} clockOffset={room.clockOffset} />
+          </div>
+        )}
+        {gameStats && (
+          <div className="mx-auto max-w-md">
+            <StatBoard
+              stats={gameStats}
+              players={{
+                red: game.players.red.username,
+                blue: game.players.blue.username,
+              }}
+              match={game.match}
+              gameOver={view.result !== null}
+            />
+          </div>
+        )}
+      </div>
       {view.result && game.match.nextRoundAt === null && (
         <ResultPanel room={snapshot} onVote={room.vote} />
       )}
-      {gameStats && (
-        <div className="mx-auto max-w-md">
-          <StatBoard
-            stats={gameStats}
-            players={{
-              red: game.players.red.username,
-              blue: game.players.blue.username,
-            }}
-            match={game.match}
-            gameOver={view.result !== null}
-          />
-        </div>
-      )}
-    </div>
+    </>
   );
 }
 
