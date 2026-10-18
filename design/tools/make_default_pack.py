@@ -131,11 +131,13 @@ def digits():
     order = LAYOUT["sheets"]["digits"]["order"]
     img = Image.new("RGBA", (cw * len(order) * SS, ch * SS), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    f = font(SERIF_BOLD, int(ch * 0.82 * SS))
+    # Cards are often shown at 150-200 px wide, where a cell is only ~25 px: the glyph fills most of
+    # the cell and has a heavy dark outline so it stays readable over any art.
+    f = font(SERIF_BOLD, int(ch * 0.78 * SS))
     for i, char in enumerate(order):
         cx = (i + 0.5) * cw * SS
-        d.text((cx, ch * 0.52 * SS), char, font=f, fill=(255, 255, 255, 255), anchor="mm",
-               stroke_width=int(4.5 * SS), stroke_fill=(0, 0, 0, 255))
+        d.text((cx, ch * 0.5 * SS), char, font=f, fill=(255, 255, 255, 255), anchor="mm",
+               stroke_width=int(ch * 0.075 * SS), stroke_fill=(8, 10, 20, 255))
     return img, (cw * len(order), ch)
 
 

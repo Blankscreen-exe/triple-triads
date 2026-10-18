@@ -20,6 +20,15 @@ describe('CARD_LAYOUT', () => {
 });
 
 describe('parseCardLayout', () => {
+  it('sizes every stat box to one digit cell, inside the stats area', () => {
+    const [cellWidth, cellHeight] = CARD_LAYOUT.sheets.digits.cell;
+    const [ax0, ay0, ax1, ay1] = CARD_LAYOUT.statsArea;
+    for (const [x0, y0, x1, y1] of Object.values(CARD_LAYOUT.stats)) {
+      expect([x1 - x0, y1 - y0]).toEqual([cellWidth, cellHeight]);
+      expect(x0 >= ax0 && y0 >= ay0 && x1 <= ax1 && y1 <= ay1).toBe(true);
+    }
+  });
+
   it('rejects boxes that leave the card', () => {
     expect(() => parseCardLayout({ ...rawLayout, element: [900, 40, 1100, 140] })).toThrow(
       /element/,
