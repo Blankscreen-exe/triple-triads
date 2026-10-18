@@ -12,6 +12,7 @@ import { Countdown } from '@/components/game/countdown';
 import { Hand } from '@/components/game/hand';
 import { PlayerPanel } from '@/components/game/player-panel';
 import { ResultPanel } from '@/components/game/result-panel';
+import { CoinFlip } from '@/components/game/coin-flip';
 import { RoundAnnounce } from '@/components/game/round-announce';
 import { RuleChips } from '@/components/game/rule-chips';
 import { StatBoard } from '@/components/game/stat-board';
@@ -214,6 +215,13 @@ function Table({
             <CardView card={draggedFace} side={right} pack={game.players[right].pack} />
           )}
         </DragGhost>
+        <CoinFlip
+          winnerColor={game.firstPlayer.color}
+          winnerName={game.players[game.firstPlayer.color].username}
+          round={game.match.round}
+          turn={view.turn}
+          reason={game.firstPlayer.reason}
+        />
         {game.match.format === 'until-winner' && (
           <RoundAnnounce round={game.match.round} turn={view.turn} />
         )}
