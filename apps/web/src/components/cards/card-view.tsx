@@ -33,8 +33,15 @@ interface CardViewProps {
 }
 
 const layout = CARD_LAYOUT;
-/** Name text height as a share of the name box, in container-width units (cqw). */
-const NAME_FONT_SIZE = `${String(((layout.name[3] - layout.name[1]) * 0.6 * 100) / layout.width)}cqw`;
+/** Name text height (70% of the name box), in container-width units (cqw). */
+const NAME_FONT_SIZE = ((layout.name[3] - layout.name[1]) * 0.7 * 100) / layout.width;
+/** Names longer than this many characters are drawn smaller so they fit instead of being cut off. */
+const NAME_FIT_CHARACTERS = 20;
+
+function nameFontSize(name: string): string {
+  const scale = Math.min(1, NAME_FIT_CHARACTERS / Math.max(name.length, 1));
+  return `${String(NAME_FONT_SIZE * scale)}cqw`;
+}
 
 export function CardView({ card, side, pack = DEFAULT_ASSET_PACK, className = '' }: CardViewProps) {
   return (
@@ -78,7 +85,7 @@ export function CardView({ card, side, pack = DEFAULT_ASSET_PACK, className = ''
         className="absolute flex items-center justify-center overflow-hidden px-[1%] leading-none font-bold whitespace-nowrap text-white [text-shadow:0_0.3cqw_0.6cqw_rgb(0_0_0/0.8)]"
         style={{
           ...boxToPercent(layout.name),
-          fontSize: NAME_FONT_SIZE,
+          fontSize: nameFontSize(card.name),
           fontFamily: pack.font ? `"${pack.font.family}"` : 'var(--font-display)',
         }}
       >

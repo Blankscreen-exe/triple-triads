@@ -122,7 +122,7 @@ All card visuals come from images and fonts, not from code. The game ships a **d
 | `frame.png`     | 1024 × 1434 | Decorative frame; 20 px band, transparent inside. **Does not indicate team** |
 | `card-back.png` | 1024 × 1434 | Back of the card                                                             |
 | `digits.png`    | 1500 × 150  | 10 cells of 150 × 150, in order: 1 2 3 4 5 6 7 8 9 A                         |
-| `elements.png`  | 800 × 100   | 8 cells of 100 × 100: fire, ice, thunder, earth, poison, wind, water, holy   |
+| `elements.png`  | 1200 × 150  | 8 cells of 150 × 150: fire, ice, thunder, earth, poison, wind, water, holy   |
 | `stars.png`     | 120 × 60    | 2 cells of 60 × 60: filled, empty                                            |
 | Font file(s)    | .ttf / .otf | Used for the card name and other text                                        |
 

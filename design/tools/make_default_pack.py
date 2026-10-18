@@ -165,8 +165,10 @@ def element_icon(name, size):
     s = size * SS
     img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
+    # Line widths are relative to the icon so it keeps its weight at any cell size.
+    line = lambda px: max(1, round(px * s / 100))
     c, r = s / 2, s * 0.46
-    d.ellipse((c - r, c - r, c + r, c + r), fill=(11, 16, 32, 200), outline=CREAM, width=3 * SS)
+    d.ellipse((c - r, c - r, c + r, c + r), fill=(11, 16, 32, 200), outline=CREAM, width=line(4))
     u = s * 0.3  # symbol scale
     if name == "fire":
         d.polygon(droplet(c, c, u * 0.95), fill=(255, 122, 26, 255))
@@ -175,13 +177,13 @@ def element_icon(name, size):
         for k in range(3):
             a = math.radians(90 + k * 60)
             dx, dy = math.cos(a) * u, math.sin(a) * u
-            d.line((c - dx, c - dy, c + dx, c + dy), fill=(191, 232, 255, 255), width=4 * SS)
+            d.line((c - dx, c - dy, c + dx, c + dy), fill=(191, 232, 255, 255), width=line(5))
             for sign in (1, -1):
                 bx, by = c + sign * dx * 0.6, c + sign * dy * 0.6
                 for turn in (0.6, -0.6):
                     ba = a + (math.pi if sign < 0 else 0) + turn
                     d.line((bx, by, bx + math.cos(ba) * u * 0.35, by + math.sin(ba) * u * 0.35),
-                           fill=(191, 232, 255, 255), width=3 * SS)
+                           fill=(191, 232, 255, 255), width=line(4))
     elif name == "thunder":
         bolt = [(0.15, -1), (-0.45, 0.1), (-0.02, 0.1), (-0.2, 1), (0.45, -0.15), (0.03, -0.15), (0.3, -1)]
         d.polygon([(c + x * u, c + y * u) for x, y in bolt], fill=(255, 216, 74, 255))
@@ -198,7 +200,7 @@ def element_icon(name, size):
     elif name == "wind":
         for k, rr in enumerate((0.95, 0.65, 0.35)):
             box = (c - rr * u, c - rr * u, c + rr * u, c + rr * u)
-            d.arc(box, 200 + k * 25, 470 + k * 25, fill=(142, 230, 160, 255), width=4 * SS)
+            d.arc(box, 200 + k * 25, 470 + k * 25, fill=(142, 230, 160, 255), width=line(5))
     elif name == "water":
         d.polygon(droplet(c, c, u * 0.95), fill=(74, 168, 255, 255))
         d.ellipse((c - u * 0.35, c + u * 0.05, c - u * 0.1, c + u * 0.3), fill=(200, 230, 255, 255))
