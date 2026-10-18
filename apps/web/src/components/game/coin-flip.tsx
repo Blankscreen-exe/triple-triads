@@ -14,9 +14,10 @@ interface CoinFlipProps {
 export function CoinFlip({ winnerColor, winnerName, round, turn, reason }: CoinFlipProps) {
   const [phase, setPhase] = useState<'idle' | 'spin' | 'result' | 'exit' | null>(null);
   const shown = useRef(false);
+  const mountTurn = useRef(turn);
 
   useEffect(() => {
-    if (reason !== 'coin-flip' || round !== 1 || turn !== 1 || shown.current) return;
+    if (reason !== 'coin-flip' || round !== 1 || mountTurn.current > 1 || shown.current) return;
     shown.current = true;
     setPhase('spin');
     const resultTimer = setTimeout(() => setPhase('result'), 1900);
@@ -27,7 +28,7 @@ export function CoinFlip({ winnerColor, winnerName, round, turn, reason }: CoinF
       clearTimeout(exitTimer);
       clearTimeout(hideTimer);
     };
-  }, [reason, round, turn]);
+  }, [reason, round]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (phase === null || phase === 'idle') return null;
 
