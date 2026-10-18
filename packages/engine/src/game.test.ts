@@ -56,6 +56,19 @@ describe('createGame', () => {
     expect(state.board.every((cell) => cell.placed === null)).toBe(true);
   });
 
+  it('lets blue take the first turn', () => {
+    const state = createGame({
+      rules: BASIC_RULES,
+      decks: { red: uniformDeck([5, 5, 5, 5]), blue: uniformDeck([5, 5, 5, 5]) },
+      seed: 42,
+      firstPlayer: 'blue',
+    });
+
+    expect(state.activePlayer).toBe('blue');
+    expect(state.players.blue.hand).toHaveLength(INITIAL_HAND_SIZE + CARDS_DRAWN_PER_TURN);
+    expect(state.players.red.hand).toHaveLength(INITIAL_HAND_SIZE);
+  });
+
   it('gives every card instance a unique id', () => {
     const state = newGame();
     const ids = (['red', 'blue'] as const).flatMap((color) =>
@@ -214,6 +227,22 @@ describe('end of game', () => {
     expect(finished.players.red.placedCount).toBe(5);
     expect(finished.players.blue.placedCount).toBe(4);
     expect(legalMoves(finished)).toEqual([]);
+  });
+
+  it('gives the extra card to whoever goes second, whatever their colour', () => {
+    const finished = playToEnd(
+      createGame({
+        rules: BASIC_RULES,
+        decks: { red: uniformDeck([5, 5, 5, 5]), blue: uniformDeck([5, 5, 5, 5]) },
+        seed: 42,
+        firstPlayer: 'blue',
+      }),
+    );
+
+    expect(finished.players.blue.placedCount).toBe(5);
+    expect(finished.players.red.placedCount).toBe(4);
+    // Blue controls 5 board cards, red 4 plus the unplayed card.
+    expect(finished.result).toEqual({ winner: null, score: { red: 5, blue: 5 } });
   });
 
   it('is a 5–5 draw when nothing is captured', () => {

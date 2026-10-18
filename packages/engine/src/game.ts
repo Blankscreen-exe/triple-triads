@@ -41,9 +41,14 @@ export interface NewGameOptions {
   readonly decks: Readonly<Record<PlayerColor, readonly CardDefinition[]>>;
   /** Seed for every random decision in this game (shuffles, elemental squares, timeouts). */
   readonly seed: number;
+  /**
+   * Who takes the first turn. Colours are only identities: either colour can go first, and the
+   * second player gets the scoring bonus whichever colour they are. Defaults to red.
+   */
+  readonly firstPlayer?: PlayerColor;
 }
 
-export function createGame({ rules, decks, seed }: NewGameOptions): GameState {
+export function createGame({ rules, decks, seed, firstPlayer = 'red' }: NewGameOptions): GameState {
   for (const color of PLAYER_COLORS) {
     if (decks[color].length < MIN_CARDS_PER_GAME) {
       throw new RangeError(
@@ -63,7 +68,7 @@ export function createGame({ rules, decks, seed }: NewGameOptions): GameState {
     rules,
     board,
     players,
-    activePlayer: 'red',
+    activePlayer: firstPlayer,
     turn: 1,
     rngState: rng.state,
     result: null,
