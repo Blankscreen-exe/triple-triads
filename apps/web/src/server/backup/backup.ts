@@ -78,7 +78,7 @@ export async function createBackup(
   db: AppDatabase,
   storage: FileStorage,
   { now = () => new Date() }: Options = {},
-): Promise<Uint8Array> {
+): Promise<Uint8Array<ArrayBuffer>> {
   const dir = await mkdtemp(join(tmpdir(), 'tt-backup-'));
   try {
     // SQLite's online backup: a consistent snapshot even while the server keeps writing.

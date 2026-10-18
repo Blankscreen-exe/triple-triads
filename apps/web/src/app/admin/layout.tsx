@@ -13,6 +13,7 @@ const SECTIONS = [
   { href: '/admin/packs', label: 'Card style' },
   { href: '/admin/settings', label: 'Settings' },
   { href: '/admin/moderation', label: 'Moderation' },
+  { href: '/admin/backup', label: 'Backup' },
 ] as const;
 
 export default function AdminLayout({ children }: LayoutProps<'/admin'>) {

@@ -12,6 +12,8 @@
     "dev": "pnpm --filter @triple-triad/web dev",
     "build": "pnpm -r build",
     "start": "pnpm --filter @triple-triad/web start",
+    "data:export": "pnpm --filter @triple-triad/web data:export",
+    "data:import": "pnpm --filter @triple-triad/web data:import",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",

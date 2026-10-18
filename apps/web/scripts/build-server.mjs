@@ -1,5 +1,6 @@
 /**
- * Bundles the custom server (src/server) into dist/server.mjs for production.
+ * Bundles the custom server (src/server) into dist/server.mjs, and the data tools into
+ * dist/cli.mjs, for production.
  *
  * Third-party packages stay external and load from node_modules at runtime. Workspace packages
  * (@triple-triad/*) ship TypeScript source, and `@/` is this app's own source, so both are bundled.
@@ -23,8 +24,10 @@ const externalizeThirdParty = {
 };
 
 await build({
-  entryPoints: ['src/server/index.ts'],
-  outfile: 'dist/server.mjs',
+  // The server, and the command-line tools for server data (see src/server/cli.ts).
+  entryPoints: { server: 'src/server/index.ts', cli: 'src/server/cli.ts' },
+  outdir: 'dist',
+  outExtension: { '.js': '.mjs' },
   bundle: true,
   platform: 'node',
   format: 'esm',
