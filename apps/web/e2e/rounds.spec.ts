@@ -75,7 +75,9 @@ async function playTurn(pages: readonly Page[]) {
   await expect(active.getByText(YOUR_TURN)).toBeHidden();
 }
 
-test('a drawn round is followed by another until the decks run out', async ({ browser }) => {
+test('every round of a best-of-3 match is played; three drawn rounds draw the match', async ({
+  browser,
+}) => {
   test.setTimeout(180_000);
   const host = await stalematePlayer(browser);
   const guest = await stalematePlayer(browser);
@@ -84,7 +86,6 @@ test('a drawn round is followed by another until the decks run out', async ({ br
   await host.goto('/play');
   await host.getByLabel('Room name').fill(roomName);
   await host.getByLabel('Turn timer').selectOption('null');
-  await expect(host.getByLabel('Match')).toHaveValue('until-winner');
   const form = host.locator('form').filter({ has: host.getByLabel('Room name') });
   // A toggle's name is its label followed by its hint ("Same Wall" also starts with "Same").
   for (const [rule, hint] of [
@@ -109,7 +110,8 @@ test('a drawn round is followed by another until the decks run out', async ({ br
 
   for (let round = 1; round <= 3; round++) {
     for (const page of [host, guest]) {
-      await expect(page.getByText(`Round ${String(round)}`, { exact: true })).toBeVisible({
+      // The stat board shows the round too; check the status line above the board.
+      await expect(page.getByRole('status').getByText(`Round ${String(round)} of 3`)).toBeVisible({
         timeout: NEXT_ROUND_TIMEOUT,
       });
     }
@@ -128,10 +130,10 @@ test('a drawn round is followed by another until the decks run out', async ({ br
     }
   }
 
-  // Three drawn rounds use up the decks: the match is a draw, and only now can they play again.
+  // Nobody won a round, so the series ends 0–0: a drawn match, and only now can they play again.
   for (const page of [host, guest]) {
     await expect(page.getByRole('heading', { name: 'Draw', exact: true })).toBeVisible();
-    await expect(page.getByText('All 3 rounds drawn')).toBeVisible();
+    await expect(page.getByText('Series: Red 0 – 0 Blue · Round 3 of 3')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Play again' })).toBeVisible();
   }
 });

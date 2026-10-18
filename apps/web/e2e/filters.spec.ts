@@ -75,6 +75,10 @@ test('players can filter their own cards, and the trunk tells them apart', async
     await page
       .getByLabel('Art')
       .setInputFiles({ name: 'art.png', mimeType: 'image/png', buffer: art });
+    // Choosing art opens the crop dialog; keep the default crop.
+    await expect(page.getByRole('heading', { name: 'Crop art' })).toBeVisible();
+    await page.getByRole('button', { name: 'Apply' }).click();
+    await expect(page.getByRole('heading', { name: 'Crop art' })).toBeHidden();
     await page.getByRole('button', { name: 'Save card' }).click();
     await expect(page).toHaveURL('/cards');
   }

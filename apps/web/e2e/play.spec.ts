@@ -18,8 +18,6 @@ async function createRoom(page: Page, roomName: string, color: 'Red' | 'Blue' = 
   await colours.getByText(color, { exact: true }).click();
   await expect(colours.getByRole('radio', { name: color })).toBeChecked();
   await page.getByLabel('Turn timer').selectOption('null');
-  // One round, so a full game always ends in a result (rounds are tested in rounds.spec.ts).
-  await page.getByLabel('Match').selectOption('single');
   await page.getByRole('button', { name: 'Create room' }).click();
   await expect(page.getByText('Waiting for an opponent…')).toBeVisible();
 }
@@ -42,7 +40,7 @@ async function playTurn(pages: readonly Page[]) {
       }
     }
     throw new Error('Nobody has the turn yet');
-  }).toPass({ timeout: 5000 });
+  }).toPass({ timeout: 15_000 });
   if (!active) throw new Error('unreachable');
 
   // Cards in a hand overlap; the last one is on top and fully clickable.
@@ -54,7 +52,9 @@ async function playTurn(pages: readonly Page[]) {
   await expect(active.getByText(YOUR_TURN)).toBeHidden();
 }
 
-test('two players play a full game and agree to a rematch', async ({ browser }) => {
+test('two players play a full match and agree to a rematch', async ({ browser }) => {
+  // Matches are best of 3 and every round is played: 27 turns plus the breaks between rounds.
+  test.setTimeout(180_000);
   const alice = await newPlayer(browser);
   const bob = await newPlayer(browser);
   const roomName = `Duel ${alice.name}`;
@@ -69,7 +69,7 @@ test('two players play a full game and agree to a rematch', async ({ browser }) 
     );
   }
 
-  for (let turn = 0; turn < 9; turn++) await playTurn([alice.page, bob.page]);
+  for (let turn = 0; turn < 27; turn++) await playTurn([alice.page, bob.page]);
 
   const outcomes = ['Victory', 'Defeat', 'Draw'];
   for (const { page } of [alice, bob]) {
@@ -87,7 +87,9 @@ test('two players play a full game and agree to a rematch', async ({ browser }) 
 
   await alice.page.getByRole('button', { name: 'Play again' }).click();
   await expect(alice.page.getByText('Waiting for your opponent…')).toBeVisible();
-  await bob.page.getByRole('button', { name: 'Play again' }).click();
+  // Bob is asked to accept Alice's rematch request.
+  await expect(bob.page.getByText(`${alice.name} wants to play again!`)).toBeVisible();
+  await bob.page.getByRole('button', { name: 'Accept' }).click();
 
   for (const { page } of [alice, bob]) {
     await expect(
@@ -161,7 +163,7 @@ async function gameOnYourTurn(browser: Browser, roomPrefix: string): Promise<Pag
       if (await page.getByText(YOUR_TURN).isVisible()) active = page;
     }
     expect(active).toBeDefined();
-  }).toPass({ timeout: 5000 });
+  }).toPass({ timeout: 15_000 });
   if (!active) throw new Error('unreachable');
   return active;
 }

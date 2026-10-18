@@ -27,6 +27,10 @@ test('a player makes a card with art and it appears in their collection', async 
   await page.getByLabel('Left', { exact: true }).selectOption('2');
   await page.getByLabel('Element', { exact: true }).selectOption('holy');
   await page.getByLabel('Art').setInputFiles(await artFile());
+  // Choosing art opens the crop dialog; keep the default crop.
+  await expect(page.getByRole('heading', { name: 'Crop art' })).toBeVisible();
+  await page.getByRole('button', { name: 'Apply' }).click();
+  await expect(page.getByRole('heading', { name: 'Crop art' })).toBeHidden();
 
   // 120 + 25 + 73 + 15 + 10 (element) = 243 → 2 stars.
   await expect(page.getByText('Score 243 · 2 stars')).toBeVisible();
