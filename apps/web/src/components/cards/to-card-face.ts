@@ -1,3 +1,4 @@
+import type { FilterableCard } from '@/lib/card-filters';
 import { cardArtUrl } from '@/lib/media';
 import type { CardSummary } from '@/server/cards/cards';
 import type { CardFace } from './card-view';
@@ -10,5 +11,16 @@ export function toCardFace(card: CardSummary): CardFace {
     element: card.element,
     stars: card.stars,
     artUrl: cardArtUrl(card.artKey),
+  };
+}
+
+/** What the card filters need from a stored card. */
+export function toFilterableCard(card: CardSummary): FilterableCard {
+  return {
+    name: card.name,
+    stars: card.stars,
+    element: card.element,
+    score: card.score,
+    source: card.kind === 'custom' ? 'made' : 'starter',
   };
 }

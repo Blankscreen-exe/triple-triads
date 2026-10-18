@@ -1,25 +1,20 @@
 'use client';
 
-import {
-  ELEMENTS,
-  validateDeck,
-  type DeckRules,
-  type DeckViolation,
-  type Element,
-} from '@triple-triad/engine';
+import { validateDeck, type DeckRules, type DeckViolation } from '@triple-triad/engine';
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
+import { CardFilterBar } from '@/components/cards/card-filter-bar';
 import { CardLine } from '@/components/cards/card-line';
 import { CardView, type CardFace } from '@/components/cards/card-view';
 import { Button, buttonClasses } from '@/components/ui/button';
 import { Window } from '@/components/ui/window';
 import type { AssetPack } from '@/lib/asset-packs';
-import { ELEMENT_LABELS } from '@/lib/elements';
+import { applyFilters, hasMixedSources, NO_FILTERS, type FilterableCard } from '@/lib/card-filters';
 import { DECK_NAME_MAX_LENGTH, type DeckContents } from '@/lib/validation/deck';
 import { describeViolation, violationKey } from '@/lib/deck-violations';
 
 /** A card the player owns, as the editor needs it. */
-export interface EditorCard extends CardFace {
+export interface EditorCard extends CardFace, FilterableCard {
   readonly id: string;
   /** Copies owned; null for unlimited (the player's own custom cards). */
   readonly owned: number | null;
@@ -53,9 +48,7 @@ export function DeckEditor({
   const DECK_SIZE = rules.size;
   const [name, setName] = useState(initialName);
   const [counts, setCounts] = useState<Readonly<Record<string, number>>>(initialCounts);
-  const [query, setQuery] = useState('');
-  const [stars, setStars] = useState<number | null>(null);
-  const [element, setElement] = useState<Element | 'none' | null>(null);
+  const [filters, setFilters] = useState(NO_FILTERS);
   const [status, setStatus] = useState<{ kind: 'saved' | 'error'; message: string } | null>(null);
   const [isSaving, startSaving] = useTransition();
 
@@ -84,12 +77,7 @@ export function DeckEditor({
     });
   };
 
-  const visible = trunk.filter(
-    (card) =>
-      card.name.toLowerCase().includes(query.trim().toLowerCase()) &&
-      (stars === null || card.stars === stars) &&
-      (element === null || (element === 'none' ? card.element === null : card.element === element)),
-  );
+  const visible = applyFilters(trunk, filters);
 
   const save = () => {
     startSaving(async () => {
@@ -108,43 +96,13 @@ export function DeckEditor({
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
       <Window className="p-5">
-        <div className="mb-4 flex flex-wrap items-end gap-3">
-          <label className="min-w-40 flex-1 text-sm">
-            <span className="block text-slate-100">Search</span>
-            <input
-              type="search"
-              value={query}
-              placeholder="Card name"
-              onChange={(event) => {
-                setQuery(event.target.value);
-              }}
-              className="mt-1 w-full rounded-md border border-frame/50 bg-black/30 px-3 py-2 text-sm"
-            />
-          </label>
-          <FilterSelect
-            label="Stars"
-            value={stars === null ? '' : String(stars)}
-            options={[1, 2, 3, 4, 5].map((n) => [String(n), '★'.repeat(n)])}
-            onChange={(value) => {
-              setStars(value === '' ? null : Number(value));
-            }}
-          />
-          <FilterSelect
-            label="Element"
-            value={element ?? ''}
-            options={[
-              ['none', 'None'],
-              ...ELEMENTS.map((e): [string, string] => [e, ELEMENT_LABELS[e]]),
-            ]}
-            onChange={(value) => {
-              setElement(
-                value === ''
-                  ? null
-                  : value === 'none'
-                    ? 'none'
-                    : (ELEMENTS.find((e) => e === value) ?? null),
-              );
-            }}
+        <div className="mb-4">
+          <CardFilterBar
+            filters={filters}
+            onChange={setFilters}
+            showSource={hasMixedSources(trunk)}
+            shown={visible.length}
+            total={trunk.length}
           />
         </div>
 
@@ -277,38 +235,6 @@ function ViolationList({ violations }: { readonly violations: readonly DeckViola
       ))}
       <li className="text-xs text-slate-200/80">You can save it, but not play with it yet.</li>
     </ul>
-  );
-}
-
-function FilterSelect({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  readonly label: string;
-  readonly value: string;
-  readonly options: readonly (readonly [string, string])[];
-  readonly onChange: (value: string) => void;
-}) {
-  return (
-    <label className="text-sm">
-      <span className="block text-slate-100">{label}</span>
-      <select
-        value={value}
-        onChange={(event) => {
-          onChange(event.target.value);
-        }}
-        className="mt-1 rounded-md border border-frame/50 bg-black/30 px-3 py-2 text-sm [color-scheme:dark]"
-      >
-        <option value="">Any</option>
-        {options.map(([optionValue, optionLabel]) => (
-          <option key={optionValue} value={optionValue}>
-            {optionLabel}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }
 

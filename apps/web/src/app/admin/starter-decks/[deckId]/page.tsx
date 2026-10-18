@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
-import { toCardFace } from '@/components/cards/to-card-face';
+import { toCardFace, toFilterableCard } from '@/components/cards/to-card-face';
 import { DeckEditor, type EditorCard } from '@/components/decks/deck-editor';
 import { listGenericCards } from '@/server/cards/generic-cards';
 import { listStarterDecks } from '@/server/catalog/starter-decks';
@@ -38,6 +38,7 @@ async function Editor({ params }: Pick<PageProps<'/admin/starter-decks/[deckId]'
   // Any generic card, in any number, can go into a starter deck.
   const cards: EditorCard[] = listGenericCards(db).map((card) => ({
     ...toCardFace(card),
+    ...toFilterableCard(card),
     id: card.id,
     owned: null,
   }));

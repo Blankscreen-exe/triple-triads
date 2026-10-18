@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { CardView } from '@/components/cards/card-view';
-import { toCardFace } from '@/components/cards/to-card-face';
+import { FilterableCardGrid } from '@/components/cards/filterable-card-grid';
+import { toCardFace, toFilterableCard } from '@/components/cards/to-card-face';
 import { ConfirmButton } from '@/components/ui/confirm-button';
 import { buttonClasses } from '@/components/ui/button';
 import { Window } from '@/components/ui/window';
@@ -51,23 +52,27 @@ async function CustomCardGrid() {
 
   return (
     <Window className="mt-6 p-5">
-      <ul className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-        {created.map(({ card }) => (
-          <li key={card.id} className="space-y-2">
-            <CardView card={toCardFace(card)} side="blue" pack={pack} />
-            <form action={deleteCardAction}>
-              <input type="hidden" name="cardId" value={card.id} />
-              <ConfirmButton
-                variant="quiet"
-                className="w-full"
-                confirmation={`Delete "${card.name}"? Decks that use it will lose those copies.`}
-              >
-                Delete
-              </ConfirmButton>
-            </form>
-          </li>
-        ))}
-      </ul>
+      <FilterableCardGrid
+        items={created.map(({ card }) => ({
+          key: card.id,
+          card: toFilterableCard(card),
+          content: (
+            <>
+              <CardView card={toCardFace(card)} side="blue" pack={pack} />
+              <form action={deleteCardAction}>
+                <input type="hidden" name="cardId" value={card.id} />
+                <ConfirmButton
+                  variant="quiet"
+                  className="w-full"
+                  confirmation={`Delete "${card.name}"? Decks that use it will lose those copies.`}
+                >
+                  Delete
+                </ConfirmButton>
+              </form>
+            </>
+          ),
+        }))}
+      />
     </Window>
   );
 }

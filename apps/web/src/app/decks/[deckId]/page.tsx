@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
-import { toCardFace } from '@/components/cards/to-card-face';
+import { toCardFace, toFilterableCard } from '@/components/cards/to-card-face';
 import { getDatabase } from '@/server/db';
 import { getAssetPack } from '@/server/packs/asset-packs';
 import { listDecks } from '@/server/decks/decks';
@@ -33,6 +33,7 @@ async function EditorLoader({ params }: Pick<PageProps<'/decks/[deckId]'>, 'para
 
   const trunk: EditorCard[] = listTrunk(db, user.id).map(({ card, quantity }) => ({
     ...toCardFace(card),
+    ...toFilterableCard(card),
     id: card.id,
     owned: quantity === 'unlimited' ? null : quantity,
   }));
