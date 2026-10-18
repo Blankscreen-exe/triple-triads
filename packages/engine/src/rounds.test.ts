@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Position } from './board';
 import { applyMove, createGame } from './game';
 import { BASIC_RULES, MIN_CARDS_PER_GAME } from './rules';
-import { canPlayRound, remainingAfterRound } from './rounds';
+import { canPlayRound, maxRounds, remainingAfterRound } from './rounds';
 import type { GameState } from './state';
 import { firstCard, uniformDeck } from './test-utils';
 import type { CardDefinition } from './types';
@@ -96,6 +96,16 @@ describe('canPlayRound', () => {
 
     // Red started twice (5 + 4 + 5 cards), blue once (4 + 5 + 4).
     expect(rounds).toBe(3);
+    expect(maxRounds(20)).toBe(rounds);
     expect([decks.red.length, decks.blue.length]).toEqual([6, 7]);
+  });
+});
+
+describe('maxRounds', () => {
+  it('depends on how many cards each deck holds', () => {
+    expect(maxRounds(MIN_CARDS_PER_GAME - 1)).toBe(0);
+    expect(maxRounds(MIN_CARDS_PER_GAME)).toBe(1);
+    expect(maxRounds(20)).toBe(3);
+    expect(maxRounds(30)).toBe(5);
   });
 });
