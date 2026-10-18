@@ -14,8 +14,6 @@ import { Toggle } from '@/components/ui/toggle';
 import { TextField } from '@/components/ui/text-field';
 import { createRoom } from '@/lib/realtime/hooks';
 import {
-  MATCH_FORMAT_LABELS,
-  MATCH_FORMATS,
   ROOM_ERRORS,
   ROOM_NAME_MAX_LENGTH,
   ROOM_PASSWORD_MAX_LENGTH,
@@ -139,31 +137,6 @@ export function CreateRoomForm({ defaultName, policy }: CreateRoomFormProps) {
           Whoever joins plays the other colour. A coin flip decides who goes first.
         </p>
       </fieldset>
-
-      <SelectField
-        label="Match"
-        value={options.format}
-        disabled={locked.has('format')}
-        hint={
-          locked.has('format')
-            ? LOCKED_HINT
-            : options.format === 'until-winner'
-              ? 'A drawn round is replayed with the cards not yet played (up to 3 rounds).'
-              : 'One round; a 5–5 game is a draw.'
-        }
-        onChange={(value) => {
-          setOptions((current) => ({
-            ...current,
-            format: MATCH_FORMATS.find((format) => format === value) ?? current.format,
-          }));
-        }}
-      >
-        {MATCH_FORMATS.map((format) => (
-          <option key={format} value={format}>
-            {MATCH_FORMAT_LABELS[format]}
-          </option>
-        ))}
-      </SelectField>
 
       <div className="grid grid-cols-2 gap-3">
         <SelectField
