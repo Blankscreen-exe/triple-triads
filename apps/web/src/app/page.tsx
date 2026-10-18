@@ -1,11 +1,7 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { buttonClasses } from '@/components/ui/button';
-import { PlayerRecord } from '@/components/player-record';
 import { Window } from '@/components/ui/window';
-import { getDatabase } from '@/server/db';
-import { listDecks } from '@/server/decks/decks';
-import { getPlayerStats, listRecentMatches } from '@/server/matches/matches';
 import { getCurrentUser } from '@/server/web/current-user';
 
 export default function HomePage() {
@@ -17,52 +13,44 @@ export default function HomePage() {
           The card game from Final Fantasy VIII, with your own cards and decks.
         </p>
         <Suspense fallback={<div className="mt-6 h-10" aria-hidden />}>
-          <Welcome />
+          <Actions />
         </Suspense>
+        <p className="mt-6 text-sm text-slate-300/80">
+          New to the game?{' '}
+          <Link href="/rules" className="text-cream underline">
+            Read how to play
+          </Link>
+          .
+        </p>
       </Window>
     </main>
   );
 }
 
-async function Welcome() {
+/** Sign-up and log-in for visitors; the way in for players. */
+async function Actions() {
   const user = await getCurrentUser();
-
-  if (!user) {
-    return (
-      <div className="mt-6 flex justify-center gap-3">
-        <Link href="/signup" className={buttonClasses('primary')}>
-          Create an account
-        </Link>
-        <Link href="/login" className={buttonClasses('secondary')}>
-          Log in
-        </Link>
-      </div>
-    );
-  }
-
-  const db = getDatabase();
-  const activeDeck = listDecks(db, user.id).find((deck) => deck.isActive);
-  const stats = getPlayerStats(db, user.id);
   return (
-    <div className="mt-6 space-y-4">
-      <p className="text-slate-100">
-        Welcome back, <span className="font-semibold text-cream">{user.username}</span>.
-        {activeDeck && (
-          <>
-            {' '}
-            Your active deck is <span className="font-semibold text-cream">{activeDeck.name}</span>.
-          </>
-        )}
-      </p>
-      <div className="flex justify-center gap-3">
-        <Link href="/play" className={buttonClasses('primary')}>
-          Play
-        </Link>
-        <Link href="/decks" className={buttonClasses('secondary')}>
-          Your decks
-        </Link>
-      </div>
-      {stats && <PlayerRecord stats={stats} recent={listRecentMatches(db, user.id, 5)} />}
+    <div className="mt-6 flex justify-center gap-3">
+      {user ? (
+        <>
+          <Link href="/play" className={buttonClasses('primary')}>
+            Play
+          </Link>
+          <Link href="/profile" className={buttonClasses('secondary')}>
+            Your profile
+          </Link>
+        </>
+      ) : (
+        <>
+          <Link href="/signup" className={buttonClasses('primary')}>
+            Create an account
+          </Link>
+          <Link href="/login" className={buttonClasses('secondary')}>
+            Log in
+          </Link>
+        </>
+      )}
     </div>
   );
 }

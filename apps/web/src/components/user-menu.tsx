@@ -34,7 +34,9 @@ export async function UserMenu() {
         </span>
       )}
       <span className="text-sm text-slate-100">
-        {user.username}
+        <Link href="/profile" className="hover:text-cream hover:underline" title="Your profile">
+          {user.username}
+        </Link>
         {user.role === 'admin' && (
           <Link
             href="/admin"

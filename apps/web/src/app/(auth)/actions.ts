@@ -35,7 +35,7 @@ export async function signUp(_previous: AuthFormState, formData: FormData): Prom
   }
 
   await startSession(result.user.id);
-  redirect('/');
+  redirect('/profile');
 }
 
 export async function logIn(_previous: AuthFormState, formData: FormData): Promise<AuthFormState> {
@@ -64,7 +64,7 @@ export async function logIn(_previous: AuthFormState, formData: FormData): Promi
 
   loginThrottle.reset(throttleKey);
   await startSession(result.user.id);
-  redirect('/');
+  redirect('/profile');
 }
 
 export async function logOut(): Promise<void> {

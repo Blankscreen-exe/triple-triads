@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import { UserMenu } from './user-menu';
 
 const NAV_LINKS = [
+  { href: '/profile', label: 'Profile' },
   { href: '/play', label: 'Play' },
   { href: '/decks', label: 'Decks' },
   { href: '/cards', label: 'Card maker' },
