@@ -8,7 +8,7 @@ export interface DescribableCard {
   readonly stars: number;
 }
 
-/** Text alternative for a card, e.g. "Iron Knight, 3 stars, top 8, right 4, �, no element". */
+/** Text alternative for a card, e.g. "Iron Knight, 3 stars, top 8, right 4, …, no element". */
 export function describeCard(card: DescribableCard): string {
   const { top, right, bottom, left } = card.stats;
   const stats = `top ${formatStat(top)}, right ${formatStat(right)}, bottom ${formatStat(bottom)}, left ${formatStat(left)}`;
