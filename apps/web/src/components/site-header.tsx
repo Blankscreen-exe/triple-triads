@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { href: '/packs', label: 'Card style' },
   { href: '/trunk', label: 'Trunk' },
   { href: '/rankings', label: 'Rankings' },
+  { href: '/rules', label: 'Rules' },
 ] as const;
 
 export function SiteHeader() {
