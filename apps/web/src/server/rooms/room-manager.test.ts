@@ -449,6 +449,20 @@ describe('finishing and rematches', () => {
   });
 });
 
+describe('closeAllRooms', () => {
+  it('ends every room and frees its players to join another', () => {
+    const manager = createManager();
+    startedGame(manager);
+
+    manager.closeAllRooms('The server is being restored.');
+
+    expect(manager.listRooms()).toEqual([]);
+    expect(manager.roomOfPlayer(alice.id)).toBeNull();
+    expect(events.roomClosed).toHaveBeenCalledWith('room-1', 'The server is being restored.');
+    expect(events.lobbyChanged).toHaveBeenCalled();
+  });
+});
+
 describe('leaving and disconnecting', () => {
   it('forfeits a game in progress when a player leaves and closes the room', () => {
     const manager = createManager();

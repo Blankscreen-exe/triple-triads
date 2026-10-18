@@ -296,6 +296,11 @@ export class RoomManager {
     return ok(null);
   }
 
+  /** Ends every room, telling its players why (e.g. the server's data was restored). */
+  closeAllRooms(reason: string): void {
+    for (const room of [...this.#rooms.values()]) this.#closeRoom(room, reason);
+  }
+
   /** Stops every timer (server shutdown). */
   dispose(): void {
     for (const room of this.#rooms.values()) this.#clearAllTimers(room);

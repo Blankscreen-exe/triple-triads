@@ -25,6 +25,7 @@ import type { Logger } from '../logger';
 import { createDatabaseDeckProvider } from '../rooms/game-decks';
 import { recordMatch } from '../matches/matches';
 import { RoomManager } from '../rooms/room-manager';
+import { registerRealtime } from './registry';
 import { getAssetPack } from '../packs/asset-packs';
 import { getGameSettings } from '../settings/settings';
 
@@ -245,11 +246,18 @@ export function createSocketServer(
     }
   }
 
+  registerRealtime({
+    closeAllRooms: (reason) => {
+      rooms.closeAllRooms(reason);
+    },
+  });
+
   return {
     io,
     rooms,
     close: () =>
       new Promise((resolve, reject) => {
+        registerRealtime(null);
         rooms.dispose();
         void io.close((error) => {
           if (error) reject(error);
