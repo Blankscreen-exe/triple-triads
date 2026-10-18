@@ -32,8 +32,14 @@ export function openDatabase(path: string): AppDatabase {
   return drizzle({ client: sqlite, schema });
 }
 
-export function migrateDatabase(db: AppDatabase): void {
-  migrate(db, { migrationsFolder: resolve(MIGRATIONS_DIR) });
+/** Absolute path of the migrations shipped with the app. */
+export function migrationsFolder(): string {
+  return resolve(MIGRATIONS_DIR);
+}
+
+/** Applies pending migrations; `folder` is only overridden by tests. */
+export function migrateDatabase(db: AppDatabase, folder: string = migrationsFolder()): void {
+  migrate(db, { migrationsFolder: folder });
 }
 
 export function closeDatabase(db: AppDatabase): void {
