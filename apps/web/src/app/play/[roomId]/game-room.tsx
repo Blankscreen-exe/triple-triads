@@ -12,6 +12,7 @@ import { Countdown } from '@/components/game/countdown';
 import { Hand } from '@/components/game/hand';
 import { PlayerPanel } from '@/components/game/player-panel';
 import { ResultPanel } from '@/components/game/result-panel';
+import { MatchAnnounce } from '@/components/game/match-announce';
 import { RoundAnnounce } from '@/components/game/round-announce';
 import { RuleChips } from '@/components/game/rule-chips';
 import { StatBoard } from '@/components/game/stat-board';
@@ -222,9 +223,16 @@ function Table({
         </div>
       )}
       {view.result && game.match.nextRoundAt === null && (
-        <div className="mx-auto max-w-sm">
-          <ResultPanel room={snapshot} onVote={room.vote} />
-        </div>
+        <>
+          <MatchAnnounce
+            winner={view.result.winner}
+            you={snapshot.you.color}
+            finished={snapshot.status === 'finished'}
+          />
+          <div className="mx-auto max-w-sm">
+            <ResultPanel room={snapshot} onVote={room.vote} />
+          </div>
+        </>
       )}
       {gameStats && (
         <div className="mx-auto max-w-md">
