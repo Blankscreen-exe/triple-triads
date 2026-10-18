@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import type { RoomSnapshot, VoteChoice } from '@/lib/realtime/protocol';
 import { formatStreak, tierFor } from '@/lib/rating';
 import { Button } from '../ui/button';
@@ -25,10 +26,6 @@ export function ResultPanel({ room, onVote }: ResultPanelProps) {
           ? 'Victory'
           : 'Defeat';
   const score = `${String(result.score.red)} – ${String(result.score.blue)}`;
-  const myVote = room.rematch?.votes[room.you.userId];
-  const otherVotes = Object.entries(room.rematch?.votes ?? {}).filter(
-    ([id]) => id !== room.you.userId,
-  );
 
   return (
     <Window className="p-5 text-center" aria-live="polite">
@@ -46,43 +43,102 @@ export function ResultPanel({ room, onVote }: ResultPanelProps) {
       )}
       {you && game.outcome && <RatingChange outcome={game.outcome[you]} />}
 
-      {room.rematch && room.you.role === 'player' && (
-        <div className="mt-4 space-y-3">
-          {myVote === 'continue' ? (
-            <p className="text-sm text-slate-100">Waiting for your opponent…</p>
-          ) : (
-            <div className="flex gap-3">
-              <Button
-                className="flex-1"
-                onClick={() => {
-                  onVote('continue');
-                }}
-              >
-                Play again
-              </Button>
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() => {
-                  onVote('leave');
-                }}
-              >
-                Leave
-              </Button>
-            </div>
-          )}
-          <p className="text-xs text-slate-300/70">
-            {otherVotes.some(([, vote]) => vote === 'continue')
-              ? 'Your opponent wants a rematch.'
-              : ''}
-          </p>
-        </div>
-      )}
-
-      {!room.rematch && room.status === 'waiting' && room.you.role === 'player' && (
-        <p className="mt-3 text-sm text-slate-300/80">Your opponent left. Waiting for a new one…</p>
+      {room.you.role === 'player' && (
+        <RematchVote room={room} onVote={onVote} />
       )}
     </Window>
+  );
+}
+
+function RematchVote({
+  room,
+  onVote,
+}: {
+  readonly room: RoomSnapshot;
+  readonly onVote: (choice: VoteChoice) => void;
+}) {
+  const [declined, setDeclined] = useState<string | null>(null);
+  const prevState = useRef<{ hadRematch: boolean; myVote: string | null; opponentName: string }>({
+    hadRematch: !!room.rematch,
+    myVote: null,
+    opponentName: 'Opponent',
+  });
+
+  const myVote = room.rematch?.votes[room.you.userId] ?? null;
+  const otherEntries = Object.entries(room.rematch?.votes ?? {}).filter(
+    ([id]) => id !== room.you.userId,
+  );
+  const opponentVote = otherEntries[0]?.[1] ?? null;
+  const opponentId = otherEntries[0]?.[0] ?? null;
+  const opponentName = room.game
+    ? Object.values(room.game.players).find((p) => p.userId === opponentId)?.username ?? 'Opponent'
+    : 'Opponent';
+
+  useEffect(() => {
+    const prev = prevState.current;
+    if (prev.hadRematch && !room.rematch && prev.myVote === 'continue') {
+      setDeclined(prev.opponentName);
+    }
+    prevState.current = {
+      hadRematch: !!room.rematch,
+      myVote,
+      opponentName,
+    };
+  }, [room.rematch, myVote, opponentName]);
+
+  if (declined) {
+    return (
+      <div className="mt-4">
+        <p className="text-sm font-semibold text-score-red">{declined} declined the rematch.</p>
+        <p className="mt-2 text-xs text-slate-300/80">Waiting for a new opponent…</p>
+      </div>
+    );
+  }
+
+  if (!room.rematch) {
+    if (room.status === 'waiting') {
+      return (
+        <p className="mt-3 text-sm text-slate-300/80">Your opponent left. Waiting for a new one…</p>
+      );
+    }
+    return null;
+  }
+
+  if (myVote === 'continue') {
+    return (
+      <p className="mt-4 text-sm text-slate-100">Waiting for your opponent…</p>
+    );
+  }
+
+  if (opponentVote === 'continue') {
+    return (
+      <div className="mt-4 space-y-3">
+        <Window className="border-gold/40 bg-gold/5 p-3">
+          <p className="text-sm font-semibold text-cream">
+            {opponentName} wants to play again!
+          </p>
+        </Window>
+        <div className="flex gap-3">
+          <Button className="flex-1" onClick={() => onVote('continue')}>
+            Accept
+          </Button>
+          <Button variant="secondary" className="flex-1" onClick={() => onVote('leave')}>
+            Decline
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 flex gap-3">
+      <Button className="flex-1" onClick={() => onVote('continue')}>
+        Play again
+      </Button>
+      <Button variant="secondary" className="flex-1" onClick={() => onVote('leave')}>
+        Leave
+      </Button>
+    </div>
   );
 }
 
