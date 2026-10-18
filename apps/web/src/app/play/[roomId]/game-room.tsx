@@ -228,10 +228,9 @@ function Table({
             winner={view.result.winner}
             you={snapshot.you.color}
             finished={snapshot.status === 'finished'}
+            dismissed={Object.values(snapshot.rematch?.votes ?? {}).some((v) => v !== null)}
           />
-          <div className="mx-auto max-w-sm">
-            <ResultPanel room={snapshot} onVote={room.vote} />
-          </div>
+          <ResultPanel room={snapshot} onVote={room.vote} />
         </>
       )}
       {gameStats && (

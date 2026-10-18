@@ -9,6 +9,7 @@ interface MatchAnnounceProps {
   readonly winner: PlayerColor | null;
   readonly you: PlayerColor | null;
   readonly finished: boolean;
+  readonly dismissed: boolean;
 }
 
 const STYLE: Record<Outcome, string> = {
@@ -17,13 +18,13 @@ const STYLE: Record<Outcome, string> = {
   draw: 'text-slate-300',
 };
 
-export function MatchAnnounce({ winner, you, finished }: MatchAnnounceProps) {
+export function MatchAnnounce({ winner, you, finished, dismissed }: MatchAnnounceProps) {
   const [visible, setVisible] = useState<Outcome | null>(null);
   const [phase, setPhase] = useState<'enter' | 'exit'>('enter');
   const shown = useRef(false);
 
   useEffect(() => {
-    if (!finished || shown.current) return;
+    if (!finished || shown.current) return undefined;
     shown.current = true;
 
     const outcome: Outcome =
@@ -31,14 +32,15 @@ export function MatchAnnounce({ winner, you, finished }: MatchAnnounceProps) {
 
     setPhase('enter');
     setVisible(outcome);
-
-    const exitTimer = setTimeout(() => setPhase('exit'), 1800);
-    const hideTimer = setTimeout(() => setVisible(null), 2600);
-    return () => {
-      clearTimeout(exitTimer);
-      clearTimeout(hideTimer);
-    };
+    return undefined;
   }, [finished, winner, you]);
+
+  useEffect(() => {
+    if (!dismissed || visible === null) return undefined;
+    setPhase('exit');
+    const timer = setTimeout(() => setVisible(null), 700);
+    return () => clearTimeout(timer);
+  }, [dismissed, visible]);
 
   if (visible === null) return null;
 

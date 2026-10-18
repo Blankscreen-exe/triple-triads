@@ -28,25 +28,27 @@ export function ResultPanel({ room, onVote }: ResultPanelProps) {
   const score = `${String(result.score.red)} – ${String(result.score.blue)}`;
 
   return (
-    <Window className="p-5 text-center" aria-live="polite">
-      <h2 className="font-display text-3xl font-black tracking-widest text-cream [text-shadow:0_3px_0_#000]">
-        {title}
-      </h2>
-      <p className="mt-1 text-sm text-slate-300/80">
-        Red {score} Blue{game.forfeit && ' · by forfeit'}
-      </p>
-      {game.match.roundResults.length > 0 && (
-        <p className="text-xs text-slate-300/80">
-          Series: Red {game.match.seriesScore.red} – {game.match.seriesScore.blue} Blue
-          {' · '}Round {game.match.round} of 3
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-night/60 backdrop-blur-sm">
+      <Window className="mx-4 w-full max-w-sm p-5 text-center" aria-live="polite">
+        <h2 className="font-display text-3xl font-black tracking-widest text-cream [text-shadow:0_3px_0_#000]">
+          {title}
+        </h2>
+        <p className="mt-1 text-sm text-slate-300/80">
+          Red {score} Blue{game.forfeit && ' · by forfeit'}
         </p>
-      )}
-      {you && game.outcome && <RatingChange outcome={game.outcome[you]} />}
+        {game.match.roundResults.length > 0 && (
+          <p className="text-xs text-slate-300/80">
+            Series: Red {game.match.seriesScore.red} – {game.match.seriesScore.blue} Blue
+            {' · '}Round {game.match.round} of 3
+          </p>
+        )}
+        {you && game.outcome && <RatingChange outcome={game.outcome[you]} />}
 
-      {room.you.role === 'player' && (
-        <RematchVote room={room} onVote={onVote} />
-      )}
-    </Window>
+        {room.you.role === 'player' && (
+          <RematchVote room={room} onVote={onVote} />
+        )}
+      </Window>
+    </div>
   );
 }
 
@@ -113,11 +115,11 @@ function RematchVote({
   if (opponentVote === 'continue') {
     return (
       <div className="mt-4 space-y-3">
-        <Window className="border-gold/40 bg-gold/5 p-3">
+        <div className="rounded-md border border-gold/40 bg-gold/5 px-3 py-2">
           <p className="text-sm font-semibold text-cream">
             {opponentName} wants to play again!
           </p>
-        </Window>
+        </div>
         <div className="flex gap-3">
           <Button className="flex-1" onClick={() => onVote('continue')}>
             Accept
