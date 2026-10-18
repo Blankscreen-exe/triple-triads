@@ -153,17 +153,44 @@ the files across (keys are the same paths in both).
 
 ## Backups
 
-Everything is in the data volume (plus the MinIO bucket if you use one). To take a consistent
-copy of the database while the game is running:
+A backup is one `.zip` file with everything on the server: accounts (with password hashes),
+decks, cards, trunks, matches, settings, card styles and every uploaded image, whichever storage
+you use. Login sessions are left out. **Keep backups private**: anyone with one has every
+account's password hash.
+
+Restoring a backup **replaces everything** on the server with its contents. Games in progress end
+and everyone logs in again with the accounts from the backup. A backup from an older version of
+Triple Triad is upgraded as it is restored; one from a newer version is refused.
+
+### From the admin panel
+
+**Admin → Backup**: _Download backup_ saves a file; _Restore backup_ uploads one (after a
+confirmation).
+
+### From the command line
+
+The same tools work on the server itself, e.g. for scheduled backups or when the site is down. They
+use the same settings as the server (`apps/web/.env` or the environment).
 
 ```bash
-docker compose exec app node -e "require('better-sqlite3')('/data/triple-triad.db', { readonly: true }).backup('/data/backup.db').then(() => console.log('Backup written'))"
-docker compose cp app:/data/backup.db ./triple-triad-$(date +%F).db
-docker compose cp app:/data/uploads ./uploads-$(date +%F)    # local storage only
+pnpm data:export                          # writes triple-triad-backup-<date>.zip here
+pnpm data:export /backups/tt.zip          # or to a file of your choice
+pnpm data:import /backups/tt.zip --yes    # replaces ALL data; restart the server afterwards
 ```
 
-To restore, stop the app, put the database back as `/data/triple-triad.db` (removing any
-`triple-triad.db-wal` and `-shm` files next to it), and start the app again.
+With Docker Compose, run them in the container and copy the file in or out of the data volume:
+
+```bash
+docker compose exec app node dist/cli.mjs export /data/backup.zip
+docker compose cp app:/data/backup.zip ./triple-triad-$(date +%F).zip
+
+docker compose cp ./triple-triad-2026-10-19.zip app:/data/restore.zip
+docker compose exec app node dist/cli.mjs import /data/restore.zip --yes
+docker compose restart app
+```
+
+A restore from the command line does not reach a running server's open games, hence the restart;
+the admin panel ends them itself.
 
 ## Settings
 

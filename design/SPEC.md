@@ -283,6 +283,23 @@ After the match is decided:
 - **Default asset pack**: upload or replace the default pack.
 - **Game settings**: default room options, which options hosts may change.
 - **Storage**: local folder or MinIO.
+- **Backup** (11.1): export and import all server data.
+
+### 11.1 Backup and restore
+
+- **Export** produces one zip archive: `manifest.json` (format, version, date, counts),
+  `database.sqlite` (a consistent copy made with SQLite's online backup, without login sessions)
+  and `files/<storage key>` for every uploaded file.
+- **Import replaces everything** (no merging). The archive is checked first and nothing changes if
+  it is refused: it must be a zip with a valid manifest, file names that are valid storage keys,
+  a database that passes SQLite's integrity check, and only migrations this version knows (backups
+  from newer versions are refused; older ones are upgraded with this version's migrations).
+- Then: open games end, the backup's files are written, every table is replaced in one transaction
+  (foreign keys checked at commit), and files not in the backup are removed. Sessions are not
+  restored, so everyone logs in again.
+- Available in the admin panel (download / upload) and as `pnpm data:export` / `pnpm data:import`
+  on the server.
+- Backups contain password hashes and must be kept private.
 
 ## 12. UI theme: Balamb Classic
 

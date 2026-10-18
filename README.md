@@ -146,17 +146,19 @@ tunnels and reverse proxies, MinIO storage, backups, updates and every setting.
 
 Run from the repository root; each runs across all workspace packages.
 
-| Command          | Does                                                                                        |
-| ---------------- | ------------------------------------------------------------------------------------------- |
-| `pnpm dev`       | Start the app with hot reload.                                                              |
-| `pnpm build`     | Production build.                                                                           |
-| `pnpm start`     | Run the production build.                                                                   |
-| `pnpm test`      | Unit tests (Vitest).                                                                        |
-| `pnpm test:e2e`  | End-to-end tests (Playwright); build first, or set `E2E_BASE_URL` to test a running server. |
-| `pnpm lint`      | ESLint (strict, type-aware).                                                                |
-| `pnpm typecheck` | TypeScript in strict mode.                                                                  |
-| `pnpm format`    | Format with Prettier (`format:check` in CI).                                                |
-| `pnpm fix`       | Apply ESLint fixes, then format.                                                            |
+| Command            | Does                                                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------- |
+| `pnpm dev`         | Start the app with hot reload.                                                              |
+| `pnpm build`       | Production build.                                                                           |
+| `pnpm start`       | Run the production build.                                                                   |
+| `pnpm test`        | Unit tests (Vitest).                                                                        |
+| `pnpm test:e2e`    | End-to-end tests (Playwright); build first, or set `E2E_BASE_URL` to test a running server. |
+| `pnpm lint`        | ESLint (strict, type-aware).                                                                |
+| `pnpm typecheck`   | TypeScript in strict mode.                                                                  |
+| `pnpm format`      | Format with Prettier (`format:check` in CI).                                                |
+| `pnpm fix`         | Apply ESLint fixes, then format.                                                            |
+| `pnpm data:export` | Write a backup of all server data (see [Backups](docs/DEPLOYMENT.md#backups)).              |
+| `pnpm data:import` | Replace all server data with a backup.                                                      |
 
 ## Roadmap
 
