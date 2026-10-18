@@ -257,5 +257,5 @@ export interface ServerToClientEvents {
   'lobby:rooms': (rooms: readonly RoomSummary[]) => void;
   'room:state': (snapshot: RoomSnapshot) => void;
   /** You are no longer in this room: you left (perhaps in another tab) or it closed. */
-  'room:closed': (event: { roomId: string }) => void;
+  'room:closed': (event: { roomId: string; reason?: string }) => void;
 }

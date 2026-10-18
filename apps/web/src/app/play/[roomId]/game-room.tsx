@@ -31,11 +31,11 @@ interface GameRoomProps {
 export function GameRoom({ roomId, role }: GameRoomProps) {
   const router = useRouter();
   const room = useRoom(roomId, role);
-  const { snapshot, error, closed } = room;
+  const { snapshot, error, closed, closedReason } = room;
 
   if (closed) {
     return (
-      <Notice title="You left the room">
+      <Notice title={closedReason ?? 'You left the room'}>
         <Link href="/play" className={buttonClasses('primary')}>
           Back to the lobby
         </Link>
@@ -85,7 +85,11 @@ export function GameRoom({ roomId, role }: GameRoomProps) {
             <span className="text-xs text-slate-300/70">{snapshot.spectators} watching</span>
           )}
           <Button variant="secondary" onClick={() => void leave()}>
-            {snapshot.you.role === 'spectator' ? 'Stop watching' : 'Leave room'}
+            {snapshot.you.role === 'spectator'
+              ? 'Stop watching'
+              : snapshot.game && snapshot.status === 'playing'
+                ? '\u{1F3F3}️ Surrender'
+                : 'Leave room'}
           </Button>
         </div>
       </header>

@@ -49,6 +49,8 @@ export interface RoomConnection {
   readonly error: RoomError | null;
   /** You are no longer in the room (you left, or it closed). */
   readonly closed: boolean;
+  /** Why the room closed — a message like "Player X left the room", or null if you left yourself. */
+  readonly closedReason: string | null;
   /** Server time minus local time, to show accurate countdowns. */
   readonly clockOffset: number;
   readonly join: (password: string, as: 'player' | 'spectator') => Promise<boolean>;
@@ -62,6 +64,7 @@ export function useRoom(roomId: string, initialRole: 'player' | 'spectator'): Ro
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
   const [error, setError] = useState<RoomError | null>(null);
   const [closed, setClosed] = useState(false);
+  const [closedReason, setClosedReason] = useState<string | null>(null);
   const [clockOffset, setClockOffset] = useState(0);
   // How we last joined, reused when re-joining after a reconnect.
   const membership = useRef({ password: '', as: initialRole });
@@ -83,8 +86,10 @@ export function useRoom(roomId: string, initialRole: 'player' | 'spectator'): Ro
       setClockOffset(next.serverTime - Date.now());
       setSnapshot(next);
     };
-    const onClosed = ({ roomId: closedId }: { roomId: string }) => {
-      if (closedId === roomId) setClosed(true);
+    const onClosed = ({ roomId: closedId, reason }: { roomId: string; reason?: string }) => {
+      if (closedId !== roomId) return;
+      setClosed(true);
+      if (reason) setClosedReason(reason);
     };
     // Re-join after every (re)connection; a seated player is simply reattached.
     const rejoin = () => {
@@ -125,7 +130,7 @@ export function useRoom(roomId: string, initialRole: 'player' | 'spectator'): Ro
     setClosed(true);
   }, [roomId]);
 
-  return { snapshot, error, closed, clockOffset, join, move, vote, leave };
+  return { snapshot, error, closed, closedReason, clockOffset, join, move, vote, leave };
 }
 
 /** The current time, refreshed every `intervalMs` while `active`. */

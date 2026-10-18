@@ -50,8 +50,8 @@ import { colorOf, snapshotFor, summarizeRoom } from './snapshot';
 export interface RoomEvents {
   /** Participants of the room should receive a fresh snapshot. */
   roomChanged(roomId: string): void;
-  /** The room no longer exists. */
-  roomClosed(roomId: string): void;
+  /** The room no longer exists. reason is shown to remaining players. */
+  roomClosed(roomId: string, reason?: string): void;
   /** The lobby list changed. */
   lobbyChanged(): void;
 }
@@ -207,7 +207,7 @@ export class RoomManager {
       this.#changed(room, { lobby: true });
       return ok(null);
     }
-    if (room.seats.some((seat) => seat.user.id === userId)) this.#removeSeat(room, userId);
+    if (room.seats.some((seat) => seat.user.id === userId)) this.#removeSeat(room, userId, true);
     return ok(null);
   }
 
@@ -538,10 +538,14 @@ export class RoomManager {
     }
   }
 
-  #removeSeat(room: Room, userId: string): void {
+  #removeSeat(room: Room, userId: string, explicit = false): void {
     const timer = room.timers.reconnect.get(userId);
     if (timer) clearTimeout(timer);
     room.timers.reconnect.delete(userId);
+
+    const leavingSeat = room.seats.find((seat) => seat.user.id === userId);
+    const leaverName = leavingSeat?.user.username ?? 'A player';
+    const wasInGame = room.status === 'playing' || room.status === 'finished';
 
     const game = room.game;
     if (room.status === 'playing' && game) {
@@ -563,8 +567,8 @@ export class RoomManager {
     this.#playerRoom.delete(userId);
 
     const [remaining] = room.seats;
-    if (!remaining) {
-      this.#closeRoom(room);
+    if (!remaining || (explicit && wasInGame)) {
+      this.#closeRoom(room, remaining ? `${leaverName} left the room` : undefined);
       return;
     }
     if (room.hostId === userId) room.hostId = remaining.user.id;
@@ -631,11 +635,11 @@ export class RoomManager {
     room.timers.reconnect.clear();
   }
 
-  #closeRoom(room: Room): void {
+  #closeRoom(room: Room, reason?: string): void {
     this.#clearAllTimers(room);
     for (const seat of room.seats) this.#playerRoom.delete(seat.user.id);
     this.#rooms.delete(room.id);
-    this.#deps.events.roomClosed(room.id);
+    this.#deps.events.roomClosed(room.id, reason);
     this.#deps.events.lobbyChanged();
   }
 

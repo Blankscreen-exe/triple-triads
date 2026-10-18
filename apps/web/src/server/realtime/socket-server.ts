@@ -103,9 +103,9 @@ export function createSocketServer(
           for (const socket of users.get(userId) ?? []) socket.emit('room:state', snapshot);
         }
       },
-      roomClosed: (roomId) => {
+      roomClosed: (roomId, reason) => {
         for (const sockets of presence.get(roomId)?.values() ?? []) {
-          for (const socket of sockets) socket.emit('room:closed', { roomId });
+          for (const socket of sockets) socket.emit('room:closed', { roomId, reason });
         }
         presence.delete(roomId);
       },
