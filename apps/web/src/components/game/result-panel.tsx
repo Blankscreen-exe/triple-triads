@@ -29,8 +29,8 @@ export function ResultPanel({ room, onVote }: ResultPanelProps) {
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-night/60 backdrop-blur-sm">
-      <Window className="mx-4 w-full max-w-sm p-5 text-center" aria-live="polite">
-        <h2 className="font-display text-5xl font-black tracking-[0.2em] text-gold uppercase sm:text-6xl [text-shadow:0_4px_12px_rgba(0,0,0,0.8),0_2px_0_#000]">
+      <Window className="mx-4 w-full max-w-md p-6 text-center" aria-live="polite">
+        <h2 className="font-display text-4xl font-black tracking-[0.15em] text-gold uppercase sm:text-5xl [text-shadow:0_4px_12px_rgba(0,0,0,0.8),0_2px_0_#000]">
           {title}
         </h2>
         <p className="mt-1 text-sm text-slate-300/80">
