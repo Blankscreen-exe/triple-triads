@@ -13,6 +13,8 @@ import { Hand } from '@/components/game/hand';
 import { PlayerPanel } from '@/components/game/player-panel';
 import { ResultPanel } from '@/components/game/result-panel';
 import { RuleChips } from '@/components/game/rule-chips';
+import { StatBoard } from '@/components/game/stat-board';
+import { useGameStats } from '@/lib/use-game-stats';
 import { Button, buttonClasses } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
 import { Window } from '@/components/ui/window';
@@ -114,6 +116,7 @@ function Table({
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const game = snapshot.game;
+  const gameStats = useGameStats(game);
   const you = snapshot.you.color;
   const playing = snapshot.status === 'playing' && game !== null && !game.paused;
   const myTurn = playing && you !== null && game.view.activePlayer === you;
@@ -217,6 +220,19 @@ function Table({
       {view.result && game.match.nextRoundAt === null && (
         <div className="mx-auto max-w-sm">
           <ResultPanel room={snapshot} clockOffset={room.clockOffset} onVote={room.vote} />
+        </div>
+      )}
+      {gameStats && (
+        <div className="mx-auto max-w-md">
+          <StatBoard
+            stats={gameStats}
+            players={{
+              red: game.players.red.username,
+              blue: game.players.blue.username,
+            }}
+            match={game.match}
+            gameOver={view.result !== null}
+          />
         </div>
       )}
     </div>
