@@ -39,18 +39,13 @@ afterEach(async () => {
 });
 
 describe('processCardArt', () => {
-  it('fits any image onto the card canvas in two sizes', async () => {
+  it('crops any image onto the card canvas in two sizes', async () => {
     const result = await processCardArt(await image(800, 400));
     if (!result.ok) throw new Error(result.error);
 
     const full = await sharp(result.art.full).metadata();
     const card = await sharp(result.art.card).metadata();
-    expect([full.format, full.width, full.height, full.hasAlpha]).toEqual([
-      'webp',
-      1024,
-      1434,
-      true,
-    ]);
+    expect([full.format, full.width, full.height]).toEqual(['webp', 1024, 1434]);
     expect([card.width, card.height]).toEqual([512, 717]);
     expect(result.art.hash).toMatch(/^[0-9a-f]{16}$/);
   });

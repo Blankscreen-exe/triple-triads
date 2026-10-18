@@ -1,11 +1,10 @@
 - mobile friendly: im assuming while the game is in session, the mobile user will have to drag the screen to move to each 4 corners of the game mat.
-- cropping and zooming options for images being uploaded for cardmaker
 - player reaction after game ends. both player can give predefined set of a emoji reaction before hitting play again or leave the room.
 - when one player selects "play again" the other person should get a popup confirmation saying "XYZ wants to play again". if the other person declines, show a popup message to the first guy "ABC declined the request"
 - players can create/edit their own playmats and card placement grid. they will choose this when creating a room. defeult one is always present for them (3x3 grid). the limit to the custom play mats will be 10x10.
 - based on the play mat size a preset range of deck size will be applicable. for example the playmat of 3x3 grid will only allow deck of size 20. we need to brainstorm on ideas like this.
 - players might opt in for an optimized deck with maximum possible stats. everyone might use this same trick. what is the countermeasure?
-- while playing, we show a stat board with several details like: cards captured, avg rarity played, and i need more ideas as to what other stats we can show
+
 
 ========DONE==========
 
@@ -22,3 +21,5 @@
 - move the home page to a new tab called "profile" page
 - while the player is logged out, hide these nav items "Profile, Play,Decks,Card maker,Card style,Trunk" and show only rankings and rules.
 - coin toss before the first match to decide who goes first.
+- while playing, we show a stat board with several details like: cards captured, avg rarity played, and i need more ideas as to what other stats we can show
+- cropping and zooming options for images being uploaded for cardmaker

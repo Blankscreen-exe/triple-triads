@@ -43,7 +43,7 @@ export async function processCardArt(
   const render = (width: number, height: number) =>
     sharp(input, { limitInputPixels: MAX_INPUT_PIXELS })
       .rotate() // honour EXIF orientation from phone photos
-      .resize(width, height, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .resize(width, height, { fit: 'cover' })
       .webp({ quality: 88, alphaQuality: 90 })
       .toBuffer();
 

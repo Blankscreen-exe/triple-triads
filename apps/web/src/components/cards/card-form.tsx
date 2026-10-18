@@ -13,8 +13,9 @@ import {
   type Stats,
 } from '@triple-triad/engine';
 import Link from 'next/link';
-import { startTransition, useActionState, useEffect, useId, useState } from 'react';
+import { startTransition, useActionState, useEffect, useId, useRef, useState } from 'react';
 import { CardView } from '@/components/cards/card-view';
+import { ArtCropper } from '@/components/cards/art-cropper';
 import { Button, buttonClasses } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
 import { Window } from '@/components/ui/window';
@@ -82,16 +83,24 @@ export function CardForm({
   const [name, setName] = useState(initial.name);
   const [stats, setStats] = useState<Stats>(initial.stats);
   const [element, setElement] = useState<Element | null>(initial.element);
-  // A newly chosen file (object URL) replaces the saved art in the preview.
   const [artUrl, setArtUrl] = useState<string | null>(null);
   const [artError, setArtError] = useState<string | null>(null);
+  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
+  const croppedBlobRef = useRef<Blob | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Free the preview image's memory when it is replaced or the page closes.
   useEffect(
     () => () => {
       if (artUrl) URL.revokeObjectURL(artUrl);
     },
     [artUrl],
+  );
+
+  useEffect(
+    () => () => {
+      if (rawImageSrc) URL.revokeObjectURL(rawImageSrc);
+    },
+    [rawImageSrc],
   );
 
   const rank = rankCard(stats, element, scoring);
@@ -106,6 +115,9 @@ export function CardForm({
           onSubmit={(event) => {
             event.preventDefault();
             const data = new FormData(event.currentTarget);
+            if (croppedBlobRef.current) {
+              data.set('art', new File([croppedBlobRef.current], 'art.png', { type: 'image/png' }));
+            }
             startTransition(() => {
               formAction(data);
             });
@@ -148,6 +160,7 @@ export function CardForm({
               Art
             </label>
             <input
+              ref={fileInputRef}
               id="art"
               name="art"
               type="file"
@@ -158,24 +171,23 @@ export function CardForm({
                 const file = event.target.files?.[0];
                 setArtError(null);
                 if (!file) {
-                  setArtUrl(null);
+                  setRawImageSrc(null);
                   return;
                 }
                 if (file.size > CARD_ART_MAX_BYTES) {
                   setArtError('That file is too large (maximum 5 MB).');
                   event.target.value = '';
-                  setArtUrl(null);
+                  setRawImageSrc(null);
                   return;
                 }
-                setArtUrl(URL.createObjectURL(file));
+                setRawImageSrc(URL.createObjectURL(file));
               }}
             />
             <p id="art-hint" className="mt-1 text-xs text-slate-300/70">
               {initial.artUrl
                 ? 'Optional: choose a file to replace the current art. '
                 : 'Optional. '}
-              PNG, WebP or JPEG up to 5 MB. Best: 1024 × 1434 with a transparent background (see the
-              artist templates).
+              PNG, WebP or JPEG up to 5 MB. You can crop and zoom after choosing.
             </p>
             {artError && (
               <p role="alert" className="mt-1 text-sm text-status-live">
@@ -222,6 +234,21 @@ export function CardForm({
           </p>
         )}
       </div>
+
+      {rawImageSrc && (
+        <ArtCropper
+          imageSrc={rawImageSrc}
+          onConfirm={(blob, previewUrl) => {
+            croppedBlobRef.current = blob;
+            setArtUrl(previewUrl);
+            setRawImageSrc(null);
+          }}
+          onCancel={() => {
+            setRawImageSrc(null);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+          }}
+        />
+      )}
     </div>
   );
 }
