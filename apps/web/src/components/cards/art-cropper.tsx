@@ -63,7 +63,9 @@ export function ArtCropper({ imageSrc, onConfirm, onCancel }: ArtCropperProps) {
             max={3}
             step={0.05}
             value={zoom}
-            onChange={(e) => setZoom(Number(e.target.value))}
+            onChange={(e) => {
+              setZoom(Number(e.target.value));
+            }}
             className="flex-1 accent-action"
           />
         </div>

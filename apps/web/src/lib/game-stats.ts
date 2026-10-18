@@ -1,4 +1,4 @@
-import type { Board, CaptureEvent, CaptureCause, PlayerColor } from '@triple-triad/engine';
+import type { Board, CaptureEvent, PlayerColor } from '@triple-triad/engine';
 import type { CardInfo, GameSnapshot, MatchSnapshot } from './realtime/protocol';
 
 export interface CapturesByType {
@@ -102,9 +102,7 @@ function computePlayerStats(
   const captured = accumulator.events.filter((e) => e.to === color).length;
   const lost = accumulator.events.filter((e) => e.from === color).length;
 
-  const placedCards = board
-    .filter((cell) => cell.placed?.owner === color)
-    .map((cell) => cell.placed!);
+  const placedCards = board.flatMap(({ placed }) => (placed?.owner === color ? [placed] : []));
   const placedCount = placedCards.length;
 
   let starTotal = 0;
@@ -141,20 +139,20 @@ function computeUnifiedStats(accumulator: CaptureAccumulator): UnifiedStats {
 }
 
 function computeEndGameStats(board: Board): EndGameStats | null {
-  const filled = board.filter((cell) => cell.placed !== null);
+  const filled = board.flatMap(({ placed }) => (placed ? [placed] : []));
   if (filled.length < board.length) return null;
 
-  const redControlled = filled.filter((cell) => cell.placed!.controller === 'red').length;
+  const redControlled = filled.filter((card) => card.controller === 'red').length;
   const blueControlled = filled.length - redControlled;
 
-  const redOwned = filled.filter((cell) => cell.placed!.owner === 'red').length;
+  const redOwned = filled.filter((card) => card.owner === 'red').length;
   const blueOwned = filled.length - redOwned;
 
   const redLost = filled.filter(
-    (cell) => cell.placed!.owner === 'red' && cell.placed!.controller === 'blue',
+    (card) => card.owner === 'red' && card.controller === 'blue',
   ).length;
   const blueLost = filled.filter(
-    (cell) => cell.placed!.owner === 'blue' && cell.placed!.controller === 'red',
+    (card) => card.owner === 'blue' && card.controller === 'red',
   ).length;
 
   const shutout =
@@ -165,11 +163,7 @@ function computeEndGameStats(board: Board): EndGameStats | null {
         : null;
 
   const sweep =
-    redControlled === filled.length
-      ? 'red'
-      : blueControlled === filled.length
-        ? 'blue'
-        : null;
+    redControlled === filled.length ? 'red' : blueControlled === filled.length ? 'blue' : null;
 
   return { shutout: sweep ? null : shutout, sweep };
 }
@@ -181,10 +175,7 @@ function computeMatchStats(match: MatchSnapshot): MatchLevelStats {
   };
 }
 
-export function computeGameStats(
-  game: GameSnapshot,
-  accumulator: CaptureAccumulator,
-): GameStats {
+export function computeGameStats(game: GameSnapshot, accumulator: CaptureAccumulator): GameStats {
   return {
     red: computePlayerStats('red', game.view.board, game.cards, accumulator),
     blue: computePlayerStats('blue', game.view.board, game.cards, accumulator),

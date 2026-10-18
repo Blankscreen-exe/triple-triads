@@ -5,7 +5,6 @@
 - based on the play mat size a preset range of deck size will be applicable. for example the playmat of 3x3 grid will only allow deck of size 20. we need to brainstorm on ideas like this.
 - players might opt in for an optimized deck with maximum possible stats. everyone might use this same trick. what is the countermeasure?
 
-
 ========DONE==========
 
 - create a rules page.

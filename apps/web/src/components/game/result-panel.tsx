@@ -40,15 +40,12 @@ export function ResultPanel({ room, onVote, stats }: ResultPanelProps) {
     return (
       <div className="fixed inset-0 z-40 flex items-center justify-center bg-night/60 backdrop-blur-sm">
         <div className="mx-4 w-full max-w-md">
-          <StatBoard
-            stats={stats}
-            players={players}
-            match={game.match}
-            gameOver={result !== null}
-          />
+          <StatBoard stats={stats} players={players} match={game.match} gameOver />
           <button
             type="button"
-            onClick={() => setShowPerf(false)}
+            onClick={() => {
+              setShowPerf(false);
+            }}
             className="mt-3 w-full text-center text-sm text-slate-300/80 hover:text-cream"
           >
             Back to results
@@ -75,14 +72,14 @@ export function ResultPanel({ room, onVote, stats }: ResultPanelProps) {
         )}
         {you && game.outcome && <RatingChange outcome={game.outcome[you]} />}
 
-        {room.you.role === 'player' && (
-          <RematchVote room={room} onVote={onVote} />
-        )}
+        {room.you.role === 'player' && <RematchVote room={room} onVote={onVote} />}
 
         {stats && (
           <button
             type="button"
-            onClick={() => setShowPerf(true)}
+            onClick={() => {
+              setShowPerf(true);
+            }}
             className="mt-3 text-sm text-slate-300/80 hover:text-cream"
           >
             Performance
@@ -114,7 +111,8 @@ function RematchVote({
   const opponentVote = otherEntries[0]?.[1] ?? null;
   const opponentId = otherEntries[0]?.[0] ?? null;
   const opponentName = room.game
-    ? Object.values(room.game.players).find((p) => p.userId === opponentId)?.username ?? 'Opponent'
+    ? (Object.values(room.game.players).find((p) => p.userId === opponentId)?.username ??
+      'Opponent')
     : 'Opponent';
 
   useEffect(() => {
@@ -148,24 +146,31 @@ function RematchVote({
   }
 
   if (myVote === 'continue') {
-    return (
-      <p className="mt-4 text-sm text-slate-100">Waiting for your opponent…</p>
-    );
+    return <p className="mt-4 text-sm text-slate-100">Waiting for your opponent…</p>;
   }
 
   if (opponentVote === 'continue') {
     return (
       <div className="mt-4 space-y-3">
         <div className="rounded-md border border-gold/40 bg-gold/5 px-3 py-2">
-          <p className="text-sm font-semibold text-cream">
-            {opponentName} wants to play again!
-          </p>
+          <p className="text-sm font-semibold text-cream">{opponentName} wants to play again!</p>
         </div>
         <div className="flex gap-3">
-          <Button className="flex-1" onClick={() => onVote('continue')}>
+          <Button
+            className="flex-1"
+            onClick={() => {
+              onVote('continue');
+            }}
+          >
             Accept
           </Button>
-          <Button variant="secondary" className="flex-1" onClick={() => onVote('leave')}>
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={() => {
+              onVote('leave');
+            }}
+          >
             Decline
           </Button>
         </div>
@@ -175,10 +180,21 @@ function RematchVote({
 
   return (
     <div className="mt-4 flex gap-3">
-      <Button className="flex-1" onClick={() => onVote('continue')}>
+      <Button
+        className="flex-1"
+        onClick={() => {
+          onVote('continue');
+        }}
+      >
         Play again
       </Button>
-      <Button variant="secondary" className="flex-1" onClick={() => onVote('leave')}>
+      <Button
+        variant="secondary"
+        className="flex-1"
+        onClick={() => {
+          onVote('leave');
+        }}
+      >
         Leave
       </Button>
     </div>

@@ -274,8 +274,8 @@ function StatusLine({
     if (nextRoundAt === null) return null;
     const roundWinner = game.view.result.winner;
     const roundLabel = roundWinner
-      ? `${game.players[roundWinner].username} won round ${round}`
-      : `Round ${round} was a draw`;
+      ? `${game.players[roundWinner].username} won round ${String(round)}`
+      : `Round ${String(round)} was a draw`;
     return (
       <p className="text-center text-sm" role="status">
         {roundLabel} · Round {round + 1} in{' '}
@@ -301,7 +301,7 @@ function StatusLine({
         <p className="font-display text-xs tracking-[0.2em] text-slate-400 uppercase">
           Round {game.match.round} of 3
           {(game.match.seriesScore.red > 0 || game.match.seriesScore.blue > 0) &&
-            ` · ${game.match.seriesScore.red}–${game.match.seriesScore.blue}`}
+            ` · ${String(game.match.seriesScore.red)}–${String(game.match.seriesScore.blue)}`}
         </p>
       )}
       {game.view.turn === 1 && (
@@ -368,8 +368,8 @@ function RoundBreak({
     <Window className="space-y-2 p-5 text-center" aria-live="polite">
       <h2 className="font-display text-2xl font-black tracking-widest text-cream [text-shadow:0_3px_0_#000]">
         {result.winner
-          ? `Round ${match.round}: ${players[result.winner].username} wins`
-          : `Round ${match.round}: draw`}
+          ? `Round ${String(match.round)}: ${players[result.winner].username} wins`
+          : `Round ${String(match.round)}: draw`}
       </h2>
       <p className="text-sm text-slate-300/80">
         Red {result.score.red} – {result.score.blue} Blue

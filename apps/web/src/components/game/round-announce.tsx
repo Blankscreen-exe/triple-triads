@@ -14,8 +14,12 @@ export function RoundAnnounce({ round, turn }: RoundAnnounceProps) {
 
   useEffect(() => {
     if (visible !== null) {
-      const exitTimer = setTimeout(() => setPhase('exit'), 1200);
-      const hideTimer = setTimeout(() => setVisible(null), 2000);
+      const exitTimer = setTimeout(() => {
+        setPhase('exit');
+      }, 1200);
+      const hideTimer = setTimeout(() => {
+        setVisible(null);
+      }, 2000);
       return () => {
         clearTimeout(exitTimer);
         clearTimeout(hideTimer);

@@ -13,15 +13,19 @@ interface CoinFlipProps {
 
 export function CoinFlip({ winnerColor, winnerName, round, turn, reason }: CoinFlipProps) {
   const shouldPlay = reason === 'coin-flip' && round === 1 && turn <= 1;
-  const [phase, setPhase] = useState<'spin' | 'result' | 'exit' | null>(
-    shouldPlay ? 'spin' : null,
-  );
+  const [phase, setPhase] = useState<'spin' | 'result' | 'exit' | null>(shouldPlay ? 'spin' : null);
 
   useEffect(() => {
     if (!shouldPlay) return undefined;
-    const t1 = setTimeout(() => setPhase('result'), 1900);
-    const t2 = setTimeout(() => setPhase('exit'), 3400);
-    const t3 = setTimeout(() => setPhase(null), 4100);
+    const t1 = setTimeout(() => {
+      setPhase('result');
+    }, 1900);
+    const t2 = setTimeout(() => {
+      setPhase('exit');
+    }, 3400);
+    const t3 = setTimeout(() => {
+      setPhase(null);
+    }, 4100);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -37,10 +41,7 @@ export function CoinFlip({ winnerColor, winnerName, round, turn, reason }: CoinF
     <div
       className={`pointer-events-none fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 transition-opacity duration-700 ${phase === 'exit' ? 'opacity-0' : 'opacity-100'}`}
     >
-      <div
-        className="motion-safe:animate-coin-spin"
-        style={{ perspective: '800px' }}
-      >
+      <div className="motion-safe:animate-coin-spin" style={{ perspective: '800px' }}>
         <div className="flex size-24 items-center justify-center rounded-full border-4 border-gold bg-gradient-to-b from-gold-light to-gold shadow-[0_0_30px_rgba(201,178,122,0.4),inset_0_2px_4px_rgba(255,255,255,0.3)] sm:size-28">
           <span className="font-display text-4xl font-black text-ink sm:text-5xl">TT</span>
         </div>
@@ -48,7 +49,9 @@ export function CoinFlip({ winnerColor, winnerName, round, turn, reason }: CoinF
 
       {(phase === 'result' || phase === 'exit') && (
         <div className="motion-safe:animate-coin-result text-center">
-          <p className={`font-display text-2xl font-black tracking-[0.15em] uppercase sm:text-3xl ${color} [text-shadow:0_3px_8px_rgba(0,0,0,0.8),0_2px_0_#000]`}>
+          <p
+            className={`font-display text-2xl font-black tracking-[0.15em] uppercase sm:text-3xl ${color} [text-shadow:0_3px_8px_rgba(0,0,0,0.8),0_2px_0_#000]`}
+          >
             {winnerName}
           </p>
           <p className="mt-1 text-sm text-slate-300/80">goes first</p>

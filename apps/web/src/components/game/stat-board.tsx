@@ -14,9 +14,7 @@ export function StatBoard({ stats, players, match, gameOver }: StatBoardProps) {
   const showMatchStats = match.format === 'until-winner';
   return (
     <Window className="w-full p-4 sm:p-5" aria-label="Match statistics">
-      {showMatchStats && (
-        <Scoreboard stats={stats} players={players} match={match} />
-      )}
+      {showMatchStats && <Scoreboard players={players} match={match} />}
 
       {!showMatchStats && (
         <h3 className="mb-3 text-center font-display text-sm font-bold tracking-[0.15em] text-cream uppercase">
@@ -26,26 +24,36 @@ export function StatBoard({ stats, players, match, gameOver }: StatBoardProps) {
 
       <div className="mb-4">
         <SectionLabel>Combat</SectionLabel>
-        <ComparisonRow label="Cards captured" red={stats.red.cardsCaptured} blue={stats.blue.cardsCaptured} />
-        <ComparisonRow label="Cards lost" red={stats.red.cardsLost} blue={stats.blue.cardsLost} invert />
+        <ComparisonRow
+          label="Cards captured"
+          red={stats.red.cardsCaptured}
+          blue={stats.blue.cardsCaptured}
+        />
+        <ComparisonRow
+          label="Cards lost"
+          red={stats.red.cardsLost}
+          blue={stats.blue.cardsLost}
+          invert
+        />
         <ComparisonRow
           label="Capture efficiency"
           red={stats.red.captureEfficiency}
           blue={stats.blue.captureEfficiency}
           format={formatPercent}
         />
-        <ComparisonRow label="Timeouts" red={stats.red.timeouts} blue={stats.blue.timeouts} invert />
+        <ComparisonRow
+          label="Timeouts"
+          red={stats.red.timeouts}
+          blue={stats.blue.timeouts}
+          invert
+        />
         <ComparisonRow
           label="Avg rarity"
           red={stats.red.avgRarity}
           blue={stats.blue.avgRarity}
           format={formatOneDecimal}
         />
-        <StrongestCardRow
-          red={stats.red.strongestCard}
-          blue={stats.blue.strongestCard}
-          players={players}
-        />
+        <StrongestCardRow red={stats.red.strongestCard} blue={stats.blue.strongestCard} />
       </div>
 
       <div className={gameOver && stats.endGame ? 'mb-4' : ''}>
@@ -63,14 +71,20 @@ export function StatBoard({ stats, players, match, gameOver }: StatBoardProps) {
         )}
       </div>
 
-      {gameOver && stats.endGame && (stats.endGame.sweep || stats.endGame.shutout) && (
+      {gameOver && stats.endGame && (stats.endGame.sweep ?? stats.endGame.shutout) && (
         <div>
           <SectionLabel>Achievements</SectionLabel>
           {stats.endGame.sweep && (
-            <Achievement label="Sweep" detail={`${players[stats.endGame.sweep]} controls all cells`} />
+            <Achievement
+              label="Sweep"
+              detail={`${players[stats.endGame.sweep]} controls all cells`}
+            />
           )}
           {stats.endGame.shutout && (
-            <Achievement label="Shutout" detail={`${players[stats.endGame.shutout]} lost no cards`} />
+            <Achievement
+              label="Shutout"
+              detail={`${players[stats.endGame.shutout]} lost no cards`}
+            />
           )}
         </div>
       )}
@@ -79,11 +93,9 @@ export function StatBoard({ stats, players, match, gameOver }: StatBoardProps) {
 }
 
 function Scoreboard({
-  stats,
   players,
   match,
 }: {
-  readonly stats: GameStats;
   readonly players: Readonly<Record<PlayerColor, string>>;
   readonly match: MatchSnapshot;
 }) {
@@ -100,19 +112,9 @@ function Scoreboard({
       </div>
 
       <div className="mt-3 space-y-2">
-        <ScoreRow
-          label="Rounds won"
-          red={match.seriesScore.red}
-          blue={match.seriesScore.blue}
-        />
-        <ScoreRow
-          label="Cards left"
-          red={match.cardsLeft.red}
-          blue={match.cardsLeft.blue}
-        />
-        <p className="text-center text-[10px] text-slate-400">
-          Round {match.round} of 3
-        </p>
+        <ScoreRow label="Rounds won" red={match.seriesScore.red} blue={match.seriesScore.blue} />
+        <ScoreRow label="Cards left" red={match.cardsLeft.red} blue={match.cardsLeft.blue} />
+        <p className="text-center text-[10px] text-slate-400">Round {match.round} of 3</p>
       </div>
     </div>
   );
@@ -191,11 +193,15 @@ function ComparisonRow({
   const blueWins = red !== null && blue !== null && (invert ? blue < red : blue > red);
   return (
     <div className="flex items-center gap-2 py-1 text-xs">
-      <span className={`w-8 text-right font-semibold ${redWins ? 'text-score-red' : 'text-slate-200'}`}>
+      <span
+        className={`w-8 text-right font-semibold ${redWins ? 'text-score-red' : 'text-slate-200'}`}
+      >
         {format(red)}
       </span>
       <span className="flex-1 text-center text-slate-300/70">{label}</span>
-      <span className={`w-8 text-left font-semibold ${blueWins ? 'text-score-blue' : 'text-slate-200'}`}>
+      <span
+        className={`w-8 text-left font-semibold ${blueWins ? 'text-score-blue' : 'text-slate-200'}`}
+      >
         {format(blue)}
       </span>
     </div>
@@ -205,11 +211,9 @@ function ComparisonRow({
 function StrongestCardRow({
   red,
   blue,
-  players,
 }: {
   readonly red: { name: string; stars: number } | null;
   readonly blue: { name: string; stars: number } | null;
-  readonly players: Readonly<Record<PlayerColor, string>>;
 }) {
   if (!red && !blue) return null;
   const better =
@@ -218,11 +222,15 @@ function StrongestCardRow({
     <div className="py-1 text-xs">
       <p className="text-center text-slate-300/70">Strongest card</p>
       <div className="mt-0.5 flex items-center gap-2">
-        <span className={`flex-1 text-right ${better === 'red' ? 'text-score-red' : 'text-slate-200'}`}>
+        <span
+          className={`flex-1 text-right ${better === 'red' ? 'text-score-red' : 'text-slate-200'}`}
+        >
           {red ? `${red.name} (${'★'.repeat(red.stars)})` : '—'}
         </span>
         <span className="text-slate-400/50">·</span>
-        <span className={`flex-1 text-left ${better === 'blue' ? 'text-score-blue' : 'text-slate-200'}`}>
+        <span
+          className={`flex-1 text-left ${better === 'blue' ? 'text-score-blue' : 'text-slate-200'}`}
+        >
           {blue ? `${blue.name} (${'★'.repeat(blue.stars)})` : '—'}
         </span>
       </div>
@@ -291,7 +299,7 @@ function formatNumber(v: number | null): string {
 }
 
 function formatPercent(v: number | null): string {
-  return v === null ? '—' : `${Math.round(v * 100)}%`;
+  return v === null ? '—' : `${String(Math.round(v * 100))}%`;
 }
 
 function formatOneDecimal(v: number | null): string {

@@ -18,11 +18,7 @@ function makeCard(id: string, stars: number): CardInfo {
   };
 }
 
-function makePlaced(
-  id: string,
-  owner: PlayerColor,
-  controller: PlayerColor,
-): Board[number] {
+function makePlaced(id: string, owner: PlayerColor, controller: PlayerColor): Board[number] {
   return {
     element: null,
     placed: {
@@ -58,7 +54,14 @@ function makeSnapshot(overrides: {
   return {
     view: {
       viewer: 'spectator',
-      rules: { open: false, same: false, plus: false, combo: false, sameWall: false, elemental: 'off' },
+      rules: {
+        open: false,
+        same: false,
+        plus: false,
+        combo: false,
+        sameWall: false,
+        elemental: 'off',
+      },
       board,
       players: {
         red: { hand: { size: 0, cards: null }, drawPileSize: 0 },
@@ -86,7 +89,13 @@ function makeSnapshot(overrides: {
 
 describe('accumulateCaptures', () => {
   it('accumulates capture events across moves', () => {
-    const capture1: CaptureEvent = { position: 1, cause: 'basic', from: 'blue', to: 'red', wave: 0 };
+    const capture1: CaptureEvent = {
+      position: 1,
+      cause: 'basic',
+      from: 'blue',
+      to: 'red',
+      wave: 0,
+    };
     const capture2: CaptureEvent = { position: 3, cause: 'same', from: 'red', to: 'blue', wave: 0 };
 
     const snap1 = makeSnapshot({
@@ -140,7 +149,11 @@ describe('computeGameStats', () => {
       makePlaced('b', 'red', 'blue'),
       makePlaced('c', 'blue', 'red'),
       makePlaced('d', 'blue', 'blue'),
-      emptyCell(), emptyCell(), emptyCell(), emptyCell(), emptyCell(),
+      emptyCell(),
+      emptyCell(),
+      emptyCell(),
+      emptyCell(),
+      emptyCell(),
     ];
     const cards: Record<string, CardInfo> = {
       a: makeCard('a', 3),

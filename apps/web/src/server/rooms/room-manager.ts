@@ -344,12 +344,17 @@ export class RoomManager {
     const carryHand = room.options.carryHand;
     const carriedRed = carryHand ? (match.carriedHands.get(red.user.id) ?? []) : [];
     const carriedBlue = carryHand ? (match.carriedHands.get(blue.user.id) ?? []) : [];
-    const carriedIds = { red: new Set(carriedRed.map((c) => c.id)), blue: new Set(carriedBlue.map((c) => c.id)) };
+    const carriedIds = {
+      red: new Set(carriedRed.map((c) => c.id)),
+      blue: new Set(carriedBlue.map((c) => c.id)),
+    };
 
     const redDeck = deckOf(match, red.user.id);
     const blueDeck = deckOf(match, blue.user.id);
     const filteredRedDeck = carryHand ? removeCarriedFromDeck(redDeck, carriedIds.red) : redDeck;
-    const filteredBlueDeck = carryHand ? removeCarriedFromDeck(blueDeck, carriedIds.blue) : blueDeck;
+    const filteredBlueDeck = carryHand
+      ? removeCarriedFromDeck(blueDeck, carriedIds.blue)
+      : blueDeck;
 
     const faces = new Map<string, CardInfo>([...red.deck.faces, ...blue.deck.faces]);
     let state = createGame({
@@ -465,7 +470,11 @@ export class RoomManager {
       }
     }
 
-    if (room.options.format === 'single' || match.roundResults.length >= 3 || !canPlayRound(decks)) {
+    if (
+      room.options.format === 'single' ||
+      match.roundResults.length >= 3 ||
+      !canPlayRound(decks)
+    ) {
       this.#finishMatchBySeriesScore(room, false);
       return;
     }

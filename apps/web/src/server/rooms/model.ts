@@ -2,12 +2,7 @@
  * In-memory room model. Rooms exist only while someone is in them; finished games are handed to
  * the match recorder (see `RoomManagerDeps.onGameFinished`).
  */
-import type {
-  CardDefinition,
-  GameResult,
-  GameState,
-  PlayerColor,
-} from '@triple-triad/engine';
+import type { CardDefinition, GameResult, GameState, PlayerColor } from '@triple-triad/engine';
 import type { AssetPack } from '@/lib/asset-packs';
 import type {
   CardInfo,
