@@ -4,7 +4,9 @@ import { opponentOf, type PlayerColor, type Position } from '@triple-triad/engin
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
+import { CardView } from '@/components/cards/card-view';
 import { Board } from '@/components/game/board';
+import { DragGhost, useCardDrag } from '@/components/game/card-drag';
 import { CaptureBanner } from '@/components/game/capture-banner';
 import { Countdown } from '@/components/game/countdown';
 import { Hand } from '@/components/game/hand';
@@ -112,19 +114,29 @@ function Table({
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const game = snapshot.game;
+  const you = snapshot.you.color;
+  const playing = snapshot.status === 'playing' && game !== null && !game.paused;
+  const myTurn = playing && you !== null && game.view.activePlayer === you;
+  const drag = useCardDrag({
+    enabled: myTurn,
+    onDrop: (instanceId, position) => {
+      room.move(instanceId, position);
+      setSelectedId(null);
+    },
+  });
   if (!game) return null;
 
   const { view } = game;
-  const you = snapshot.you.color;
   // The viewer's side sits on the right (as in FF8); spectators see red left, blue right.
   const right: PlayerColor = you ?? 'blue';
   const left = opponentOf(right);
-  const playing = snapshot.status === 'playing' && !game.paused;
-  const myTurn = playing && you !== null && view.activePlayer === you;
   const myHand = you ? (view.players[you].hand.cards ?? []) : [];
   // Selection is only valid while it is still in hand and still your turn.
   const selection =
     myTurn && myHand.some((card) => card.instanceId === selectedId) ? selectedId : null;
+
+  const draggedCard = myHand.find((card) => card.instanceId === drag.drag?.instanceId);
+  const draggedFace = draggedCard ? game.cards[draggedCard.card.id] : undefined;
 
   const place = (position: Position) => {
     if (!selection) return;
@@ -162,6 +174,7 @@ function Table({
               onSelect: (id: string) => {
                 setSelectedId((current) => (current === id ? null : id));
               },
+              drag,
             },
           })}
         />
@@ -180,11 +193,22 @@ function Table({
       <div className="flex items-start justify-center gap-3 sm:gap-6">
         {side(left)}
         <div className="relative w-[clamp(240px,48vw,460px)]">
-          <Board game={game} canPlace={myTurn && selection !== null} onPlace={place} />
+          <Board
+            game={game}
+            canPlace={myTurn && selection !== null}
+            onPlace={place}
+            acceptsDrop={myTurn}
+            drag={drag.drag}
+          />
           <CaptureBanner game={game} />
         </div>
         {side(right)}
       </div>
+      <DragGhost controls={drag}>
+        {draggedFace && (
+          <CardView card={draggedFace} side={right} pack={game.players[right].pack} />
+        )}
+      </DragGhost>
       {view.result && (
         <div className="mx-auto max-w-sm">
           <ResultPanel room={snapshot} clockOffset={room.clockOffset} onVote={room.vote} />

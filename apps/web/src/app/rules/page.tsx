@@ -141,8 +141,9 @@ export default function RulesPage() {
             </li>
             <li>
               On every turn, including the first, you <strong>draw 1 card, then place 1</strong> on
-              an empty square. Play alternates until all 9 squares are full: the first player places
-              5 cards and the second places 4.
+              an empty square: drag the card onto the square, or click the card and then the square.
+              Play alternates until all 9 squares are full: the first player places 5 cards and the
+              second places 4.
             </li>
             <li>
               Rooms can have a <strong>turn timer</strong> (

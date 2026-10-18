@@ -4,6 +4,7 @@ import type { HandView, PlayerColor } from '@triple-triad/engine';
 import type { AssetPack } from '@/lib/asset-packs';
 import type { CardInfo } from '@/lib/realtime/protocol';
 import { CardBack, CardView } from '../cards/card-view';
+import type { CardDragControls } from './card-drag';
 
 interface HandProps {
   readonly label: string;
@@ -16,6 +17,8 @@ interface HandProps {
     readonly selectedId: string | null;
     readonly enabled: boolean;
     readonly onSelect: (instanceId: string) => void;
+    /** Drag-and-drop onto the board, alongside click-to-select. */
+    readonly drag: CardDragControls;
   };
 }
 
@@ -45,6 +48,7 @@ export function Hand({ label, hand, color, pack, cards, selection }: HandProps) 
           <CardBack pack={pack} />
         );
         const selected = selection?.selectedId === instance.instanceId;
+        const dragged = selection?.drag.drag?.instanceId === instance.instanceId;
         return (
           <li
             key={instance.instanceId}
@@ -59,9 +63,10 @@ export function Hand({ label, hand, color, pack, cards, selection }: HandProps) 
                 onClick={() => {
                   selection.onSelect(instance.instanceId);
                 }}
-                className={`block w-full rounded-[3%/2.2%] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cream enabled:cursor-pointer ${
+                {...selection.drag.sourceProps(instance.instanceId)}
+                className={`block w-full rounded-[3%/2.2%] transition-opacity select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cream enabled:cursor-grab enabled:touch-none ${
                   selected ? 'outline-3 outline-offset-2 outline-cream' : ''
-                }`}
+                } ${dragged ? 'opacity-30' : ''}`}
               >
                 {card}
               </button>

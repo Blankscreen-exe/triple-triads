@@ -91,7 +91,9 @@ test('two players play a full game and agree to a rematch', async ({ browser }) 
     await expect(
       page.getByRole('heading', { name: new RegExp(`^(${outcomes.join('|')})$`) }),
     ).toBeHidden();
-    await expect(page.getByRole('list', { name: 'Board' }).getByRole('img')).toHaveCount(0);
+    await expect(
+      page.getByRole('list', { name: 'Board' }).getByRole('img', { name: /, \d stars?, top / }),
+    ).toHaveCount(0);
   }
 });
 
@@ -141,4 +143,62 @@ test('the host picks their colour and the coin flip picks who starts', async ({ 
       new RegExp(`Coin flip: (${host.name}|${guest.name}) goes first`),
     );
   }
+});
+
+/** Starts a game between two new players and returns the page whose turn it is. */
+async function gameOnYourTurn(browser: Browser, roomPrefix: string): Promise<Page> {
+  const alice = await newPlayer(browser);
+  const bob = await newPlayer(browser);
+  const roomName = `${roomPrefix} ${alice.name}`;
+  await createRoom(alice.page, roomName);
+  await joinFromLobby(bob.page, roomName, 'Join');
+
+  let active: Page | undefined;
+  await expect(async () => {
+    for (const { page } of [alice, bob]) {
+      if (await page.getByText(YOUR_TURN).isVisible()) active = page;
+    }
+    expect(active).toBeDefined();
+  }).toPass({ timeout: 5000 });
+  if (!active) throw new Error('unreachable');
+  return active;
+}
+
+/** Presses on the top card of the hand and moves it over a board square, without letting go. */
+async function dragCardOver(page: Page, position: number) {
+  const card = page.getByRole('list', { name: 'Your hand' }).getByRole('button').last();
+  const square = page.locator(`[data-drop-position="${String(position)}"]`);
+  const from = await card.boundingBox();
+  const to = await square.boundingBox();
+  if (!from || !to) throw new Error('card or square not on screen');
+
+  await page.mouse.move(from.x + from.width / 2, from.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 8 });
+  return square;
+}
+
+test('a card can be dragged from the hand onto the board', async ({ browser }) => {
+  const page = await gameOnYourTurn(browser, 'Drag');
+
+  const square = await dragCardOver(page, 4);
+  await page.mouse.up();
+
+  const board = page.getByRole('list', { name: 'Board' });
+  await expect(board.getByRole('img', { name: /, \d stars?, top / })).toHaveCount(1);
+  await expect(page.getByText(YOUR_TURN)).toBeHidden();
+  await expect(square).toHaveCount(0); // the centre square is taken now
+});
+
+test('pressing Escape cancels a drag', async ({ browser }) => {
+  const page = await gameOnYourTurn(browser, 'Cancel');
+
+  await dragCardOver(page, 4);
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+
+  await expect(
+    page.getByRole('list', { name: 'Board' }).getByRole('img', { name: /, \d stars?, top / }),
+  ).toHaveCount(0);
+  await expect(page.getByText(YOUR_TURN)).toBeVisible();
 });
