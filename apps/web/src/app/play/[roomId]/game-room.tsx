@@ -12,6 +12,7 @@ import { Countdown } from '@/components/game/countdown';
 import { Hand } from '@/components/game/hand';
 import { PlayerPanel } from '@/components/game/player-panel';
 import { ResultPanel } from '@/components/game/result-panel';
+import { RoundAnnounce } from '@/components/game/round-announce';
 import { RuleChips } from '@/components/game/rule-chips';
 import { StatBoard } from '@/components/game/stat-board';
 import { useGameStats } from '@/lib/use-game-stats';
@@ -212,6 +213,9 @@ function Table({
           <CardView card={draggedFace} side={right} pack={game.players[right].pack} />
         )}
       </DragGhost>
+      {game.match.format === 'until-winner' && (
+        <RoundAnnounce round={game.match.round} turn={view.turn} />
+      )}
       {view.result && game.match.nextRoundAt !== null && (
         <div className="mx-auto max-w-sm">
           <RoundBreak snapshot={snapshot} clockOffset={room.clockOffset} />
