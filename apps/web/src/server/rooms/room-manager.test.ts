@@ -1,14 +1,20 @@
 import { BASIC_RULES, POSITIONS, type CardDefinition, type StatValue } from '@triple-triad/engine';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CardInfo, CreateRoomInput, RoomOptions } from '@/lib/realtime/protocol';
+import {
+  RECONNECT_GRACE_MS,
+  REMATCH_VOTE_MS,
+  type CardInfo,
+  type CreateRoomInput,
+  type RoomOptions,
+} from '@/lib/realtime/protocol';
 import type { DeckProvider } from './game-decks';
 import type { FinishedGame, GameDeck, RoomUser } from './model';
-import { RECONNECT_GRACE_MS, REMATCH_VOTE_MS } from '@/lib/realtime/protocol';
 import { RoomManager, type RoomEvents } from './room-manager';
 
 const alice: RoomUser = { id: 'alice', username: 'Alice' };
 const bob: RoomUser = { id: 'bob', username: 'Bob' };
 const carol: RoomUser = { id: 'carol', username: 'Carol' };
+const dave: RoomUser = { id: 'dave', username: 'Dave' };
 
 /** A 20-card deck where every card has the same stats. */
 function uniformDeck(cardId: string, value: StatValue): GameDeck {
@@ -31,6 +37,8 @@ const decks: Record<string, GameDeck> = {
   alice: uniformDeck('alice-card', 9),
   bob: uniformDeck('bob-card', 1),
   carol: uniformDeck('carol-card', 5),
+  // Same strength as Carol: their games never capture anything and end 5–5.
+  dave: uniformDeck('dave-card', 5),
 };
 
 const deckProvider: DeckProvider = {
@@ -51,6 +59,7 @@ const roomInput = (overrides: Partial<CreateRoomInput> = {}): CreateRoomInput =>
   name: 'Friday Duel',
   password: '',
   options: options(),
+  hostColor: 'red',
   ...overrides,
 });
 
@@ -72,12 +81,21 @@ function createManager() {
   });
 }
 
-/** Alice creates a room and Bob joins; Alice is red when `aliceFirst`. */
-function startedGame(manager: RoomManager, input = roomInput(), aliceFirst = true) {
-  coinFlip = aliceFirst;
-  const created = manager.createRoom(alice, input);
+/**
+ * The host creates a room (red unless `input` says otherwise) and the guest joins; the coin flip
+ * makes the host go first when `hostFirst`.
+ */
+function startedGame(
+  manager: RoomManager,
+  input = roomInput(),
+  hostFirst = true,
+  host: RoomUser = alice,
+  guest: RoomUser = bob,
+) {
+  coinFlip = hostFirst;
+  const created = manager.createRoom(host, input);
   if (!created.ok) throw new Error(created.error);
-  const joined = manager.joinRoom(bob, {
+  const joined = manager.joinRoom(guest, {
     roomId: 'room-1',
     password: input.password,
     as: 'player',
@@ -167,16 +185,43 @@ describe('creating and joining rooms', () => {
     });
   });
 
-  it('starts the game when the second player joins, with the coin-flip winner as red', () => {
+  it('starts the game when the second player joins; the coin flip picks who goes first', () => {
     const manager = createManager();
     const roomId = startedGame(manager, roomInput(), false);
 
     const game = manager.snapshot(roomId, alice.id)?.game;
 
     expect(manager.listRooms()[0]?.status).toBe('playing');
-    expect(game?.players.red.username).toBe('Bob');
-    expect(game?.players.blue.username).toBe('Alice');
-    expect(game?.view.activePlayer).toBe('red');
+    expect(game?.players.red.username).toBe('Alice');
+    expect(game?.players.blue.username).toBe('Bob');
+    expect(game?.view.activePlayer).toBe('blue');
+    expect(game?.firstPlayer).toEqual({ color: 'blue', reason: 'coin-flip' });
+  });
+
+  it('gives the host the colour they chose and the guest the other one', () => {
+    const manager = createManager();
+    const roomId = startedGame(manager, roomInput({ hostColor: 'blue' }));
+
+    const snapshot = manager.snapshot(roomId, bob.id);
+
+    expect(manager.listRooms()[0]?.hostColor).toBe('blue');
+    expect(snapshot?.hostColor).toBe('blue');
+    expect(snapshot?.you.color).toBe('red');
+    expect(snapshot?.game?.players.blue.username).toBe('Alice');
+    // The host won the coin flip, so blue goes first.
+    expect(snapshot?.game?.view.activePlayer).toBe('blue');
+  });
+
+  it('keeps the host colour for whoever becomes host when the creator leaves', () => {
+    const manager = createManager();
+    manager.createRoom(alice, roomInput({ hostColor: 'blue' }));
+    manager.joinRoom(bob, { roomId: 'room-1', password: '', as: 'player' });
+    manager.leaveRoom(alice.id, 'room-1');
+
+    manager.joinRoom(carol, { roomId: 'room-1', password: '', as: 'player' });
+
+    expect(manager.snapshot('room-1', bob.id)?.you.color).toBe('blue');
+    expect(manager.snapshot('room-1', carol.id)?.you.color).toBe('red');
   });
 
   it('checks the room password', () => {
@@ -322,23 +367,38 @@ describe('finishing and rematches', () => {
     });
   });
 
-  it('starts a new game with the loser as red when both continue', () => {
+  it('starts a new game with the loser going first and colours unchanged', () => {
     const manager = createManager();
     const roomId = startedGame(manager);
     playToEnd(manager, roomId);
-    const winner = finished[0]?.result.winner;
-    if (!winner) throw new Error('expected a winner with these decks');
-    const loserName = manager.snapshot(roomId, alice.id)?.game?.players[
-      winner === 'red' ? 'blue' : 'red'
-    ].username;
+    // Alice's 9s beat Bob's 1s, so Bob (blue) lost.
+    expect(finished[0]?.result.winner).toBe('red');
 
     manager.vote(alice.id, roomId, 'continue');
     manager.vote(bob.id, roomId, 'continue');
     const game = manager.snapshot(roomId, alice.id)?.game;
 
     expect(manager.snapshot(roomId, alice.id)?.status).toBe('playing');
-    expect(game?.players.red.username).toBe(loserName);
+    expect(game?.players.red.username).toBe('Alice');
+    expect(game?.players.blue.username).toBe('Bob');
+    expect(game?.view.activePlayer).toBe('blue');
+    expect(game?.firstPlayer).toEqual({ color: 'blue', reason: 'lost-last-game' });
     expect(game?.view.turn).toBe(1);
+  });
+
+  it('lets the same player go first again after a draw', () => {
+    const manager = createManager();
+    const roomId = startedGame(manager, roomInput(), false, carol, dave);
+    playToEnd(manager, roomId);
+    expect(finished[0]?.result.winner).toBeNull();
+
+    manager.vote(carol.id, roomId, 'continue');
+    manager.vote(dave.id, roomId, 'continue');
+    const game = manager.snapshot(roomId, carol.id)?.game;
+
+    expect(game?.players.red.username).toBe('Carol');
+    expect(game?.firstPlayer).toEqual({ color: 'blue', reason: 'last-game-drawn' });
+    expect(game?.view.activePlayer).toBe('blue');
   });
 
   it('ends the room’s pairing when a player votes to leave', () => {

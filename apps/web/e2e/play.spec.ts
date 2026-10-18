@@ -10,9 +10,13 @@ async function newPlayer(browser: Browser): Promise<{ page: Page; name: string }
   return { page, name };
 }
 
-async function createRoom(page: Page, roomName: string) {
+async function createRoom(page: Page, roomName: string, color: 'Red' | 'Blue' = 'Red') {
   await page.goto('/play');
   await page.getByLabel('Room name').fill(roomName);
+  // The radio buttons are visually hidden behind styled labels, so click the label like a user.
+  const colours = page.getByRole('group', { name: 'Your colour' });
+  await colours.getByText(color, { exact: true }).click();
+  await expect(colours.getByRole('radio', { name: color })).toBeChecked();
   await page.getByLabel('Turn timer').selectOption('null');
   await page.getByRole('button', { name: 'Create room' }).click();
   await expect(page.getByText('Waiting for an opponent…')).toBeVisible();
@@ -116,4 +120,25 @@ test('the lobby updates live when a room is created', async ({ browser }) => {
   await createRoom(host.page, roomName);
 
   await expect(watcher.page.getByRole('listitem').filter({ hasText: roomName })).toBeVisible();
+});
+
+test('the host picks their colour and the coin flip picks who starts', async ({ browser }) => {
+  const host = await newPlayer(browser);
+  const guest = await newPlayer(browser);
+  const roomName = `Colours ${host.name}`;
+
+  await createRoom(host.page, roomName, 'Blue');
+  await guest.page.goto('/play');
+  await expect(guest.page.getByRole('listitem').filter({ hasText: roomName })).toContainText(
+    'you play red',
+  );
+  await joinFromLobby(guest.page, roomName, 'Join');
+
+  for (const { page } of [host, guest]) {
+    await expect(page.getByRole('group', { name: `${host.name} (blue)` })).toBeVisible();
+    await expect(page.getByRole('group', { name: `${guest.name} (red)` })).toBeVisible();
+    await expect(page.getByRole('status')).toContainText(
+      new RegExp(`Coin flip: (${host.name}|${guest.name}) goes first`),
+    );
+  }
 });

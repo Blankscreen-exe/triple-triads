@@ -18,6 +18,7 @@ export function summarizeRoom(room: Room): RoomSummary {
     id: room.id,
     name: room.name,
     host: host?.user.username ?? '',
+    hostColor: room.hostColor,
     hasPassword: room.passwordHash !== null,
     options: room.options,
     status: room.status,
@@ -33,6 +34,7 @@ export function snapshotFor(room: Room, userId: string, now: number): RoomSnapsh
     id: room.id,
     name: room.name,
     hostId: room.hostId,
+    hostColor: room.hostColor,
     status: room.status,
     options: room.options,
     hasPassword: room.passwordHash !== null,
@@ -73,6 +75,7 @@ function gameSnapshot(room: Room, game: ActiveGame, viewerColor: PlayerColor | n
     view,
     players,
     cards: visibleCards(view, game.faces),
+    firstPlayer: { color: game.firstPlayer, reason: game.firstPlayerReason },
     lastMove: game.lastMove,
     turnDeadline: game.turnDeadline,
     paused: game.paused

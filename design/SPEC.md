@@ -143,7 +143,7 @@ All card visuals come from images and fonts, not from code. The game ships a **d
 
 - **Each card is drawn with its owner's pack on every screen.** I see my cards in my style and my opponent's cards in their style; they see the same.
 - **Control is shown only by the background**: when a card is captured, its background switches between blue and red.
-- **Colours are fixed per game, not per viewer**: the player who goes first is **red**, the other is **blue**, and both players see the same colours (see 9.1).
+- **Colours are fixed per room, not per viewer**: the host chooses red or blue, the other player gets the other colour, and both players see the same colours (see 9.1).
 
 ### 7.4 Templates for artists
 
@@ -176,6 +176,7 @@ To change the layout: edit `card-layout.json` and rerun the script.
 | Plus                      | See 9.4                                         |
 | Combo                     | See 9.4                                         |
 | Same Wall                 | See 9.4                                         |
+| Your colour               | **Red** or **Blue** for the host; see 9.1       |
 | Elemental                 | **Off** / **Normal** / **All squares**. See 9.5 |
 | Turn timer                | Time limit per turn                             |
 | Password                  | Room requires a password to join                |
@@ -187,8 +188,8 @@ To change the layout: edit `card-layout.json` and rerun the script.
 
 - 3 × 3 board.
 - Each player's 20-card deck is shuffled. Each player **draws 3 cards**.
-- First game in a room: a **coin flip** (shown to both players) decides who goes first.
-- **The first player is red**, the second is blue. Both players see the same colours.
+- **The host chooses their colour** (red or blue) when creating the room; the player who joins gets the other one. The joining player does not choose. If the host leaves, whoever becomes host keeps that colour.
+- First game of a pairing: a **coin flip** (shown to both players) decides who goes first. Colour and turn order are independent: either colour can go first.
 
 ### 9.2 Turns
 
@@ -233,7 +234,7 @@ Room setting with three modes. At the start of each game, squares are given rand
 - After a game, both players vote **Continue** or **Leave**.
 - If both vote Continue, a new game starts in the same room with the **same decks and rules**.
 - **30-second timeout**: no vote counts as Leave.
-- The **loser of the previous game goes first** (and is therefore red). After a draw, the turn order and colours stay the same.
+- The **loser of the previous game goes first**. After a draw, the same player goes first again. Colours never change between games.
 - Decks cannot be changed between games; to change, leave the room.
 
 ### 9.8 Disconnects

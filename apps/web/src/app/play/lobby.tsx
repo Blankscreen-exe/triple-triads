@@ -1,5 +1,6 @@
 'use client';
 
+import { opponentOf } from '@triple-triad/engine';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { RuleChips } from '@/components/game/rule-chips';
@@ -77,6 +78,18 @@ function RoomRow({ room }: { readonly room: RoomSummary }) {
           </div>
           <div className="text-xs text-slate-300/70">
             {room.players.join(' vs ')}
+            {canPlay && (
+              <>
+                {' · you play '}
+                <span
+                  className={
+                    opponentOf(room.hostColor) === 'red' ? 'text-score-red' : 'text-score-blue'
+                  }
+                >
+                  {opponentOf(room.hostColor)}
+                </span>
+              </>
+            )}
             {room.spectators > 0 && ` · ${String(room.spectators)} watching`}
           </div>
         </div>

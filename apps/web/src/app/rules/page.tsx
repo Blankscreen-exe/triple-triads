@@ -130,14 +130,14 @@ export default function RulesPage() {
         <Section id="playing" title="Playing a game">
           <ol className="list-decimal space-y-2 pl-5">
             <li>
-              A player creates a <strong>room</strong> in the lobby and chooses its rules, and a
-              second player joins. Rooms can have a password, and can allow spectators.
+              A player creates a <strong>room</strong> in the lobby, chooses its rules and picks
+              their colour, <span className="font-semibold text-score-red">red</span> or{' '}
+              <span className="font-semibold text-score-blue">blue</span>. A second player joins and
+              plays the other colour. Rooms can have a password, and can allow spectators.
             </li>
             <li>
               Both decks are shuffled and each player <strong>draws 3 cards</strong>. A{' '}
-              <strong>coin flip</strong> decides who goes first. The first player is{' '}
-              <span className="font-semibold text-red-300">red</span>, the second is{' '}
-              <span className="font-semibold text-sky-300">blue</span>.
+              <strong>coin flip</strong> decides who goes first.
             </li>
             <li>
               On every turn, including the first, you <strong>draw 1 card, then place 1</strong> on
@@ -210,8 +210,8 @@ export default function RulesPage() {
               new game starts with the same decks and rules.
             </li>
             <li>
-              The <strong>loser goes first</strong> in the next game (and plays red). After a draw,
-              the order stays the same.
+              The <strong>loser goes first</strong> in the next game. After a draw, the same player
+              goes first again. Colours stay the same in every game.
             </li>
             <li>To change decks, leave the room and join or create another.</li>
             <li>

@@ -28,6 +28,7 @@ import {
   type Ack,
   type CardInfo,
   type CreateRoomInput,
+  type FirstPlayerReason,
   type JoinRoomInput,
   type MatchOutcome,
   type MoveInput,
@@ -134,6 +135,7 @@ export class RoomManager {
       options: applyRoomPolicy(input.options, this.#deps.roomPolicy()),
       createdAt: this.#deps.now(),
       hostId: user.id,
+      hostColor: input.hostColor,
       seats: [seat.data],
       spectators: new Map(),
       status: 'waiting',
@@ -181,7 +183,7 @@ export class RoomManager {
     const [first, second] = room.seats;
     if (first && second) {
       // A new pairing: the coin flip decides who goes first (design/SPEC.md, 9.1).
-      this.#startGame(room, this.#deps.coinFlip() ? first.user.id : second.user.id);
+      this.#startGame(room, this.#deps.coinFlip() ? first.user.id : second.user.id, 'coin-flip');
     }
     this.#changed(room, { lobby: true });
     return ok(null);
@@ -275,7 +277,7 @@ export class RoomManager {
     rematch.votes.set(userId, 'continue');
     if ([...rematch.votes.values()].every((vote) => vote === 'continue')) {
       this.#clearTimer(room, 'rematch');
-      this.#startGame(room, rematch.nextFirstPlayerId);
+      this.#startGame(room, rematch.nextFirstPlayerId, rematch.nextFirstPlayerReason);
       this.#changed(room, { lobby: true });
     } else {
       this.#changed(room);
@@ -302,10 +304,13 @@ export class RoomManager {
     });
   }
 
-  #startGame(room: Room, firstPlayerId: string): void {
-    const red = room.seats.find((seat) => seat.user.id === firstPlayerId);
-    const blue = room.seats.find((seat) => seat.user.id !== firstPlayerId);
-    if (!red || !blue) throw new Error('A game needs two seated players');
+  #startGame(room: Room, firstPlayerId: string, reason: FirstPlayerReason): void {
+    // Colours are fixed by the host's choice; turn order is decided separately.
+    const host = room.seats.find((seat) => seat.user.id === room.hostId);
+    const guest = room.seats.find((seat) => seat.user.id !== room.hostId);
+    if (!host || !guest) throw new Error('A game needs two seated players');
+    const [red, blue] = room.hostColor === 'red' ? [host, guest] : [guest, host];
+    const firstPlayer: PlayerColor = red.user.id === firstPlayerId ? 'red' : 'blue';
 
     const faces = new Map<string, CardInfo>([...red.deck.faces, ...blue.deck.faces]);
     room.game = {
@@ -313,11 +318,14 @@ export class RoomManager {
         rules: room.options.rules,
         decks: { red: red.deck.cards, blue: blue.deck.cards },
         seed: this.#deps.newSeed(),
+        firstPlayer,
       }),
       players: {
         red: { user: red.user, pack: red.pack },
         blue: { user: blue.user, pack: blue.pack },
       },
+      firstPlayer,
+      firstPlayerReason: reason,
       faces,
       lastMove: null,
       turnDeadline: null,
@@ -399,11 +407,12 @@ export class RoomManager {
 
     if (!forfeit && room.seats.length === 2) {
       // Loser goes first next time; after a draw the order stays the same (spec 9.7).
-      const nextFirst = result.winner ? opponentOf(result.winner) : 'red';
+      const nextFirst = result.winner ? opponentOf(result.winner) : game.firstPlayer;
       room.rematch = {
         deadline: this.#deps.now() + this.#deps.rematchVoteMs,
         votes: new Map(room.seats.map((seat) => [seat.user.id, null])),
         nextFirstPlayerId: game.players[nextFirst].user.id,
+        nextFirstPlayerReason: result.winner ? 'lost-last-game' : 'last-game-drawn',
       };
       room.timers.rematch = setTimeout(() => {
         room.timers.rematch = null;

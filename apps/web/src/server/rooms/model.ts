@@ -6,6 +6,7 @@ import type { CardDefinition, GameResult, GameState, PlayerColor } from '@triple
 import type { AssetPack } from '@/lib/asset-packs';
 import type {
   CardInfo,
+  FirstPlayerReason,
   GameSnapshot,
   MatchOutcome,
   RoomOptions,
@@ -41,6 +42,8 @@ export interface GamePlayer {
 export interface ActiveGame {
   state: GameState;
   readonly players: Readonly<Record<PlayerColor, GamePlayer>>;
+  readonly firstPlayer: PlayerColor;
+  readonly firstPlayerReason: FirstPlayerReason;
   /** Display data for every card in either deck, by card id. */
   readonly faces: ReadonlyMap<string, CardInfo>;
   lastMove: GameSnapshot['lastMove'];
@@ -57,8 +60,9 @@ export interface ActiveGame {
 export interface RematchVote {
   readonly deadline: number;
   readonly votes: Map<string, VoteChoice | null>;
-  /** Who goes first (and is red) if the rematch happens. */
+  /** Who goes first if the rematch happens, and why. Colours do not change. */
   readonly nextFirstPlayerId: string;
+  readonly nextFirstPlayerReason: FirstPlayerReason;
 }
 
 export interface Room {
@@ -68,6 +72,8 @@ export interface Room {
   readonly options: RoomOptions;
   readonly createdAt: number;
   hostId: string;
+  /** Chosen by whoever creates the room; if the host leaves, the next host keeps it. */
+  readonly hostColor: PlayerColor;
   /** Up to two players, in the order they joined. */
   seats: Seat[];
   readonly spectators: Map<string, RoomUser>;

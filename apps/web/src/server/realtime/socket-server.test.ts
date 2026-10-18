@@ -23,6 +23,7 @@ const ROOM: CreateRoomInput = {
   name: 'Integration room',
   password: '',
   options: { rules: BASIC_RULES, turnSeconds: null, allowSpectators: true },
+  hostColor: 'red',
 };
 
 let db: AppDatabase;

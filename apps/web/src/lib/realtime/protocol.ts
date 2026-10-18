@@ -6,6 +6,7 @@
  */
 import {
   ELEMENTAL_MODES,
+  PLAYER_COLORS,
   type CaptureEvent,
   type GameView,
   type PlayerColor,
@@ -52,6 +53,8 @@ export const createRoomSchema = z.object({
   /** Empty means no password. */
   password: z.string().max(ROOM_PASSWORD_MAX_LENGTH),
   options: roomOptionsSchema,
+  /** The colour the host plays; the other player gets the other one. */
+  hostColor: z.enum(PLAYER_COLORS),
 });
 export type CreateRoomInput = z.infer<typeof createRoomSchema>;
 
@@ -87,6 +90,8 @@ export interface RoomSummary {
   readonly id: string;
   readonly name: string;
   readonly host: string;
+  /** The host's colour; whoever joins plays the other one. */
+  readonly hostColor: PlayerColor;
   readonly hasPassword: boolean;
   readonly options: RoomOptions;
   readonly status: RoomStatus;
@@ -115,8 +120,15 @@ export interface PlayerOutcome {
 /** Rating and streak changes from a finished game. */
 export type MatchOutcome = Readonly<Record<PlayerColor, PlayerOutcome>>;
 
+/**
+ * Why a player went first: the coin flip (first game of a pairing), losing the previous game, or
+ * the previous game being a draw (the same player starts again).
+ */
+export type FirstPlayerReason = 'coin-flip' | 'lost-last-game' | 'last-game-drawn';
+
 export interface GameSnapshot {
   readonly view: GameView;
+  readonly firstPlayer: { readonly color: PlayerColor; readonly reason: FirstPlayerReason };
   readonly players: Readonly<Record<PlayerColor, SeatInfo & { readonly pack: AssetPack }>>;
   /** Names, stars and art for every card the viewer can currently see, by card id. */
   readonly cards: Readonly<Record<string, CardInfo>>;
@@ -145,6 +157,7 @@ export interface RoomSnapshot {
   readonly id: string;
   readonly name: string;
   readonly hostId: string;
+  readonly hostColor: PlayerColor;
   readonly status: RoomStatus;
   readonly options: RoomOptions;
   readonly hasPassword: boolean;

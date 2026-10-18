@@ -27,6 +27,8 @@ export function PlayerPanel({
   const styles = COLOR_STYLES[color];
   return (
     <div
+      role="group"
+      aria-label={`${username} (${color})`}
       className={`rounded-md border bg-black/25 px-3 py-2 ${isActive ? 'border-cream shadow-[0_0_12px_rgb(244_236_210/0.35)]' : 'border-frame/40'}`}
     >
       <div className="flex items-center justify-between gap-2">

@@ -15,7 +15,7 @@ import { Button, buttonClasses } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
 import { Window } from '@/components/ui/window';
 import { useRoom } from '@/lib/realtime/hooks';
-import { ROOM_ERRORS, type RoomSnapshot } from '@/lib/realtime/protocol';
+import { ROOM_ERRORS, type FirstPlayerReason, type RoomSnapshot } from '@/lib/realtime/protocol';
 
 interface GameRoomProps {
   readonly roomId: string;
@@ -220,25 +220,46 @@ function StatusLine({
 
   const active = game.players[game.view.activePlayer].username;
   return (
-    <div className="flex items-center justify-center gap-3" role="status">
-      <span
-        className={`rounded-sm px-3 py-1 text-sm font-semibold ring-1 ring-white/60 ${myTurn ? 'bg-action' : 'bg-black/30'}`}
-      >
-        {myTurn
-          ? hasSelection
-            ? 'Choose a square'
-            : 'Your turn: choose a card'
-          : `${active}'s turn`}
-      </span>
-      {game.turnDeadline !== null && (
-        <Countdown
-          deadline={game.turnDeadline}
-          clockOffset={clockOffset}
-          className="font-display text-2xl text-cream"
-        />
+    <div className="space-y-1.5 text-center" role="status">
+      {game.view.turn === 1 && (
+        <p className="text-sm text-slate-300">
+          {firstPlayerMessage(
+            game.players[game.firstPlayer.color].username,
+            game.firstPlayer.reason,
+          )}
+        </p>
       )}
+      <div className="flex items-center justify-center gap-3">
+        <span
+          className={`rounded-sm px-3 py-1 text-sm font-semibold ring-1 ring-white/60 ${myTurn ? 'bg-action' : 'bg-black/30'}`}
+        >
+          {myTurn
+            ? hasSelection
+              ? 'Choose a square'
+              : 'Your turn: choose a card'
+            : `${active}'s turn`}
+        </span>
+        {game.turnDeadline !== null && (
+          <Countdown
+            deadline={game.turnDeadline}
+            clockOffset={clockOffset}
+            className="font-display text-2xl text-cream"
+          />
+        )}
+      </div>
     </div>
   );
+}
+
+function firstPlayerMessage(username: string, reason: FirstPlayerReason): string {
+  switch (reason) {
+    case 'coin-flip':
+      return `Coin flip: ${username} goes first.`;
+    case 'lost-last-game':
+      return `${username} lost the last game, so goes first.`;
+    case 'last-game-drawn':
+      return `The last game was a draw, so ${username} goes first again.`;
+  }
 }
 
 function Notice({ title, children }: { readonly title: string; readonly children?: ReactNode }) {

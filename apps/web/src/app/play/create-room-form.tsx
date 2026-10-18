@@ -1,6 +1,11 @@
 'use client';
 
-import { ELEMENTAL_MODES, type ElementalMode } from '@triple-triad/engine';
+import {
+  ELEMENTAL_MODES,
+  PLAYER_COLORS,
+  type ElementalMode,
+  type PlayerColor,
+} from '@triple-triad/engine';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -42,10 +47,16 @@ interface CreateRoomFormProps {
 
 const LOCKED_HINT = 'Set by the admin';
 
+const COLOR_CHOICES: Readonly<Record<PlayerColor, { label: string; checked: string }>> = {
+  red: { label: 'Red', checked: 'peer-checked:bg-score-red/25 peer-checked:ring-score-red' },
+  blue: { label: 'Blue', checked: 'peer-checked:bg-score-blue/25 peer-checked:ring-score-blue' },
+};
+
 export function CreateRoomForm({ defaultName, policy }: CreateRoomFormProps) {
   const router = useRouter();
   const [name, setName] = useState(defaultName);
   const [password, setPassword] = useState('');
+  const [hostColor, setHostColor] = useState<PlayerColor>('red');
   const [options, setOptions] = useState(policy.defaults);
   const locked = new Set<LockableOption>(policy.locked);
   const [error, setError] = useState<RoomError | null>(null);
@@ -64,7 +75,7 @@ export function CreateRoomForm({ defaultName, policy }: CreateRoomFormProps) {
       onSubmit={(event) => {
         event.preventDefault();
         setPending(true);
-        void createRoom({ name, password, options }).then((result) => {
+        void createRoom({ name, password, options, hostColor }).then((result) => {
           if (result.ok) {
             router.push(`/play/${result.data.roomId}`);
           } else {
@@ -94,6 +105,38 @@ export function CreateRoomForm({ defaultName, policy }: CreateRoomFormProps) {
           setPassword(event.target.value);
         }}
       />
+
+      <fieldset>
+        <legend className="mb-1 text-sm font-medium text-slate-100">Your colour</legend>
+        <div className="grid grid-cols-2 gap-2">
+          {PLAYER_COLORS.map((color) => (
+            <label key={color} className="cursor-pointer">
+              <input
+                type="radio"
+                name="hostColor"
+                value={color}
+                checked={hostColor === color}
+                onChange={() => {
+                  setHostColor(color);
+                }}
+                className="peer sr-only"
+              />
+              <span
+                className={`flex items-center justify-center gap-2 rounded-md bg-black/25 px-3 py-2 text-sm ring-1 ring-frame/50 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-cream ${COLOR_CHOICES[color].checked}`}
+              >
+                <span
+                  aria-hidden
+                  className={`size-3 rounded-full ${color === 'red' ? 'bg-score-red' : 'bg-score-blue'}`}
+                />
+                {COLOR_CHOICES[color].label}
+              </span>
+            </label>
+          ))}
+        </div>
+        <p className="mt-1 text-xs text-slate-300/80">
+          Whoever joins plays the other colour. A coin flip decides who goes first.
+        </p>
+      </fieldset>
 
       <div className="grid grid-cols-2 gap-3">
         <SelectField
