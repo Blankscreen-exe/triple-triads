@@ -1,15 +1,13 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { Suspense } from 'react';
-import { CardLine } from '@/components/cards/card-line';
-import { Button, buttonClasses } from '@/components/ui/button';
-import { ConfirmButton } from '@/components/ui/confirm-button';
 import { Window } from '@/components/ui/window';
+import { describeViolation } from '@/lib/deck-violations';
+import { deckStats } from '@/lib/deck-stats';
 import { getDatabase } from '@/server/db';
 import { listDecks } from '@/server/decks/decks';
+import { getGameSettings } from '@/server/settings/settings';
 import { requireUser } from '@/server/web/current-user';
-import { deleteDeckAction, makeDeckActive } from './actions';
-import { describeViolation, violationKey } from '@/lib/deck-violations';
+import { DeckList, type DeckListItem } from './deck-list';
 import { NewDeckForm } from './new-deck-form';
 
 export const metadata: Metadata = { title: 'Decks' };
@@ -27,82 +25,49 @@ export default function DecksPage() {
         <NewDeckForm />
       </div>
       <Suspense fallback={<p className="mt-6 text-slate-300">Loading decks…</p>}>
-        <DeckList />
+        <Decks />
       </Suspense>
     </main>
   );
 }
 
-async function DeckList() {
+async function Decks() {
   const user = await requireUser();
-  const decks = listDecks(getDatabase(), user.id);
+  const db = getDatabase();
+  const decks = listDecks(db, user.id);
 
   if (decks.length === 0) {
-    return <p className="mt-6 text-slate-300">You have no decks yet.</p>;
+    return (
+      <Window className="mt-6 p-6 text-center text-slate-200">
+        You have no decks yet. Name one above to start building.
+      </Window>
+    );
   }
 
+  const items = decks.map((deck): DeckListItem => {
+    const stats = deckStats(
+      deck.entries.map(({ card, quantity }) => ({
+        stars: card.stars,
+        score: card.score,
+        element: card.element,
+        quantity,
+      })),
+    );
+    return {
+      id: deck.id,
+      name: deck.name,
+      isActive: deck.isActive,
+      isReady: deck.violations.length === 0,
+      updatedAt: deck.updatedAt.getTime(),
+      totalScore: stats.totalScore,
+      stats,
+      problems: deck.violations.map(describeViolation),
+    };
+  });
+
   return (
-    <div className="mt-6 grid gap-6 lg:grid-cols-2">
-      {decks.map((deck) => (
-        <Window key={deck.id} className="p-5" aria-label={deck.name}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="font-display text-lg font-bold tracking-wider text-cream">
-                {deck.name}
-              </h2>
-              <p className="text-xs text-slate-300/70">{deck.size} cards</p>
-            </div>
-            <div className="flex items-center gap-2">
-              {deck.isActive ? (
-                <span className="rounded-sm bg-action px-3 py-1 text-sm font-semibold ring-1 ring-white/60">
-                  Active
-                </span>
-              ) : (
-                <form action={makeDeckActive}>
-                  <input type="hidden" name="deckId" value={deck.id} />
-                  <Button type="submit" variant="secondary" className="!py-1 text-sm">
-                    Make active
-                  </Button>
-                </form>
-              )}
-              <Link
-                href={`/decks/${deck.id}`}
-                className={buttonClasses('secondary', '!py-1 text-sm')}
-              >
-                Edit
-              </Link>
-              <form action={deleteDeckAction}>
-                <input type="hidden" name="deckId" value={deck.id} />
-                <ConfirmButton variant="quiet" confirmation={`Delete the deck "${deck.name}"?`}>
-                  Delete
-                </ConfirmButton>
-              </form>
-            </div>
-          </div>
-
-          {deck.violations.length > 0 && (
-            <ul className="mt-3 space-y-1 rounded-md bg-status-live/30 px-3 py-2 text-sm">
-              {deck.violations.map((violation) => (
-                <li key={violationKey(violation)}>{describeViolation(violation)}</li>
-              ))}
-            </ul>
-          )}
-
-          <ul className="mt-4 space-y-1.5">
-            {deck.entries.map(({ card, quantity }) => (
-              <li key={card.id}>
-                <CardLine
-                  name={card.name}
-                  stats={card.stats}
-                  element={card.element}
-                  stars={card.stars}
-                  count={`×${String(quantity)}`}
-                />
-              </li>
-            ))}
-          </ul>
-        </Window>
-      ))}
-    </div>
+    <Window className="mt-6 p-5">
+      <DeckList decks={items} deckSize={getGameSettings(db).deckRules.size} />
+    </Window>
   );
 }

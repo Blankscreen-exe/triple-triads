@@ -79,7 +79,8 @@ test('a player builds a new deck with live rule feedback', async ({ page }) => {
   await expect(page.getByText('Deck saved.')).toBeVisible();
 
   await page.goto('/decks');
-  const deck = page.getByRole('region', { name: 'Lizard swarm' });
-  await expect(deck.getByText('3 cards')).toBeVisible();
+  const deck = page.getByRole('listitem', { name: 'Lizard swarm' });
+  await expect(deck).toContainText('Cards3 / 20');
+  await expect(deck.getByText('Needs fixing')).toBeVisible();
   await expect(deck.getByText('A deck needs exactly 20 cards (this one has 3).')).toBeVisible();
 });

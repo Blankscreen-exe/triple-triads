@@ -26,6 +26,8 @@ export interface DeckSummary {
   readonly id: string;
   readonly name: string;
   readonly isActive: boolean;
+  /** When the deck's name or cards last changed. */
+  readonly updatedAt: Date;
   readonly entries: readonly DeckEntry[];
   readonly size: number;
   /** Deck-building rules the deck breaks; empty when it can be used in a game. */
@@ -117,6 +119,7 @@ export function listDecks(db: DbExecutor, userId: string): DeckSummary[] {
       id: deck.id,
       name: deck.name,
       isActive: deck.id === user?.activeDeckId,
+      updatedAt: deck.updatedAt,
       entries,
       size: entries.reduce((total, entry) => total + entry.quantity, 0),
       violations: validateDeck(expandEntries(entries), deckRules),

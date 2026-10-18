@@ -19,9 +19,7 @@ test('a player switches their active deck', async ({ page }) => {
   await signUp(page, uniqueUsername());
   await page.goto('/decks');
 
-  const vanguard = page.locator('section', {
-    has: page.getByRole('heading', { name: 'Vanguard' }),
-  });
+  const vanguard = page.getByRole('listitem', { name: 'Vanguard' });
   await vanguard.getByRole('button', { name: 'Make active' }).click();
 
   await expect(vanguard.getByText('Active', { exact: true })).toBeVisible();
