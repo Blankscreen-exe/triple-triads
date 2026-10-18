@@ -8,13 +8,17 @@
  */
 import { createHash, randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
 import {
+  PLAYER_COLORS,
   POSITIONS,
   applyMove,
+  canPlayRound,
   computeScore,
   createGame,
   opponentOf,
   playRandomMove,
+  remainingAfterRound,
   type Board,
+  type CardDefinition,
   type CaptureEvent,
   type GameResult,
   type GameState,
@@ -25,6 +29,7 @@ import { DEFAULT_ASSET_PACK, type AssetPack } from '@/lib/asset-packs';
 import {
   RECONNECT_GRACE_MS,
   REMATCH_VOTE_MS,
+  ROUND_BREAK_MS,
   type Ack,
   type CardInfo,
   type CreateRoomInput,
@@ -39,7 +44,7 @@ import {
 } from '@/lib/realtime/protocol';
 import { DEFAULT_ROOM_POLICY, applyRoomPolicy, type RoomPolicy } from '@/lib/validation/settings';
 import type { DeckProvider } from './game-decks';
-import type { ActiveGame, FinishedGame, Room, RoomUser, Seat } from './model';
+import type { ActiveGame, FinishedGame, Match, Room, RoomUser, Seat } from './model';
 import { colorOf, snapshotFor, summarizeRoom } from './snapshot';
 
 export interface RoomEvents {
@@ -71,6 +76,8 @@ export interface RoomManagerDeps {
   readonly reconnectGraceMs?: number;
   /** How long the rematch vote stays open (spec: 30 seconds). */
   readonly rematchVoteMs?: number;
+  /** The pause between a drawn round and the next one (spec: 5 seconds). */
+  readonly roundBreakMs?: number;
 }
 
 type Result<T = null> = Ack<T>;
@@ -95,6 +102,7 @@ export class RoomManager {
       roomPolicy: () => DEFAULT_ROOM_POLICY,
       reconnectGraceMs: RECONNECT_GRACE_MS,
       rematchVoteMs: REMATCH_VOTE_MS,
+      roundBreakMs: ROUND_BREAK_MS,
       ...deps,
     };
   }
@@ -140,8 +148,9 @@ export class RoomManager {
       spectators: new Map(),
       status: 'waiting',
       game: null,
+      match: null,
       rematch: null,
-      timers: { turn: null, rematch: null, reconnect: new Map() },
+      timers: { turn: null, rematch: null, round: null, reconnect: new Map() },
     };
     this.#rooms.set(room.id, room);
     this.#playerRoom.set(user.id, room.id);
@@ -183,7 +192,7 @@ export class RoomManager {
     const [first, second] = room.seats;
     if (first && second) {
       // A new pairing: the coin flip decides who goes first (design/SPEC.md, 9.1).
-      this.#startGame(room, this.#deps.coinFlip() ? first.user.id : second.user.id, 'coin-flip');
+      this.#startMatch(room, this.#deps.coinFlip() ? first.user.id : second.user.id, 'coin-flip');
     }
     this.#changed(room, { lobby: true });
     return ok(null);
@@ -227,7 +236,7 @@ export class RoomManager {
     );
 
     const game = room.game;
-    if (room.status === 'playing' && game && !game.paused) {
+    if (room.status === 'playing' && game?.result === null && !game.paused) {
       game.pausedTurnRemaining = game.turnDeadline === null ? null : game.turnDeadline - now;
       game.turnDeadline = null;
       game.paused = { userId, forfeitAt };
@@ -240,7 +249,9 @@ export class RoomManager {
     const room = this.#rooms.get(input.roomId);
     if (!room) return fail('ROOM_NOT_FOUND');
     const game = room.game;
-    if (room.status !== 'playing' || !game || game.paused) return fail('NOT_PLAYING');
+    if (room.status !== 'playing' || !game || game.paused || game.result) {
+      return fail('NOT_PLAYING');
+    }
 
     const color = colorOf(game, userId);
     if (!color) return fail('NOT_A_PLAYER');
@@ -277,7 +288,7 @@ export class RoomManager {
     rematch.votes.set(userId, 'continue');
     if ([...rematch.votes.values()].every((vote) => vote === 'continue')) {
       this.#clearTimer(room, 'rematch');
-      this.#startGame(room, rematch.nextFirstPlayerId, rematch.nextFirstPlayerReason);
+      this.#startMatch(room, rematch.nextFirstPlayerId, rematch.nextFirstPlayerReason);
       this.#changed(room, { lobby: true });
     } else {
       this.#changed(room);
@@ -304,7 +315,22 @@ export class RoomManager {
     });
   }
 
-  #startGame(room: Room, firstPlayerId: string, reason: FirstPlayerReason): void {
+  /** Starts a match with both players' full decks. */
+  #startMatch(room: Room, firstPlayerId: string, reason: FirstPlayerReason): void {
+    room.match = {
+      round: 0,
+      firstPlayerId,
+      decks: new Map(room.seats.map((seat) => [seat.user.id, seat.deck.cards])),
+      drawnRounds: [],
+      nextRoundAt: null,
+    };
+    this.#startRound(room, firstPlayerId, reason);
+  }
+
+  /** Starts the next round of the current match, with what is left of each deck. */
+  #startRound(room: Room, firstPlayerId: string, reason: FirstPlayerReason): void {
+    const match = room.match;
+    if (!match) throw new Error('A round needs a match');
     // Colours are fixed by the host's choice; turn order is decided separately.
     const host = room.seats.find((seat) => seat.user.id === room.hostId);
     const guest = room.seats.find((seat) => seat.user.id !== room.hostId);
@@ -312,11 +338,13 @@ export class RoomManager {
     const [red, blue] = room.hostColor === 'red' ? [host, guest] : [guest, host];
     const firstPlayer: PlayerColor = red.user.id === firstPlayerId ? 'red' : 'blue';
 
+    match.round += 1;
+    match.nextRoundAt = null;
     const faces = new Map<string, CardInfo>([...red.deck.faces, ...blue.deck.faces]);
     room.game = {
       state: createGame({
         rules: room.options.rules,
-        decks: { red: red.deck.cards, blue: blue.deck.cards },
+        decks: { red: deckOf(match, red.user.id), blue: deckOf(match, blue.user.id) },
         seed: this.#deps.newSeed(),
         firstPlayer,
       }),
@@ -337,7 +365,14 @@ export class RoomManager {
     };
     room.status = 'playing';
     room.rematch = null;
-    this.#startTurnTimer(room);
+
+    // A player still away from an earlier round: the new round waits for them.
+    const away = room.seats.find((seat) => seat.awayUntil !== null);
+    if (away?.awayUntil) {
+      room.game.paused = { userId: away.user.id, forfeitAt: away.awayUntil };
+    } else {
+      this.#startTurnTimer(room);
+    }
   }
 
   #afterMove(
@@ -359,7 +394,7 @@ export class RoomManager {
       timedOut,
     };
     if (move.state.result) {
-      this.#finishGame(room, move.state.result, false);
+      this.#endRound(room, game, move.state.result);
     } else {
       this.#startTurnTimer(room);
     }
@@ -386,10 +421,47 @@ export class RoomManager {
     );
   }
 
-  #finishGame(room: Room, result: GameResult, forfeit: boolean): void {
-    const game = room.game;
-    if (!game) return;
+  /**
+   * A round is over. Its placed cards are used up; a drawn round leads to another after a short
+   * break if the match format allows and both decks can still play one. Otherwise the match ends.
+   */
+  #endRound(room: Room, game: ActiveGame, result: GameResult): void {
+    const match = room.match;
+    if (!match) throw new Error('A round needs a match');
     this.#clearTurnTimer(room);
+    game.result = result;
+    game.turnDeadline = null;
+
+    const decks = {
+      red: remainingAfterRound(deckOf(match, game.players.red.user.id), game.state, 'red'),
+      blue: remainingAfterRound(deckOf(match, game.players.blue.user.id), game.state, 'blue'),
+    };
+    for (const color of PLAYER_COLORS) match.decks.set(game.players[color].user.id, decks[color]);
+
+    if (result.winner !== null || room.options.format === 'single' || !canPlayRound(decks)) {
+      this.#finishMatch(room, result, false);
+      return;
+    }
+
+    match.drawnRounds.push(result.score);
+    match.nextRoundAt = this.#deps.now() + this.#deps.roundBreakMs;
+    // After a drawn round, the other player starts the next one.
+    const nextFirstPlayerId = game.players[opponentOf(game.firstPlayer)].user.id;
+    room.timers.round = setTimeout(() => {
+      room.timers.round = null;
+      this.#startRound(room, nextFirstPlayerId, 'round-drawn');
+      this.#changed(room);
+    }, this.#deps.roundBreakMs);
+  }
+
+  /** The match is decided (or forfeited): record it and open the rematch vote. */
+  #finishMatch(room: Room, result: GameResult, forfeit: boolean): void {
+    const game = room.game;
+    const match = room.match;
+    if (!game || !match) return;
+    this.#clearTurnTimer(room);
+    this.#clearTimer(room, 'round');
+    match.nextRoundAt = null;
     game.result = result;
     game.forfeit = forfeit;
     game.turnDeadline = null;
@@ -403,15 +475,17 @@ export class RoomManager {
         players: { red: game.players.red.user, blue: game.players.blue.user },
         result,
         forfeit,
+        rounds: match.round,
       }) ?? null;
 
     if (!forfeit && room.seats.length === 2) {
-      // Loser goes first next time; after a draw the order stays the same (spec 9.7).
-      const nextFirst = result.winner ? opponentOf(result.winner) : game.firstPlayer;
+      // The loser starts the next match; after a drawn match, whoever started it starts again.
       room.rematch = {
         deadline: this.#deps.now() + this.#deps.rematchVoteMs,
         votes: new Map(room.seats.map((seat) => [seat.user.id, null])),
-        nextFirstPlayerId: game.players[nextFirst].user.id,
+        nextFirstPlayerId: result.winner
+          ? game.players[opponentOf(result.winner)].user.id
+          : match.firstPlayerId,
         nextFirstPlayerReason: result.winner ? 'lost-last-game' : 'last-game-drawn',
       };
       room.timers.rematch = setTimeout(() => {
@@ -439,7 +513,7 @@ export class RoomManager {
     if (room.status === 'playing' && game) {
       const color = colorOf(game, userId);
       if (color) {
-        this.#finishGame(
+        this.#finishMatch(
           room,
           { winner: opponentOf(color), score: computeScore(game.state) },
           true,
@@ -509,7 +583,7 @@ export class RoomManager {
     this.#clearTimer(room, 'turn');
   }
 
-  #clearTimer(room: Room, which: 'turn' | 'rematch'): void {
+  #clearTimer(room: Room, which: 'turn' | 'rematch' | 'round'): void {
     const timer = room.timers[which];
     if (timer) clearTimeout(timer);
     room.timers[which] = null;
@@ -518,6 +592,7 @@ export class RoomManager {
   #clearAllTimers(room: Room): void {
     this.#clearTimer(room, 'turn');
     this.#clearTimer(room, 'rematch');
+    this.#clearTimer(room, 'round');
     for (const timer of room.timers.reconnect.values()) clearTimeout(timer);
     room.timers.reconnect.clear();
   }
@@ -534,6 +609,12 @@ export class RoomManager {
     this.#deps.events.roomChanged(room.id);
     if (lobby) this.#deps.events.lobbyChanged();
   }
+}
+
+function deckOf(match: Match, userId: string): readonly CardDefinition[] {
+  const deck = match.decks.get(userId);
+  if (!deck) throw new Error(`No deck for player ${userId} in this match`);
+  return deck;
 }
 
 /** The position where a card was just placed. */

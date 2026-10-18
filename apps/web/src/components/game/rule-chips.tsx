@@ -13,6 +13,7 @@ export function ruleLabels(options: RoomOptions): string[] {
     rules.combo && (rules.same || rules.plus) && 'Combo',
     ELEMENTAL_LABELS[rules.elemental],
     options.turnSeconds === null ? 'No timer' : `${String(options.turnSeconds)}s turns`,
+    options.format === 'until-winner' ? 'Until a winner' : 'Single game',
   ].filter((label): label is string => typeof label === 'string');
 }
 

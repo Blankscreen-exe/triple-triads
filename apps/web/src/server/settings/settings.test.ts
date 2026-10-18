@@ -47,6 +47,23 @@ describe('game settings', () => {
     });
   });
 
+  it('load a room policy saved before the match format existed, keeping its locks', () => {
+    const db = createTestDatabase();
+    const { rules, allowSpectators } = DEFAULT_ROOM_POLICY.defaults;
+    db.insert(settings)
+      .values({
+        key: 'roomPolicy',
+        // As stored by earlier versions: no `format`.
+        value: { defaults: { rules, turnSeconds: 60, allowSpectators }, locked: ['turnSeconds'] },
+      })
+      .run();
+
+    expect(getGameSettings(db).roomPolicy).toEqual({
+      defaults: { ...DEFAULT_ROOM_POLICY.defaults, turnSeconds: 60, format: 'until-winner' },
+      locked: ['turnSeconds'],
+    });
+  });
+
   it('ignore a corrupted stored value instead of breaking the app', () => {
     const db = createTestDatabase();
     db.insert(settings)
@@ -79,7 +96,7 @@ describe('game settings', () => {
 
 describe('applyRoomPolicy', () => {
   it('forces locked options to their default and leaves the rest alone', () => {
-    const policy = { ...DEFAULT_ROOM_POLICY, locked: ['same', 'turnSeconds'] as const };
+    const policy = { ...DEFAULT_ROOM_POLICY, locked: ['same', 'turnSeconds', 'format'] as const };
     const requested = {
       rules: {
         open: true,
@@ -91,12 +108,14 @@ describe('applyRoomPolicy', () => {
       },
       turnSeconds: null,
       allowSpectators: false,
+      format: 'single' as const,
     };
 
     expect(applyRoomPolicy(requested, { ...policy, locked: [...policy.locked] })).toEqual({
       rules: { ...requested.rules, same: true },
       turnSeconds: 30,
       allowSpectators: false,
+      format: 'until-winner',
     });
   });
 });

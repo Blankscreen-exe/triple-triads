@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   RECONNECT_GRACE_MS,
   REMATCH_VOTE_MS,
+  ROUND_BREAK_MS,
   type CardInfo,
   type CreateRoomInput,
   type RoomOptions,
@@ -15,6 +16,7 @@ const alice: RoomUser = { id: 'alice', username: 'Alice' };
 const bob: RoomUser = { id: 'bob', username: 'Bob' };
 const carol: RoomUser = { id: 'carol', username: 'Carol' };
 const dave: RoomUser = { id: 'dave', username: 'Dave' };
+const erin: RoomUser = { id: 'erin', username: 'Erin' };
 
 /** A 20-card deck where every card has the same stats. */
 function uniformDeck(cardId: string, value: StatValue): GameDeck {
@@ -33,12 +35,29 @@ function uniformDeck(cardId: string, value: StatValue): GameDeck {
   return { cards: Array.from({ length: 20 }, () => definition), faces: new Map([[cardId, face]]) };
 }
 
+/** A 20-card deck from [card id, stat value for every side, copies]. */
+function mixedDeck(parts: readonly (readonly [string, StatValue, number])[]): GameDeck {
+  const pieces = parts.map(([cardId, value, copies]) => {
+    const deck = uniformDeck(cardId, value);
+    return { cards: deck.cards.slice(0, copies), faces: [...deck.faces] };
+  });
+  return {
+    cards: pieces.flatMap((piece) => piece.cards),
+    faces: new Map(pieces.flatMap((piece) => piece.faces)),
+  };
+}
+
 const decks: Record<string, GameDeck> = {
   alice: uniformDeck('alice-card', 9),
   bob: uniformDeck('bob-card', 1),
   carol: uniformDeck('carol-card', 5),
   // Same strength as Carol: their games never capture anything and end 5–5.
   dave: uniformDeck('dave-card', 5),
+  // Twelve 5s (no captures against Dave) and eight 9s (beat Dave's 5s): see playPreferring.
+  erin: mixedDeck([
+    ['erin-five', 5, 12],
+    ['erin-nine', 9, 8],
+  ]),
 };
 
 const deckProvider: DeckProvider = {
@@ -52,6 +71,7 @@ const options = (overrides: Partial<RoomOptions> = {}): RoomOptions => ({
   rules: BASIC_RULES,
   turnSeconds: 30,
   allowSpectators: true,
+  format: 'single',
   ...overrides,
 });
 
@@ -492,5 +512,157 @@ describe('leaving and disconnecting', () => {
     expect(manager.listRooms()).toEqual([]);
     expect(events.roomClosed).toHaveBeenCalledWith('room-1');
     expect(manager.roomOfPlayer(alice.id)).toBeNull();
+  });
+});
+
+/** Plays the active player's card with this id if they hold one (else their first card). */
+function playPreferring(manager: RoomManager, roomId: string, cardId: string) {
+  const anyView = manager.snapshot(roomId, alice.id)?.game;
+  if (!anyView) throw new Error('No game');
+  const active = anyView.view.activePlayer;
+  const user = anyView.players[active].userId;
+  const view = manager.snapshot(roomId, user)?.game?.view;
+  if (!view) throw new Error('No game view');
+  const hand = view.players[active].hand.cards ?? [];
+  const card = hand.find((candidate) => candidate.card.id === cardId) ?? hand[0];
+  const position = POSITIONS.find((p) => view.board[p]?.placed === null);
+  if (!card || position === undefined) throw new Error('No move available');
+  const result = manager.playMove(user, { roomId, instanceId: card.instanceId, position });
+  if (!result.ok) throw new Error(result.error);
+}
+
+describe('matches of several rounds', () => {
+  const untilWinner = () => roomInput({ options: options({ format: 'until-winner' }) });
+
+  it('follows a drawn round with another, after a break, with the other player starting', () => {
+    const manager = createManager();
+    // Carol and Dave both have only 5s: nothing is ever captured, so every round is drawn.
+    const roomId = startedGame(manager, untilWinner(), true, carol, dave);
+
+    playToEnd(manager, roomId);
+    const between = manager.snapshot(roomId, carol.id);
+
+    expect(between?.status).toBe('playing');
+    expect(between?.game?.view.result).toEqual({ winner: null, score: { red: 5, blue: 5 } });
+    expect(between?.game?.match).toEqual({
+      format: 'until-winner',
+      round: 1,
+      drawnRounds: [{ red: 5, blue: 5 }],
+      nextRoundAt: Date.now() + ROUND_BREAK_MS,
+      // Carol (red) went first and placed 5 cards; Dave placed 4.
+      cardsLeft: { red: 15, blue: 16 },
+    });
+    expect(between?.rematch).toBeNull();
+    expect(finished).toEqual([]);
+    expect(manager.playMove(carol.id, { roomId, instanceId: 'x', position: 0 })).toEqual({
+      ok: false,
+      error: 'NOT_PLAYING',
+    });
+
+    vi.advanceTimersByTime(ROUND_BREAK_MS);
+    const game = manager.snapshot(roomId, carol.id)?.game;
+
+    expect(game?.match).toMatchObject({
+      round: 2,
+      nextRoundAt: null,
+      cardsLeft: { red: 15, blue: 16 },
+    });
+    expect(game?.firstPlayer).toEqual({ color: 'blue', reason: 'round-drawn' });
+    expect(game?.view.activePlayer).toBe('blue');
+    expect(game?.view.result).toBeNull();
+    // Dave draws for his first turn from what is left: 16 − 3 in hand − 1 drawn.
+    expect(game?.view.players.blue.drawPileSize).toBe(12);
+  });
+
+  it('is a draw, recorded once, when every round the decks allow is drawn', () => {
+    const manager = createManager();
+    const roomId = startedGame(manager, untilWinner(), true, carol, dave);
+
+    for (let round = 1; round <= 3; round++) {
+      playToEnd(manager, roomId);
+      if (round < 3) vi.advanceTimersByTime(ROUND_BREAK_MS);
+    }
+    const snapshot = manager.snapshot(roomId, carol.id);
+
+    expect(snapshot?.status).toBe('finished');
+    expect(snapshot?.game?.match).toMatchObject({ round: 3, nextRoundAt: null });
+    expect(finished).toHaveLength(1);
+    expect(finished[0]).toMatchObject({ rounds: 3, forfeit: false, result: { winner: null } });
+
+    // The next match starts with full decks, and the player who started this one starts again.
+    manager.vote(carol.id, roomId, 'continue');
+    manager.vote(dave.id, roomId, 'continue');
+    const next = manager.snapshot(roomId, carol.id)?.game;
+    expect(next?.match).toMatchObject({
+      round: 1,
+      drawnRounds: [],
+      cardsLeft: { red: 20, blue: 20 },
+    });
+    expect(next?.firstPlayer).toEqual({ color: 'red', reason: 'last-game-drawn' });
+  });
+
+  it('ends as soon as a round has a winner', () => {
+    const manager = createManager();
+    const roomId = startedGame(manager, untilWinner(), true, erin, dave);
+
+    // Round 1: Erin only plays 5s, so nothing is captured.
+    for (let turn = 0; turn < 9; turn++) playPreferring(manager, roomId, 'erin-five');
+    expect(manager.snapshot(roomId, erin.id)?.game?.view.result?.winner).toBeNull();
+    vi.advanceTimersByTime(ROUND_BREAK_MS);
+
+    // Round 2: her 9s beat Dave's 5s.
+    for (let turn = 0; turn < 9; turn++) playPreferring(manager, roomId, 'erin-nine');
+
+    expect(manager.snapshot(roomId, erin.id)?.status).toBe('finished');
+    expect(finished).toHaveLength(1);
+    expect(finished[0]).toMatchObject({ rounds: 2, result: { winner: 'red' } });
+    // The loser starts the next match.
+    expect(manager.snapshot(roomId, erin.id)?.rematch).not.toBeNull();
+  });
+
+  it('is lost by a player who leaves between rounds', () => {
+    const manager = createManager();
+    const roomId = startedGame(manager, untilWinner(), true, carol, dave);
+    playToEnd(manager, roomId);
+
+    manager.leaveRoom(carol.id, roomId);
+    vi.advanceTimersByTime(ROUND_BREAK_MS);
+
+    expect(finished).toHaveLength(1);
+    expect(finished[0]).toMatchObject({ forfeit: true, rounds: 1, result: { winner: 'blue' } });
+    expect(manager.snapshot(roomId, dave.id)?.status).toBe('waiting');
+  });
+
+  it('starts the next round paused while a player is away, and resumes when they return', () => {
+    const manager = createManager();
+    const roomId = startedGame(manager, untilWinner(), true, carol, dave);
+    playToEnd(manager, roomId);
+
+    manager.disconnected(dave.id, roomId);
+    expect(manager.snapshot(roomId, carol.id)?.game?.paused).toBeNull();
+    vi.advanceTimersByTime(ROUND_BREAK_MS);
+
+    const paused = manager.snapshot(roomId, carol.id)?.game;
+    expect(paused?.match.round).toBe(2);
+    expect(paused?.paused).toEqual({
+      username: 'Dave',
+      forfeitAt: Date.now() - ROUND_BREAK_MS + RECONNECT_GRACE_MS,
+    });
+    expect(paused?.turnDeadline).toBeNull();
+
+    manager.joinRoom(dave, { roomId, password: '', as: 'player' });
+    const resumed = manager.snapshot(roomId, carol.id)?.game;
+    expect(resumed?.paused).toBeNull();
+    expect(resumed?.turnDeadline).toBe(Date.now() + 30_000);
+  });
+
+  it('ends after one round in single-game rooms', () => {
+    const manager = createManager();
+    const roomId = startedGame(manager, roomInput(), true, carol, dave);
+
+    playToEnd(manager, roomId);
+
+    expect(manager.snapshot(roomId, carol.id)?.status).toBe('finished');
+    expect(finished[0]).toMatchObject({ rounds: 1, result: { winner: null } });
   });
 });

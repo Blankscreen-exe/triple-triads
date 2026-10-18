@@ -41,6 +41,13 @@ export function ResultPanel({ room, clockOffset, onVote }: ResultPanelProps) {
       <p className="mt-1 text-sm text-slate-300/80">
         Red {score} Blue{game.forfeit && ' · by forfeit'}
       </p>
+      {game.match.round > 1 && (
+        <p className="text-xs text-slate-300/80">
+          {result.winner === null
+            ? `All ${String(game.match.round)} rounds drawn`
+            : `Won in round ${String(game.match.round)}`}
+        </p>
+      )}
       {you && game.outcome && <RatingChange outcome={game.outcome[you]} />}
 
       {room.rematch && room.you.role === 'player' && (

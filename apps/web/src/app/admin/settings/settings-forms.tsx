@@ -7,7 +7,12 @@ import { SelectField } from '@/components/ui/select-field';
 import { Toggle } from '@/components/ui/toggle';
 import { Window } from '@/components/ui/window';
 import { formatStat } from '@/lib/elements';
-import { TURN_TIMER_OPTIONS, type RoomOptions } from '@/lib/realtime/protocol';
+import {
+  MATCH_FORMAT_LABELS,
+  MATCH_FORMATS,
+  TURN_TIMER_OPTIONS,
+  type RoomOptions,
+} from '@/lib/realtime/protocol';
 import {
   LOCKABLE_OPTIONS,
   toScoringConfig,
@@ -328,6 +333,27 @@ export function RoomPolicyForm({ initial }: { readonly initial: RoomPolicy }) {
             </SelectField>
           </div>
           {lockBox('turnSeconds', 'Turn timer')}
+        </div>
+        <div className="flex items-end justify-between gap-3">
+          <div className="flex-1">
+            <SelectField
+              label="Match"
+              value={policy.defaults.format}
+              onChange={(value) => {
+                setDefaults((d) => ({
+                  ...d,
+                  format: MATCH_FORMATS.find((format) => format === value) ?? d.format,
+                }));
+              }}
+            >
+              {MATCH_FORMATS.map((format) => (
+                <option key={format} value={format}>
+                  {MATCH_FORMAT_LABELS[format]}
+                </option>
+              ))}
+            </SelectField>
+          </div>
+          {lockBox('format', 'Match')}
         </div>
       </div>
       {footer(() => {

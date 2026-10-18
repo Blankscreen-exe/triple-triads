@@ -53,6 +53,9 @@ export function PlayerRecord({
                 <td className="py-1.5">
                   {match.opponent ?? 'Deleted player'}
                   {match.forfeit && <span className="text-xs text-slate-300/70"> · forfeit</span>}
+                  {match.rounds > 1 && (
+                    <span className="text-xs text-slate-300/70"> · {match.rounds} rounds</span>
+                  )}
                 </td>
                 <td className="py-1.5 tabular-nums">{match.score}</td>
                 <td className="py-1.5 text-right tabular-nums">

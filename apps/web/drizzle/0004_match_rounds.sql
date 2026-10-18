@@ -1,0 +1,1 @@
+ALTER TABLE `matches` ADD `rounds` integer DEFAULT 1 NOT NULL;

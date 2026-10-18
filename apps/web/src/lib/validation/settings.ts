@@ -56,6 +56,7 @@ export const LOCKABLE_OPTIONS = [
   'elemental',
   'turnSeconds',
   'allowSpectators',
+  'format',
 ] as const;
 export type LockableOption = (typeof LOCKABLE_OPTIONS)[number];
 
@@ -76,6 +77,7 @@ export const DEFAULT_ROOM_POLICY: RoomPolicy = {
     rules: { open: false, same: true, plus: true, combo: true, sameWall: false, elemental: 'off' },
     turnSeconds: 30,
     allowSpectators: true,
+    format: 'until-winner',
   },
   locked: [],
 };
@@ -130,5 +132,6 @@ export function applyRoomPolicy(requested: RoomOptions, policy: RoomPolicy): Roo
     },
     turnSeconds: pick('turnSeconds', requested.turnSeconds, defaults.turnSeconds),
     allowSpectators: pick('allowSpectators', requested.allowSpectators, defaults.allowSpectators),
+    format: pick('format', requested.format, defaults.format),
   };
 }

@@ -26,7 +26,12 @@ const room = (
     host: 'Squall',
     hostColor: 'red',
     hasPassword: false,
-    options: { rules: { ...BASIC_RULES, ...rules }, turnSeconds, allowSpectators: true },
+    options: {
+      rules: { ...BASIC_RULES, ...rules },
+      turnSeconds,
+      allowSpectators: true,
+      format: 'until-winner',
+    },
     status: 'waiting',
     players: ['Squall'],
     spectators: 0,

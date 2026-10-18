@@ -81,6 +81,8 @@ export const matches = sqliteTable(
     redScore: integer('red_score').notNull(),
     blueScore: integer('blue_score').notNull(),
     forfeit: integer('forfeit', { mode: 'boolean' }).notNull(),
+    /** Rounds played: more than 1 when drawn rounds were replayed (design/SPEC.md, 9.7). */
+    rounds: integer('rounds').notNull().default(1),
     redRatingBefore: integer('red_rating_before').notNull(),
     redRatingAfter: integer('red_rating_after').notNull(),
     blueRatingBefore: integer('blue_rating_before').notNull(),

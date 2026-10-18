@@ -63,6 +63,7 @@ export function recordMatch(db: AppDatabase, game: FinishedGame): MatchOutcome {
         redScore: game.result.score.red,
         blueScore: game.result.score.blue,
         forfeit: game.forfeit,
+        rounds: game.rounds,
         redRatingBefore: outcome.red.ratingBefore,
         redRatingAfter: outcome.red.ratingAfter,
         blueRatingBefore: outcome.blue.ratingBefore,
@@ -107,6 +108,8 @@ export interface MatchSummary {
   readonly score: string;
   readonly ratingChange: number;
   readonly forfeit: boolean;
+  /** Rounds played; more than 1 when drawn rounds were replayed. */
+  readonly rounds: number;
 }
 
 /** The player's most recent games, newest first, from their point of view. */
@@ -149,6 +152,7 @@ export function listRecentMatches(db: DbExecutor, userId: string, limit = 10): M
       score: `${String(row.redScore)}–${String(row.blueScore)}`,
       ratingChange: after - before,
       forfeit: row.forfeit,
+      rounds: row.rounds,
     };
   });
 }

@@ -6,6 +6,7 @@ import { PLAYER_COLORS, viewFor, type GameView, type PlayerColor } from '@triple
 import type {
   CardInfo,
   GameSnapshot,
+  MatchSnapshot,
   RoomSnapshot,
   RoomSummary,
   SeatInfo,
@@ -77,6 +78,7 @@ function gameSnapshot(room: Room, game: ActiveGame, viewerColor: PlayerColor | n
     players,
     cards: visibleCards(view, game.faces),
     firstPlayer: { color: game.firstPlayer, reason: game.firstPlayerReason },
+    match: matchSnapshot(room, game),
     lastMove: game.lastMove,
     turnDeadline: game.turnDeadline,
     paused: game.paused
@@ -116,4 +118,23 @@ export function colorOf(game: ActiveGame, userId: string): PlayerColor | null {
 function usernameOf(game: ActiveGame, userId: string): string {
   const color = colorOf(game, userId);
   return color ? game.players[color].user.username : '';
+}
+
+function matchSnapshot(room: Room, game: ActiveGame): MatchSnapshot {
+  const match = room.match;
+  const cardsLeft = Object.fromEntries(
+    PLAYER_COLORS.map((color) => {
+      const deck = match?.decks.get(game.players[color].user.id) ?? [];
+      // During a round the decks still include this round's cards; they are used up at its end.
+      const placedThisRound = game.result === null ? game.state.players[color].placedCount : 0;
+      return [color, deck.length - placedThisRound];
+    }),
+  ) as MatchSnapshot['cardsLeft'];
+  return {
+    format: room.options.format,
+    round: match?.round ?? 1,
+    drawnRounds: match?.drawnRounds ?? [],
+    nextRoundAt: match?.nextRoundAt ?? null,
+    cardsLeft,
+  };
 }

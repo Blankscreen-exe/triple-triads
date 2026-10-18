@@ -18,6 +18,8 @@ async function createRoom(page: Page, roomName: string, color: 'Red' | 'Blue' = 
   await colours.getByText(color, { exact: true }).click();
   await expect(colours.getByRole('radio', { name: color })).toBeChecked();
   await page.getByLabel('Turn timer').selectOption('null');
+  // One round, so a full game always ends in a result (rounds are tested in rounds.spec.ts).
+  await page.getByLabel('Match').selectOption('single');
   await page.getByRole('button', { name: 'Create room' }).click();
   await expect(page.getByText('Waiting for an opponent…')).toBeVisible();
 }

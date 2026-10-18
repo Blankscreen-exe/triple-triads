@@ -2,7 +2,13 @@
  * In-memory room model. Rooms exist only while someone is in them; finished games are handed to
  * the match recorder (see `RoomManagerDeps.onGameFinished`).
  */
-import type { CardDefinition, GameResult, GameState, PlayerColor } from '@triple-triad/engine';
+import type {
+  CardDefinition,
+  GameResult,
+  GameState,
+  PlayerColor,
+  Score,
+} from '@triple-triad/engine';
 import type { AssetPack } from '@/lib/asset-packs';
 import type {
   CardInfo,
@@ -57,6 +63,20 @@ export interface ActiveGame {
   outcome: MatchOutcome | null;
 }
 
+/** A match: one or more rounds, until someone wins (see RoomOptions.format). */
+export interface Match {
+  /** The round being played, or the one just finished. Starts at 1. */
+  round: number;
+  /** Who started the first round; starts the next match again if this one is drawn. */
+  readonly firstPlayerId: string;
+  /** Each player's deck for the rest of the match, by user id: placed cards are used up. */
+  readonly decks: Map<string, readonly CardDefinition[]>;
+  /** Final scores of the drawn rounds so far. */
+  readonly drawnRounds: Score[];
+  /** Between rounds: when the next round starts. */
+  nextRoundAt: number | null;
+}
+
 export interface RematchVote {
   readonly deadline: number;
   readonly votes: Map<string, VoteChoice | null>;
@@ -78,12 +98,16 @@ export interface Room {
   seats: Seat[];
   readonly spectators: Map<string, RoomUser>;
   status: RoomStatus;
-  /** The current or most recent game. */
+  /** The current or most recent round. */
   game: ActiveGame | null;
+  /** The current or most recent match; `status` stays `playing` between its rounds. */
+  match: Match | null;
   rematch: RematchVote | null;
   readonly timers: {
     turn: NodeJS.Timeout | null;
     rematch: NodeJS.Timeout | null;
+    /** The break before the next round of a match. */
+    round: NodeJS.Timeout | null;
     readonly reconnect: Map<string, NodeJS.Timeout>;
   };
 }
@@ -94,4 +118,6 @@ export interface FinishedGame {
   readonly players: Readonly<Record<PlayerColor, RoomUser>>;
   readonly result: GameResult;
   readonly forfeit: boolean;
+  /** Rounds played in the match (1 unless rounds were drawn). */
+  readonly rounds: number;
 }

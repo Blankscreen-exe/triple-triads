@@ -12,6 +12,7 @@ import {
   type PlayerColor,
   type Position,
   type RuleSet,
+  type Score,
 } from '@triple-triad/engine';
 import { z } from 'zod';
 import type { AssetPack } from '../asset-packs';
@@ -26,6 +27,21 @@ export type TurnSeconds = (typeof TURN_TIMER_OPTIONS)[number];
 export const RECONNECT_GRACE_MS = 2 * 60 * 1000;
 /** How long the continue/leave vote after a game stays open. */
 export const REMATCH_VOTE_MS = 30 * 1000;
+/** The pause between a drawn round and the next round of the same match. */
+export const ROUND_BREAK_MS = 5 * 1000;
+
+/**
+ * `until-winner`: a drawn round is followed by another, played with what is left of each deck,
+ * until someone wins or the decks run out. `single`: one round; a draw ends the match.
+ */
+export const MATCH_FORMATS = ['until-winner', 'single'] as const;
+export type MatchFormat = (typeof MATCH_FORMATS)[number];
+
+/** How the match format is described in forms. */
+export const MATCH_FORMAT_LABELS: Readonly<Record<MatchFormat, string>> = {
+  'until-winner': 'Until there is a winner',
+  single: 'Single game',
+};
 
 export const ROOM_NAME_MAX_LENGTH = 40;
 export const ROOM_PASSWORD_MAX_LENGTH = 64;
@@ -43,6 +59,8 @@ export const roomOptionsSchema = z.object({
   rules: ruleSetSchema,
   turnSeconds: z.union([z.literal(30), z.literal(60), z.null()]),
   allowSpectators: z.boolean(),
+  // Defaulted so room policies saved before this option existed still load.
+  format: z.enum(MATCH_FORMATS).default('until-winner'),
 });
 export type RoomOptions = z.infer<typeof roomOptionsSchema>;
 
@@ -123,14 +141,28 @@ export interface PlayerOutcome {
 export type MatchOutcome = Readonly<Record<PlayerColor, PlayerOutcome>>;
 
 /**
- * Why a player went first: the coin flip (first game of a pairing), losing the previous game, or
- * the previous game being a draw (the same player starts again).
+ * Why a player went first: the coin flip (first match of a pairing), losing the previous match,
+ * the previous match being a draw (the same player starts again), or the previous round of this
+ * match being a draw (the other player starts).
  */
-export type FirstPlayerReason = 'coin-flip' | 'lost-last-game' | 'last-game-drawn';
+export type FirstPlayerReason = 'coin-flip' | 'lost-last-game' | 'last-game-drawn' | 'round-drawn';
+
+export interface MatchSnapshot {
+  readonly format: MatchFormat;
+  /** The round being played, or the one just finished. Starts at 1. */
+  readonly round: number;
+  /** Final scores of the earlier rounds of this match, which were all draws. */
+  readonly drawnRounds: readonly Score[];
+  /** Between rounds: when the next round starts (server clock, ms). */
+  readonly nextRoundAt: number | null;
+  /** Cards each player has not yet placed in this match. */
+  readonly cardsLeft: Readonly<Record<PlayerColor, number>>;
+}
 
 export interface GameSnapshot {
   readonly view: GameView;
   readonly firstPlayer: { readonly color: PlayerColor; readonly reason: FirstPlayerReason };
+  readonly match: MatchSnapshot;
   readonly players: Readonly<Record<PlayerColor, SeatInfo & { readonly pack: AssetPack }>>;
   /** Names, stars and art for every card the viewer can currently see, by card id. */
   readonly cards: Readonly<Record<string, CardInfo>>;

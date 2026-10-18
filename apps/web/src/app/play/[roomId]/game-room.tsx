@@ -209,7 +209,12 @@ function Table({
           <CardView card={draggedFace} side={right} pack={game.players[right].pack} />
         )}
       </DragGhost>
-      {view.result && (
+      {view.result && game.match.nextRoundAt !== null && (
+        <div className="mx-auto max-w-sm">
+          <RoundBreak snapshot={snapshot} clockOffset={room.clockOffset} />
+        </div>
+      )}
+      {view.result && game.match.nextRoundAt === null && (
         <div className="mx-auto max-w-sm">
           <ResultPanel room={snapshot} clockOffset={room.clockOffset} onVote={room.vote} />
         </div>
@@ -230,7 +235,18 @@ function StatusLine({
   readonly hasSelection: boolean;
 }) {
   const game = snapshot.game;
-  if (!game || game.view.result) return null;
+  if (!game) return null;
+  if (game.view.result) {
+    // Between rounds: say so at the top too, as the details below the board may be off-screen.
+    const { nextRoundAt, round } = game.match;
+    if (nextRoundAt === null) return null;
+    return (
+      <p className="text-center text-sm" role="status">
+        Round {round} was a draw · Round {round + 1} in{' '}
+        <Countdown deadline={nextRoundAt} clockOffset={clockOffset} />
+      </p>
+    );
+  }
 
   if (game.paused) {
     return (
@@ -245,11 +261,17 @@ function StatusLine({
   const active = game.players[game.view.activePlayer].username;
   return (
     <div className="space-y-1.5 text-center" role="status">
+      {game.match.format === 'until-winner' && (
+        <p className="font-display text-xs tracking-[0.2em] text-slate-400 uppercase">
+          Round {game.match.round}
+        </p>
+      )}
       {game.view.turn === 1 && (
         <p className="text-sm text-slate-300">
           {firstPlayerMessage(
             game.players[game.firstPlayer.color].username,
             game.firstPlayer.reason,
+            game.match.round,
           )}
         </p>
       )}
@@ -275,7 +297,7 @@ function StatusLine({
   );
 }
 
-function firstPlayerMessage(username: string, reason: FirstPlayerReason): string {
+function firstPlayerMessage(username: string, reason: FirstPlayerReason, round: number): string {
   switch (reason) {
     case 'coin-flip':
       return `Coin flip: ${username} goes first.`;
@@ -283,7 +305,45 @@ function firstPlayerMessage(username: string, reason: FirstPlayerReason): string
       return `${username} lost the last game, so goes first.`;
     case 'last-game-drawn':
       return `The last game was a draw, so ${username} goes first again.`;
+    case 'round-drawn':
+      return `The last round was a draw, so ${username} starts round ${String(round)}.`;
   }
+}
+
+/** Between the rounds of a match: the drawn round's score and when the next round starts. */
+function RoundBreak({
+  snapshot,
+  clockOffset,
+}: {
+  readonly snapshot: RoomSnapshot;
+  readonly clockOffset: number;
+}) {
+  const game = snapshot.game;
+  const result = game?.view.result;
+  const nextRoundAt = game?.match.nextRoundAt ?? null;
+  if (!game || !result || nextRoundAt === null) return null;
+  const { match, players } = game;
+  // The player who did not start this round starts the next one.
+  const nextStarter = players[opponentOf(game.firstPlayer.color)].username;
+
+  return (
+    <Window className="space-y-2 p-5 text-center" aria-live="polite">
+      <h2 className="font-display text-2xl font-black tracking-widest text-cream [text-shadow:0_3px_0_#000]">
+        Round {match.round}: draw
+      </h2>
+      <p className="text-sm text-slate-300/80">
+        Red {result.score.red} – {result.score.blue} Blue
+      </p>
+      <p className="text-sm text-slate-100">
+        Round {match.round + 1} starts in{' '}
+        <Countdown deadline={nextRoundAt} clockOffset={clockOffset} />. {nextStarter} goes first.
+      </p>
+      <p className="text-xs text-slate-300/80">
+        Cards placed are used up. Cards left: {players.red.username} {match.cardsLeft.red} ·{' '}
+        {players.blue.username} {match.cardsLeft.blue}
+      </p>
+    </Window>
+  );
 }
 
 function Notice({ title, children }: { readonly title: string; readonly children?: ReactNode }) {

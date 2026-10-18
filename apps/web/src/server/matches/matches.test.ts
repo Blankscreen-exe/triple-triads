@@ -16,6 +16,7 @@ function finish(
   blue: { id: string; username: string },
   winner: PlayerColor | null,
   forfeit = false,
+  rounds = 1,
 ) {
   const score =
     winner === 'red'
@@ -28,6 +29,7 @@ function finish(
     players: { red, blue },
     result: { winner, score },
     forfeit,
+    rounds,
   });
 }
 
@@ -108,6 +110,14 @@ describe('listRecentMatches', () => {
       ['bob', 'win'],
     ]);
     expect(history[1]).toMatchObject({ score: '7–3', ratingChange: 16 });
+  });
+
+  it('includes how many rounds a match took', async () => {
+    const db = createTestDatabase();
+    const { alice, bob } = await twoPlayers(db);
+    finish(db, alice, bob, 'blue', false, 3);
+
+    expect(listRecentMatches(db, alice.id)[0]).toMatchObject({ result: 'loss', rounds: 3 });
   });
 });
 

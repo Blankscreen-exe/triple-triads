@@ -170,18 +170,19 @@ To change the layout: edit `card-layout.json` and rerun the script.
 
 ### 8.1 Room options (set by the host before creating the room)
 
-| Option                    | Effect                                          |
-| ------------------------- | ----------------------------------------------- |
-| Show cards in hand (Open) | Both players can see each other's hands         |
-| Same                      | See 9.4                                         |
-| Plus                      | See 9.4                                         |
-| Combo                     | See 9.4                                         |
-| Same Wall                 | See 9.4                                         |
-| Your colour               | **Red** or **Blue** for the host; see 9.1       |
-| Elemental                 | **Off** / **Normal** / **All squares**. See 9.5 |
-| Turn timer                | Time limit per turn                             |
-| Password                  | Room requires a password to join                |
-| Spectators allowed        | Others can watch                                |
+| Option                    | Effect                                                 |
+| ------------------------- | ------------------------------------------------------ |
+| Show cards in hand (Open) | Both players can see each other's hands                |
+| Same                      | See 9.4                                                |
+| Plus                      | See 9.4                                                |
+| Combo                     | See 9.4                                                |
+| Same Wall                 | See 9.4                                                |
+| Your colour               | **Red** or **Blue** for the host; see 9.1              |
+| Elemental                 | **Off** / **Normal** / **All squares**. See 9.5        |
+| Turn timer                | Time limit per turn                                    |
+| Match                     | **Until there is a winner** / **Single game**. See 9.7 |
+| Password                  | Room requires a password to join                       |
+| Spectators allowed        | Others can watch                                       |
 
 ## 9. Gameplay rules
 
@@ -227,21 +228,33 @@ Room setting with three modes. At the start of each game, squares are given rand
 
 - The scoreboard starts at **5–5**. Each capture moves one point from one player to the other.
 - When the board is full, the final score is the number of board cards each player controls, with the **second player getting +1** (this stands in for FF8's unplayed 10th card). The total is always 10.
-- Higher score wins. **5–5 is a draw.**
-- There is **no Sudden Death**.
+- Higher score wins the round. **5–5 is a drawn round.**
+- There is **no Sudden Death** (FF8's card-swapping replay); drawn rounds are handled by matches (9.7).
 
-### 9.7 Rematch
+### 9.7 Matches, rounds and rematch
 
-- After a game, both players vote **Continue** or **Leave**.
-- If both vote Continue, a new game starts in the same room with the **same decks and rules**.
+A **match** is one or more **rounds** (a round is one full board, 9.1–9.6). The room option "Match" decides what happens when a round is drawn:
+
+- **Until there is a winner** (default): a drawn round is followed, after a **5-second** break, by another round of the same match.
+  - **Placed cards are used up** for the rest of the match, whether or not they were captured. Cards drawn but not placed go back into the deck, which is reshuffled for the next round.
+  - **The other player starts** the next round.
+  - A round needs 8 cards per player (3 in hand + 5 draws), so 20-card decks allow **up to 3 rounds**. If every round is drawn, the **match is a draw**.
+  - Simulations with the starter decks (cautious play) gave about 37% drawn single rounds but only about 6% drawn matches.
+- **Single game**: the match is one round; a drawn round is a drawn match.
+
+After the match is decided:
+
+- Both players vote **Play again** or **Leave**.
+- If both vote Play again, a new match starts in the same room with **full decks** and the **same rules**.
 - **30-second timeout**: no vote counts as Leave.
-- The **loser of the previous game goes first**. After a draw, the same player goes first again. Colours never change between games.
-- Decks cannot be changed between games; to change, leave the room.
+- The **loser of the previous match starts** the next one. After a drawn match, the player who started it starts again. Colours never change between matches.
+- Decks cannot be changed between matches; to change, leave the room.
 
 ### 9.8 Disconnects
 
 - If a player disconnects, the game pauses (including their turn timer) and waits **2 minutes** for them to reconnect.
-- If they don't return in time, the game counts as a **loss** for them and a win for the opponent.
+- If they don't return in time, the **match** counts as a **loss** for them and a win for the opponent. Leaving during a match, including between rounds, does the same.
+- A round that starts while a player is away starts paused.
 
 ## 10. Player rank and streaks
 
@@ -257,7 +270,7 @@ Room setting with three modes. At the start of each game, squares are given rand
 
 - Each tier except Diamond is split into **III, II and I** (e.g. Gold III → Gold II → Gold I as rating rises).
 - A win raises the rating; a loss lowers it. Players also have **current win/loss streaks**.
-- **Draws** change neither rating nor streaks.
+- Ratings and streaks count **matches**, not rounds. **Drawn matches** change neither rating nor streaks.
 - Matches have no other consequences: no cards are won or lost.
 
 ## 11. Admin panel

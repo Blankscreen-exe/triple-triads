@@ -1,5 +1,8 @@
 import {
+  DEFAULT_DECK_RULES,
   MAX_NORMAL_ELEMENTAL_CELLS,
+  maxRounds,
+  MIN_CARDS_PER_GAME,
   rankCard,
   STARTING_SCORE,
   type Element,
@@ -13,12 +16,22 @@ import { ElementIcon } from '@/components/game/element-icon';
 import { Window } from '@/components/ui/window';
 import { ELEMENT_LABELS, formatStat } from '@/lib/elements';
 import { STARTING_RATING, TIERS } from '@/lib/rating';
-import { RECONNECT_GRACE_MS, REMATCH_VOTE_MS, TURN_TIMER_OPTIONS } from '@/lib/realtime/protocol';
+import {
+  MATCH_FORMAT_LABELS,
+  RECONNECT_GRACE_MS,
+  REMATCH_VOTE_MS,
+  ROUND_BREAK_MS,
+  TURN_TIMER_OPTIONS,
+} from '@/lib/realtime/protocol';
 import type { LockableOption } from '@/lib/validation/settings';
 import { getDatabase } from '@/server/db';
 import { getGameSettings } from '@/server/settings/settings';
 
 export const metadata: Metadata = { title: 'How to play' };
+
+/** Every deck has this many cards (deck rules), which sets how long a match can last. */
+const DECK_SIZE = DEFAULT_DECK_RULES.size;
+const MAX_ROUNDS = maxRounds(DECK_SIZE);
 
 const SECTIONS = [
   { id: 'cards', title: 'Cards' },
@@ -26,7 +39,7 @@ const SECTIONS = [
   { id: 'playing', title: 'Playing a game' },
   { id: 'rules', title: 'Room rules' },
   { id: 'winning', title: 'Winning' },
-  { id: 'after', title: 'After a game' },
+  { id: 'after', title: 'After a match' },
   { id: 'rating', title: 'Rating' },
 ] as const;
 
@@ -194,30 +207,56 @@ export default function RulesPage() {
               place. The scores always add up to 10.
             </li>
             <li>
-              The higher score wins.{' '}
+              The higher score wins the round.{' '}
               <strong>
                 {STARTING_SCORE}–{STARTING_SCORE}
               </strong>{' '}
-              is a draw. There is no Sudden Death.
+              is a draw.
+            </li>
+          </ul>
+          <h3 className="pt-2 font-semibold text-cream">Matches and rounds</h3>
+          <Suspense fallback={<Loading />}>
+            <MatchFormatBadge />
+          </Suspense>
+          <ul className="list-disc space-y-2 pl-5">
+            <li>
+              In rooms set to <strong>Until there is a winner</strong>, a drawn round is followed by
+              another after a {seconds(ROUND_BREAK_MS)}-second break, until someone wins.
+            </li>
+            <li>
+              <strong>Cards you place are used up</strong> for the rest of the match, even if they
+              were captured; cards you drew but did not place go back into your deck. Spending your
+              best cards early can leave you short later.
+            </li>
+            <li>
+              After a drawn round, <strong>the other player starts</strong> the next one.
+            </li>
+            <li>
+              Each round needs {MIN_CARDS_PER_GAME} cards per player, so a {DECK_SIZE}-card deck
+              lasts up to {MAX_ROUNDS} rounds. If every round is drawn, the match is a draw.
+            </li>
+            <li>
+              In <strong>Single game</strong> rooms the match is one round, so {STARTING_SCORE}–
+              {STARTING_SCORE} is a draw. There is no Sudden Death.
             </li>
           </ul>
         </Section>
 
-        <Section id="after" title="After a game">
+        <Section id="after" title="After a match">
           <ul className="list-disc space-y-2 pl-5">
             <li>
-              Both players vote to <strong>continue</strong> or <strong>leave</strong> within{' '}
-              {seconds(REMATCH_VOTE_MS)} seconds; not voting counts as leaving. If both continue, a
-              new game starts with the same decks and rules.
+              Once a match is decided, both players vote to <strong>play again</strong> or{' '}
+              <strong>leave</strong> within {seconds(REMATCH_VOTE_MS)} seconds; not voting counts as
+              leaving. If both play again, a new match starts with full decks and the same rules.
             </li>
             <li>
-              The <strong>loser goes first</strong> in the next game. After a draw, the same player
-              goes first again. Colours stay the same in every game.
+              The <strong>loser starts</strong> the next match. After a drawn match, the player who
+              started it starts again. Colours stay the same in every match.
             </li>
             <li>To change decks, leave the room and join or create another.</li>
             <li>
               If a player disconnects, the game pauses for up to {seconds(RECONNECT_GRACE_MS) / 60}{' '}
-              minutes. If they do not come back, they lose.
+              minutes. If they do not come back, they lose the match.
             </li>
           </ul>
         </Section>
@@ -226,7 +265,8 @@ export default function RulesPage() {
           <p>
             Everyone starts at a rating of <strong>{STARTING_RATING}</strong>. Winning raises your
             rating and losing lowers it, by more when the result is a surprise (beating a
-            higher-rated player gains more than beating a lower-rated one). Draws change nothing.
+            higher-rated player gains more than beating a lower-rated one). Ratings count matches,
+            not rounds, and drawn matches change nothing.
           </p>
           <table className="w-full max-w-sm text-sm">
             <thead>
@@ -267,6 +307,21 @@ async function SampleCard() {
   const { scoring } = await loadSettings();
   const { stars } = rankCard(SAMPLE_CARD.stats, SAMPLE_CARD.element, scoring);
   return <CardView card={{ ...SAMPLE_CARD, stars }} side="blue" />;
+}
+
+/** Whether new rooms play until a winner on this server (an admin setting). */
+async function MatchFormatBadge() {
+  const { roomPolicy } = await loadSettings();
+  const format = MATCH_FORMAT_LABELS[roomPolicy.defaults.format];
+  return roomPolicy.locked.includes('format') ? (
+    <p className="text-sm text-slate-300">
+      Every room on this server plays <strong>{format}</strong>.
+    </p>
+  ) : (
+    <p className="text-sm text-slate-300">
+      New rooms play <strong>{format}</strong> unless their creator changes it.
+    </p>
+  );
 }
 
 async function StarScoring() {
