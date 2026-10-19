@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef, type ComponentProps, type ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { Button } from './button';
+import { useModalDialog } from './use-modal-dialog';
 
 interface ModalProps {
   /** Accessible name of the dialog. */
@@ -23,19 +24,12 @@ const VARIANTS = {
  * backdrop closes it too. Render it only while it should be open.
  */
 export function Modal({ label, onClose, variant = 'center', children }: ModalProps) {
-  const ref = useRef<HTMLDialogElement>(null);
-
-  // Removing the element closes it, so there is no close() on unmount.
-  useEffect(() => {
-    const dialog = ref.current;
-    if (dialog && !dialog.open) dialog.showModal();
-  }, []);
+  const ref = useModalDialog(onClose);
 
   return (
     <dialog
       ref={ref}
       aria-label={label}
-      onClose={onClose}
       onClick={(event) => {
         // A click on the backdrop lands on the dialog itself.
         if (event.target === event.currentTarget) event.currentTarget.close();

@@ -1,10 +1,10 @@
 'use client';
 
 import type { PlayerColor } from '@triple-triad/engine';
-import { useEffect, useRef } from 'react';
 import type { AssetPack } from '@/lib/asset-packs';
 import { CardView, type CardFace } from '../cards/card-view';
 import { Button } from '../ui/button';
+import { useModalDialog } from '../ui/use-modal-dialog';
 
 interface CardPreviewProps {
   readonly card: CardFace;
@@ -20,19 +20,12 @@ interface CardPreviewProps {
  * the card closes it. Render it only while it should be open.
  */
 export function CardPreview({ card, side, pack, action, onClose }: CardPreviewProps) {
-  const ref = useRef<HTMLDialogElement>(null);
-
-  // Removing the element closes it, so there is no close() on unmount.
-  useEffect(() => {
-    const dialog = ref.current;
-    if (dialog && !dialog.open) dialog.showModal();
-  }, []);
+  const ref = useModalDialog(onClose);
 
   return (
     <dialog
       ref={ref}
       aria-label={`Preview: ${card.name}`}
-      onClose={onClose}
       onClick={(event) => {
         // A click on the backdrop lands on the dialog itself.
         if (event.target === event.currentTarget) ref.current?.close();
