@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import { SiteHeader } from '@/components/site-header';
+import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 
 // Self-hosted (SIL Open Font License, see ./fonts) so builds never depend on reaching Google Fonts.
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       <body>
         <SiteHeader />
         {children}
+        <Toaster />
       </body>
     </html>
   );
