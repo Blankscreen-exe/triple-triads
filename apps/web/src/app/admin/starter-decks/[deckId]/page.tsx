@@ -17,14 +17,9 @@ export default function EditStarterDeckPage({
   params,
 }: PageProps<'/admin/starter-decks/[deckId]'>) {
   return (
-    <>
-      <h1 className="mb-6 font-display text-2xl font-bold tracking-wider text-cream">
-        Edit starter deck
-      </h1>
-      <Suspense fallback={<p className="text-slate-300">Loading…</p>}>
-        <Editor params={params} />
-      </Suspense>
-    </>
+    <Suspense fallback={<p className="text-slate-300">Loading…</p>}>
+      <Editor params={params} />
+    </Suspense>
   );
 }
 
@@ -46,6 +41,7 @@ async function Editor({ params }: Pick<PageProps<'/admin/starter-decks/[deckId]'
 
   return (
     <DeckEditor
+      title="Edit starter deck"
       initialName={deck.name}
       initialCounts={counts}
       trunk={cards}

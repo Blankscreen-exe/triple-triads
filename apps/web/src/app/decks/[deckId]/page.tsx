@@ -16,7 +16,6 @@ export const metadata: Metadata = { title: 'Edit deck' };
 export default function EditDeckPage({ params }: PageProps<'/decks/[deckId]'>) {
   return (
     <main className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="mb-6 font-display text-2xl font-bold tracking-wider text-cream">Edit deck</h1>
       <Suspense fallback={<p className="text-slate-300">Loading…</p>}>
         <EditorLoader params={params} />
       </Suspense>
@@ -41,6 +40,7 @@ async function EditorLoader({ params }: Pick<PageProps<'/decks/[deckId]'>, 'para
 
   return (
     <DeckEditor
+      title="Edit deck"
       initialName={deck.name}
       initialCounts={counts}
       trunk={trunk}

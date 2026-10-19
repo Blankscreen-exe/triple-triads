@@ -6,11 +6,16 @@ import { useState, useTransition } from 'react';
 import { CardFilterBar } from '@/components/cards/card-filter-bar';
 import { CardView, type CardFace } from '@/components/cards/card-view';
 import { Button, buttonClasses } from '@/components/ui/button';
+import { Pagination } from '@/components/ui/pagination';
+import { TabList } from '@/components/ui/tabs';
 import { Window } from '@/components/ui/window';
 import type { AssetPack } from '@/lib/asset-packs';
 import { applyFilters, hasMixedSources, NO_FILTERS, type FilterableCard } from '@/lib/card-filters';
 import { DECK_NAME_MAX_LENGTH, type DeckContents } from '@/lib/validation/deck';
 import { describeViolation, violationKey } from '@/lib/deck-violations';
+import { useItemsThatFit } from '@/lib/use-items-that-fit';
+import { LARGE_QUERY, useMediaQuery } from '@/lib/use-media-query';
+import { usePagination } from '@/lib/use-pagination';
 
 /** A card the player owns, as the editor needs it. */
 export interface EditorCard extends CardFace, FilterableCard {
@@ -22,6 +27,8 @@ export interface EditorCard extends CardFace, FilterableCard {
 export type SaveDeckResult = { readonly ok: true } | { readonly ok: false; readonly error: string };
 
 interface DeckEditorProps {
+  /** The page heading; the Save and Back buttons sit beside it on wide screens. */
+  readonly title: string;
   readonly initialName: string;
   readonly initialCounts: Readonly<Record<string, number>>;
   /** Cards that may be added: a player's trunk, or every generic card for starter decks. */
@@ -34,8 +41,12 @@ interface DeckEditorProps {
   readonly backHref: string;
 }
 
+/** Rows of trunk cards per page on narrow screens; wide ones fit as many as the sidebar holds. */
+const TRUNK_ROWS = 4;
+
 /** Deck editor used for players' decks and for admins' starter decks. */
 export function DeckEditor({
+  title,
   initialName,
   initialCounts,
   trunk,
@@ -77,6 +88,12 @@ export function DeckEditor({
   };
 
   const visible = applyFilters(trunk, filters);
+  // Narrow screens show the deck or the trunk, chosen with tabs; wide ones show both.
+  const [tab, setTab] = useState<'deck' | 'trunk'>('deck');
+  const wide = useMediaQuery(LARGE_QUERY);
+  const [trunkList, setTrunkList] = useState<HTMLUListElement | null>(null);
+  const trunkPageSize = useItemsThatFit(trunkList, { fit: wide, rows: TRUNK_ROWS, columns: 4 });
+  const trunkPage = usePagination(visible, trunkPageSize, JSON.stringify(filters));
 
   const save = () => {
     startSaving(async () => {
@@ -96,30 +113,67 @@ export function DeckEditor({
   const deckInOrder = applyFilters(deckCards, NO_FILTERS);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <Window className="flex flex-col gap-4 p-5" aria-label="Deck">
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="min-w-48 flex-1 text-sm">
-            <span className="block text-slate-100">Deck name</span>
-            <input
-              value={name}
-              maxLength={DECK_NAME_MAX_LENGTH}
-              onChange={(event) => {
-                setName(event.target.value);
-                setStatus(null);
-              }}
-              className="mt-1 w-full rounded-md border border-frame/50 bg-black/30 px-3 py-2 font-display font-bold text-cream"
-            />
-          </label>
-          <div className="flex gap-3">
-            <Button onClick={save} disabled={isSaving || name.trim() === ''}>
-              {isSaving ? 'Saving…' : 'Save deck'}
-            </Button>
-            <Link href={backHref} className={buttonClasses('secondary')}>
-              Back
-            </Link>
-          </div>
+    <div className="grid gap-6 max-lg:gap-4 max-lg:pb-24 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 lg:col-span-2">
+        <h1 className="font-display text-2xl font-bold tracking-wider text-cream">{title}</h1>
+        {/* Beside the heading on wide screens; a bar fixed to the bottom of narrow ones. */}
+        <div className="flex flex-wrap items-center justify-end gap-3 max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-20 max-lg:flex-nowrap max-lg:border-t-2 max-lg:border-frame/70 max-lg:bg-header-bottom max-lg:px-4 max-lg:pt-3 max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))] max-lg:shadow-[0_-8px_20px_rgb(0_0_0/0.45)]">
+          {status && (
+            <p
+              role={status.kind === 'error' ? 'alert' : 'status'}
+              className={`min-w-0 rounded-md px-3 py-2 text-sm max-lg:mr-auto max-lg:truncate max-lg:px-2 max-lg:py-1 ${status.kind === 'error' ? 'bg-status-live/30' : 'bg-status-open/40'}`}
+            >
+              {status.message}
+            </p>
+          )}
+          <Button onClick={save} disabled={isSaving || name.trim() === ''} className="shrink-0">
+            {isSaving ? 'Saving…' : 'Save deck'}
+          </Button>
+          <Link href={backHref} className={buttonClasses('secondary', 'shrink-0')}>
+            Back
+          </Link>
         </div>
+      </div>
+
+      <TabList
+        label="Deck editor"
+        panelIdPrefix="deck-editor"
+        className="lg:hidden"
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          {
+            id: 'deck',
+            label: (
+              <>
+                Deck
+                <span className="rounded-full bg-black/15 px-1.5 text-xs tabular-nums">
+                  {size}/{DECK_SIZE}
+                </span>
+              </>
+            ),
+          },
+          { id: 'trunk', label: 'Trunk' },
+        ]}
+      />
+
+      <Window
+        id="deck-editor-deck"
+        className={`flex flex-col gap-4 p-5 max-sm:p-4 ${tab === 'deck' ? '' : 'max-lg:hidden'}`}
+        aria-label="Deck"
+      >
+        <label className="text-sm">
+          <span className="block text-slate-100">Deck name</span>
+          <input
+            value={name}
+            maxLength={DECK_NAME_MAX_LENGTH}
+            onChange={(event) => {
+              setName(event.target.value);
+              setStatus(null);
+            }}
+            className="mt-1 w-full rounded-md border border-frame/50 bg-black/30 px-3 py-2 font-display font-bold text-cream"
+          />
+        </label>
 
         <p className="text-sm" aria-live="polite">
           <span className={size === DECK_SIZE ? 'text-cream' : 'text-slate-100'}>
@@ -134,23 +188,14 @@ export function DeckEditor({
 
         <ViolationList violations={violations} />
 
-        {status && (
-          <p
-            role={status.kind === 'error' ? 'alert' : 'status'}
-            className={`rounded-md px-3 py-2 text-sm ${status.kind === 'error' ? 'bg-status-live/30' : 'bg-status-open/40'}`}
-          >
-            {status.message}
-          </p>
-        )}
-
         {deckInOrder.length === 0 ? (
           <p className="py-10 text-center text-sm text-slate-300/80">
-            This deck is empty. Click cards in your trunk to add them.
+            This deck is empty. Add cards from your trunk.
           </p>
         ) : (
           <ul
             aria-label="Deck contents"
-            className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5"
+            className="grid grid-cols-3 gap-x-3 gap-y-4 sm:grid-cols-4 sm:gap-5 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5"
           >
             {deckInOrder.map((card) => {
               const count = counts[card.id] ?? 0;
@@ -192,7 +237,8 @@ export function DeckEditor({
       </Window>
 
       <Window
-        className="flex flex-col gap-3 p-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:self-start"
+        id="deck-editor-trunk"
+        className={`flex flex-col gap-3 p-4 lg:sticky lg:top-20 lg:h-[calc(100dvh-11rem)] lg:self-start ${tab === 'trunk' ? '' : 'max-lg:hidden'}`}
         aria-label="Your trunk"
       >
         <h2 className="font-display text-lg font-bold tracking-wider text-cream">Your trunk</h2>
@@ -204,49 +250,55 @@ export function DeckEditor({
           shown={visible.length}
           total={trunk.length}
         />
-        {visible.length === 0 ? (
+        {visible.length === 0 && (
           <p className="text-sm text-slate-300/80">
             {trunk.length === 0 ? 'Your trunk is empty.' : 'No cards match.'}
           </p>
-        ) : (
-          <ul
-            aria-label="Trunk cards"
-            className="grid min-h-0 grid-cols-3 gap-x-3 gap-y-4 overflow-y-auto overscroll-contain px-1 pt-1 pb-3"
-          >
-            {visible.map((card) => {
-              const left = remaining(card);
-              const canAdd = left > 0 && size < DECK_SIZE;
-              return (
-                <li key={card.id} className="relative">
-                  <button
-                    type="button"
-                    disabled={!canAdd}
-                    onClick={() => {
-                      change(card.id, 1);
-                    }}
-                    aria-label={`Add ${card.name}`}
-                    title={card.name}
-                    className="block w-full rounded-[3%/2.2%] transition enabled:cursor-pointer enabled:hover:-translate-y-0.5 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-cream"
-                  >
-                    <CardView card={card} side="blue" pack={pack} />
-                  </button>
-                  <span
-                    className="absolute -right-1.5 -bottom-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-cream px-1 text-[10px] font-bold text-ink ring-2 ring-window-bottom"
-                    aria-label={
-                      card.owned === null
-                        ? 'Unlimited copies'
-                        : `${String(Math.max(left, 0))} of ${String(card.owned)} copies left`
-                    }
-                  >
-                    {card.owned === null
-                      ? '∞'
-                      : `${String(Math.max(left, 0))}/${String(card.owned)}`}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
         )}
+        {/* Always rendered, so it can be measured before cards appear. On wide screens a page is
+            as many rows as fit the sidebar; on narrow ones, a few rows of the full width. */}
+        <ul
+          ref={setTrunkList}
+          aria-label="Trunk cards"
+          className="grid grid-cols-3 content-start gap-x-3 gap-y-4 px-1 pt-1 sm:grid-cols-4 md:grid-cols-5 lg:min-h-0 lg:flex-1 lg:grid-cols-4 lg:overflow-hidden"
+        >
+          {trunkPage.items.map((card) => {
+            const left = remaining(card);
+            const canAdd = left > 0 && size < DECK_SIZE;
+            return (
+              <li key={card.id} className="relative">
+                <button
+                  type="button"
+                  disabled={!canAdd}
+                  onClick={() => {
+                    change(card.id, 1);
+                  }}
+                  aria-label={`Add ${card.name}`}
+                  title={card.name}
+                  className="block w-full rounded-[3%/2.2%] transition enabled:cursor-pointer enabled:hover:-translate-y-0.5 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-cream"
+                >
+                  <CardView card={card} side="blue" pack={pack} />
+                </button>
+                <span
+                  className="absolute -right-1.5 -bottom-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-cream px-1 text-[10px] font-bold text-ink ring-2 ring-window-bottom"
+                  aria-label={
+                    card.owned === null
+                      ? 'Unlimited copies'
+                      : `${String(Math.max(left, 0))} of ${String(card.owned)} copies left`
+                  }
+                >
+                  {card.owned === null ? '∞' : `${String(Math.max(left, 0))}/${String(card.owned)}`}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+        <Pagination
+          label="Trunk"
+          page={trunkPage.page}
+          pageCount={trunkPage.pageCount}
+          onChange={trunkPage.setPage}
+        />
       </Window>
     </div>
   );

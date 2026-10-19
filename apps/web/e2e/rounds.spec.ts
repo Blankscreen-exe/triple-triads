@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
-import { signUp, uniqueUsername } from './helpers';
+import { findRoom, signUp, uniqueUsername } from './helpers';
 
 const YOUR_TURN = 'Your turn: choose a card';
 /** Long enough for the break between rounds (ROUND_BREAK_MS) plus some slack. */
@@ -35,6 +35,8 @@ async function stalematePlayer(browser: Browser): Promise<Page> {
   await page.getByLabel('New deck name').fill('Stalemate');
   await page.getByRole('button', { name: 'New deck' }).click();
   const trunk = page.getByRole('region', { name: 'Your trunk' });
+  // The trunk is paged: search, so every stone is on the first page.
+  await trunk.getByLabel('Search').fill('Stone');
   // Copy limit: 3 per stats-and-element, so 3 × 6 + 2.
   for (const [index] of STALEMATE_ELEMENTS.entries()) {
     const copies = index < 6 ? 3 : 2;
@@ -45,7 +47,7 @@ async function stalematePlayer(browser: Browser): Promise<Page> {
   const deck = page.getByRole('region', { name: 'Deck' });
   await expect(deck).toContainText('20 / 20 cards');
   await expect(deck).toContainText('This deck follows the deck rules.');
-  await deck.getByRole('button', { name: 'Save deck' }).click();
+  await page.getByRole('button', { name: 'Save deck' }).click();
   await expect(page.getByText('Deck saved.')).toBeVisible();
 
   await page.goto('/decks');
@@ -102,12 +104,7 @@ test('every round of a best-of-3 match is played; three drawn rounds draw the ma
   await host.getByRole('button', { name: 'Create room' }).click();
   await expect(host.getByText('Waiting for an opponent…')).toBeVisible();
 
-  await guest.goto('/play');
-  await guest
-    .getByRole('listitem')
-    .filter({ hasText: roomName })
-    .getByRole('button', { name: 'Join' })
-    .click();
+  await (await findRoom(guest, roomName)).getByRole('button', { name: 'Join' }).click();
 
   for (let round = 1; round <= 3; round++) {
     for (const page of [host, guest]) {

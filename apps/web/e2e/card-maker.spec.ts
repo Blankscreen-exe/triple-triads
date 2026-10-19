@@ -69,7 +69,10 @@ test('a player builds a new deck with live rule feedback', async ({ page }) => {
   await page.getByRole('button', { name: 'New deck' }).click();
   await expect(page.getByRole('heading', { name: 'Edit deck' })).toBeVisible();
 
-  const addLizard = page.getByRole('button', { name: 'Add Sand Lizard' });
+  // The trunk is paged, so find the card the way a player would.
+  const trunk = page.getByRole('region', { name: 'Your trunk' });
+  await trunk.getByLabel('Search').fill('Sand Lizard');
+  const addLizard = trunk.getByRole('button', { name: 'Add Sand Lizard' });
   for (let i = 0; i < 4; i++) await addLizard.click();
 
   await expect(page.getByText('4 / 20 cards')).toBeVisible();

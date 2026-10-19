@@ -1,5 +1,5 @@
 import { expect, test, type Browser } from '@playwright/test';
-import { signUp, uniqueUsername } from './helpers';
+import { findRoom, signUp, uniqueUsername } from './helpers';
 
 const PHONE = { viewport: { width: 390, height: 750 }, isMobile: true, hasTouch: true };
 
@@ -113,6 +113,63 @@ test('on a phone, the deck list fills the screen and pages instead of scrolling'
   await expect(sheet).toBeHidden();
 });
 
+test('on a phone, the trunk pages three columns of cards, with filters behind a button', async ({
+  browser,
+}) => {
+  const { page } = await newPhonePlayer(browser);
+  await page.goto('/trunk');
+  const filters = page.getByRole('search', { name: 'Filter cards' });
+  await expect(filters).toContainText('21 cards');
+
+  const cards = page.getByRole('list', { name: 'Cards' }).getByRole('listitem');
+  const pages = page.getByRole('navigation', { name: 'Cards pages' });
+  // Four rows of three.
+  await expect(cards).toHaveCount(12);
+  await pages.getByRole('button', { name: 'Next page' }).click();
+  await expect(pages).toContainText('Page 2 of 2');
+  await expect(cards).toHaveCount(9);
+
+  await expect(filters.getByLabel('Stars')).toBeHidden();
+  await filters.getByRole('button', { name: 'Filters' }).click();
+  await filters.getByLabel('Stars').selectOption('1');
+  await expect(filters.getByRole('button', { name: 'Filters (1 on)' })).toBeVisible();
+  // A new filter starts again from the first page.
+  await expect(pages).toBeHidden();
+});
+
+test('on a phone, the deck editor has Deck and Trunk tabs, and Save stays on screen', async ({
+  browser,
+}) => {
+  const { page } = await newPhonePlayer(browser);
+  await page.goto('/decks');
+  // Opened from a deck's sheet, which must not stay open over the editor.
+  await page.getByRole('button', { name: 'More about Vanguard' }).click();
+  await page.getByRole('dialog', { name: 'Vanguard' }).getByRole('link', { name: 'Edit' }).click();
+  await expect(page.getByRole('heading', { name: 'Edit deck' })).toBeVisible();
+
+  const deck = page.getByRole('region', { name: 'Deck', exact: true });
+  const trunk = page.getByRole('region', { name: 'Your trunk' });
+  await expect(page.getByRole('tab', { name: /^Deck/ })).toHaveText('Deck20/20');
+  await expect(trunk).toBeHidden();
+  await deck.getByRole('button', { name: 'Remove one Sky Wyrm' }).click();
+  await expect(page.getByRole('tab', { name: /^Deck/ })).toHaveText('Deck19/20');
+
+  await page.getByRole('tab', { name: 'Trunk' }).click();
+  await expect(deck).toBeHidden();
+  const cards = trunk.getByRole('list', { name: 'Trunk cards' }).getByRole('button');
+  await expect(cards).toHaveCount(12);
+  await trunk.getByRole('button', { name: 'Next page' }).click();
+  await expect(cards).toHaveCount(9);
+
+  await trunk.getByLabel('Search').fill('Sky Wyrm');
+  await trunk.getByRole('button', { name: 'Add Sky Wyrm' }).click();
+  await expect(page.getByRole('tab', { name: /^Deck/ })).toHaveText('Deck20/20');
+  const save = page.getByRole('button', { name: 'Save deck' });
+  await expect(save).toBeInViewport();
+  await save.click();
+  await expect(page.getByText('Deck saved.')).toBeVisible();
+});
+
 test('on a phone, the game fills the screen without scrolling', async ({ browser }) => {
   const host = await newPhonePlayer(browser);
   const guest = await newPhonePlayer(browser);
@@ -123,12 +180,7 @@ test('on a phone, the game fills the screen without scrolling', async ({ browser
   await host.page.getByLabel('Room name').fill(roomName);
   await host.page.getByRole('button', { name: 'Create room' }).click();
   await expect(host.page.getByText('Waiting for an opponent…')).toBeVisible();
-  await guest.page.goto('/play');
-  await guest.page
-    .getByRole('listitem')
-    .filter({ hasText: roomName })
-    .getByRole('button', { name: 'Join' })
-    .click();
+  await (await findRoom(guest.page, roomName)).getByRole('button', { name: 'Join' }).click();
 
   const page = host.page;
   const hand = page.getByRole('list', { name: 'Your hand' }).getByRole('button');
