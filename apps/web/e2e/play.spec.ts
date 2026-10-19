@@ -108,7 +108,9 @@ test('two players play a full match and agree to a rematch', async ({ browser })
   }
 });
 
-test('after a declined rematch, the result screen lets you wait or leave', async ({ browser }) => {
+test('declining a rematch closes the room and sends both players to the lobby', async ({
+  browser,
+}) => {
   test.setTimeout(180_000);
   const { alice, bob } = await playFullMatch(browser, 'Declined');
 
@@ -120,13 +122,9 @@ test('after a declined rematch, the result screen lets you wait or leave', async
   await bob.page.getByRole('button', { name: 'Decline' }).click();
   await expect(bob.page).toHaveURL(/\/play$/);
 
-  await expect(alice.page.getByText(`${bob.name} declined the rematch.`)).toBeVisible();
-  await alice.page.getByRole('button', { name: 'Wait for a new opponent' }).click();
-  await expect(alice.page.getByRole('heading', { name: RESULT_HEADING })).toBeHidden();
-  await expect(alice.page.getByText('Waiting for an opponent…')).toBeVisible();
-
-  await alice.page.getByRole('button', { name: 'Leave room' }).click();
   await expect(alice.page).toHaveURL(/\/play$/);
+  await expect(alice.page.getByLabel('Notifications')).toContainText(`${bob.name} left the room`);
+  await expect(bob.page.getByLabel('Notifications')).toBeEmpty();
 });
 
 test('a spectator watches without seeing either hand', async ({ browser }) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import type { PlayerColor } from '@triple-triad/engine';
 import type { GameStats } from '@/lib/game-stats';
 import type { RoomSnapshot, VoteChoice } from '@/lib/realtime/protocol';
@@ -14,12 +14,15 @@ interface ResultPanelProps {
   readonly onVote: (choice: VoteChoice) => void;
   /** Leave the room (or stop watching) and go back to the lobby. */
   readonly onLeave: () => void;
-  /** Close this panel and stay: to wait for a new opponent, or (spectators) to see the board. */
+  /** Spectators: close this panel to see the final board. */
   readonly onDismiss: () => void;
   readonly stats: GameStats | null;
 }
 
-/** The end of a match. Every state offers a way on: play again, wait, or leave. */
+/**
+ * The end of a match. Every state offers a way on. The room closes unless both players vote to
+ * play again, and closing it sends everyone to the lobby.
+ */
 export function ResultPanel({ room, onVote, onLeave, onDismiss, stats }: ResultPanelProps) {
   const game = room.game;
   const result = game?.view.result;
@@ -78,7 +81,7 @@ export function ResultPanel({ room, onVote, onLeave, onDismiss, stats }: ResultP
         {you && game.outcome && <RatingChange outcome={game.outcome[you]} />}
 
         {room.you.role === 'player' ? (
-          <RematchVote room={room} onVote={onVote} onLeave={onLeave} onDismiss={onDismiss} />
+          <RematchVote room={room} onVote={onVote} onLeave={onLeave} />
         ) : (
           <div className="mt-4 flex gap-3">
             <Button className="flex-1" onClick={onDismiss}>
@@ -110,20 +113,11 @@ function RematchVote({
   room,
   onVote,
   onLeave,
-  onDismiss,
 }: {
   readonly room: RoomSnapshot;
   readonly onVote: (choice: VoteChoice) => void;
   readonly onLeave: () => void;
-  readonly onDismiss: () => void;
 }) {
-  const [declined, setDeclined] = useState<string | null>(null);
-  const prevState = useRef<{ hadRematch: boolean; myVote: string | null; opponentName: string }>({
-    hadRematch: !!room.rematch,
-    myVote: null,
-    opponentName: 'Opponent',
-  });
-
   const myVote = room.rematch?.votes[room.you.userId] ?? null;
   const otherEntries = Object.entries(room.rematch?.votes ?? {}).filter(
     ([id]) => id !== room.you.userId,
@@ -135,44 +129,12 @@ function RematchVote({
       'Opponent')
     : 'Opponent';
 
-  useEffect(() => {
-    const prev = prevState.current;
-    if (prev.hadRematch && !room.rematch && prev.myVote === 'continue') {
-      setDeclined(prev.opponentName);
-    }
-    prevState.current = {
-      hadRematch: !!room.rematch,
-      myVote,
-      opponentName,
-    };
-  }, [room.rematch, myVote, opponentName]);
-
-  // The opponent is gone and the room is open for someone new: wait for them, or go.
-  const opponentGone = (message: ReactNode) => (
-    <div className="mt-4 space-y-3">
-      {message}
-      <div className="flex gap-3">
-        <Button className="flex-1" onClick={onDismiss}>
-          Wait for a new opponent
-        </Button>
-        <Button variant="secondary" className="flex-1" onClick={onLeave}>
-          Back to the lobby
-        </Button>
-      </div>
-    </div>
-  );
-
-  if (declined) {
-    return opponentGone(
-      <p className="text-sm font-semibold text-score-red">{declined} declined the rematch.</p>,
-    );
-  }
-
+  // No vote to answer (not expected: the room closes when a player leaves). Still a way out.
   if (!room.rematch) {
-    return opponentGone(
-      <p className="text-sm text-slate-300/80">
-        {room.status === 'waiting' ? 'Your opponent left.' : 'This match is over.'}
-      </p>,
+    return (
+      <Button variant="secondary" className="mt-4 w-full" onClick={onLeave}>
+        Back to the lobby
+      </Button>
     );
   }
 
