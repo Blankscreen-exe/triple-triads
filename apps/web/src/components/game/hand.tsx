@@ -1,6 +1,7 @@
 'use client';
 
 import type { HandView, PlayerColor } from '@triple-triad/engine';
+import type { CSSProperties } from 'react';
 import type { AssetPack } from '@/lib/asset-packs';
 import type { CardInfo } from '@/lib/realtime/protocol';
 import { CardBack, CardView } from '../cards/card-view';
@@ -22,15 +23,32 @@ interface HandProps {
   };
 }
 
-/** A hand of cards, stacked so the top of each card (with its numbers) stays visible. */
+/** On phones, how wide each card in the row is, as a percentage of the row. */
+const ROW_CARD_PERCENT = 24;
+
+/**
+ * A hand of cards. On phones: a row, overlapping sideways only when the cards would not fit, so
+ * the left edge of each card (with its numbers) stays visible. On wider screens: a column,
+ * stacked so the top of each card stays visible.
+ */
 export function Hand({ label, hand, color, pack, cards, selection }: HandProps) {
-  const overlap = (index: number) => (index > 0 ? '-mt-[100%]' : '');
+  const count = hand.cards?.length ?? hand.size;
+  const rowOverlap =
+    count > 1 ? Math.max(0, ROW_CARD_PERCENT - (100 - ROW_CARD_PERCENT) / (count - 1)) : 0;
+  const slot = (index: number) =>
+    `w-[24%] shrink-0 px-0.5 max-sm:ml-(--row-shift) sm:w-auto sm:px-0 ${index > 0 ? 'sm:-mt-[100%]' : ''}`;
+  const slotStyle = (index: number, zIndex: number) =>
+    ({
+      zIndex,
+      '--row-shift': index > 0 ? `${String(-rowOverlap)}%` : '0%',
+    }) as CSSProperties;
+  const list = 'flex w-full justify-center sm:flex-col';
 
   if (hand.cards === null) {
     return (
-      <ol aria-label={`${label} (${String(hand.size)} hidden cards)`} className="flex flex-col">
+      <ol aria-label={`${label} (${String(hand.size)} hidden cards)`} className={list}>
         {Array.from({ length: hand.size }, (_, index) => (
-          <li key={index} className={overlap(index)} style={{ zIndex: index }}>
+          <li key={index} className={slot(index)} style={slotStyle(index, index)}>
             <CardBack pack={pack} />
           </li>
         ))}
@@ -39,7 +57,7 @@ export function Hand({ label, hand, color, pack, cards, selection }: HandProps) 
   }
 
   return (
-    <ol aria-label={label} className="flex flex-col">
+    <ol aria-label={label} className={list}>
       {hand.cards.map((instance, index) => {
         const face = cards[instance.card.id];
         const card = face ? (
@@ -52,8 +70,8 @@ export function Hand({ label, hand, color, pack, cards, selection }: HandProps) 
         return (
           <li
             key={instance.instanceId}
-            className={`relative transition-transform ${overlap(index)} ${selected ? '-translate-x-4 sm:-translate-x-6' : ''}`}
-            style={{ zIndex: selected ? 20 : index }}
+            className={`relative transition-transform ${slot(index)} ${selected ? '-translate-y-3 sm:translate-y-0 sm:-translate-x-6' : ''}`}
+            style={slotStyle(index, selected ? 20 : index)}
           >
             {selection ? (
               <button

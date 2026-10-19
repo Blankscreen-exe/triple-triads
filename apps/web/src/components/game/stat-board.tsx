@@ -131,7 +131,7 @@ function PlayerLabel({
 }) {
   return (
     <span
-      className={`font-display text-lg font-black tracking-wider sm:text-xl ${align === 'right' ? 'text-right' : 'text-left'} ${color === 'red' ? 'text-score-red' : 'text-score-blue'}`}
+      className={`min-w-0 flex-1 truncate font-display text-lg font-black tracking-wider sm:text-xl ${align === 'right' ? 'text-right' : 'text-left'} ${color === 'red' ? 'text-score-red' : 'text-score-blue'}`}
     >
       {username}
     </span>

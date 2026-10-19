@@ -70,9 +70,9 @@ export function GameRoom({ roomId, role }: GameRoomProps) {
 
   return (
     <div className="space-y-5">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-wider text-cream">
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="truncate font-display text-xl font-bold tracking-wider text-cream sm:text-2xl">
             {snapshot.name}
           </h1>
           <div className="mt-1.5">
@@ -163,23 +163,30 @@ function Table({
     setSelectedId(null);
   };
 
+  // Phones stack the table: the left side above the board in one row (panel, then hand), the
+  // right side (yours) below it with the hand across the full width. Wider screens put the
+  // sides next to the board.
   const side = (color: PlayerColor) => {
     const player = game.players[color];
     const isYou = color === you;
+    const top = color === left;
     return (
       <aside
-        className="w-[clamp(76px,16vw,140px)] space-y-3"
+        className={`flex w-full gap-2 sm:block sm:w-[clamp(76px,16vw,140px)] sm:space-y-3 ${top ? 'items-center' : 'flex-col'}`}
         aria-label={`${player.username}'s side`}
       >
-        <PlayerPanel
-          username={player.username}
-          color={color}
-          score={view.score[color]}
-          drawPileSize={view.players[color].drawPileSize}
-          connected={player.connected}
-          isYou={isYou}
-          isActive={playing && view.activePlayer === color}
-        />
+        <div className={top ? 'w-2/5 shrink-0 sm:w-auto' : ''}>
+          <PlayerPanel
+            username={player.username}
+            color={color}
+            score={view.score[color]}
+            drawPileSize={view.players[color].drawPileSize}
+            connected={player.connected}
+            isYou={isYou}
+            isActive={playing && view.activePlayer === color}
+            slim={!top}
+          />
+        </div>
         <Hand
           label={isYou ? 'Your hand' : `${player.username}'s hand`}
           hand={view.players[color].hand}
@@ -210,9 +217,10 @@ function Table({
           myTurn={myTurn}
           hasSelection={!!selection}
         />
-        <div className="flex items-start justify-center gap-3 sm:gap-6">
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start sm:justify-center sm:gap-6">
           {side(left)}
-          <div className="relative w-[clamp(240px,48vw,460px)]">
+          {/* Sized to the screen's height too, so the board and your hand fit on screen together. */}
+          <div className="relative w-full max-w-[calc((100svh-420px)*0.72)] min-w-56 sm:w-[clamp(240px,min(48vw,(100svh-260px)*0.72),460px)] sm:max-w-none">
             <Board
               game={game}
               canPlace={myTurn && selection !== null}

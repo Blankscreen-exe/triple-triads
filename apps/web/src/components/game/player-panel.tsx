@@ -8,6 +8,8 @@ interface PlayerPanelProps {
   readonly connected: boolean;
   readonly isYou: boolean;
   readonly isActive: boolean;
+  /** On phones, squeeze everything into one line (for the panel above your hand). */
+  readonly slim?: boolean;
 }
 
 const COLOR_STYLES: Record<PlayerColor, { badge: string; score: string }> = {
@@ -23,15 +25,18 @@ export function PlayerPanel({
   connected,
   isYou,
   isActive,
+  slim = false,
 }: PlayerPanelProps) {
   const styles = COLOR_STYLES[color];
   return (
     <div
       role="group"
       aria-label={`${username} (${color})`}
-      className={`rounded-md border bg-black/25 px-3 py-2 ${isActive ? 'border-cream shadow-[0_0_12px_rgb(244_236_210/0.35)]' : 'border-frame/40'}`}
+      className={`rounded-md border bg-black/25 px-3 ${slim ? 'flex items-center gap-3 py-1 sm:block sm:py-2' : 'py-2'} ${isActive ? 'border-cream shadow-[0_0_12px_rgb(244_236_210/0.35)]' : 'border-frame/40'}`}
     >
-      <div className="flex items-center justify-between gap-2">
+      <div
+        className={`flex min-w-0 items-center justify-between gap-2 ${slim ? 'flex-1 sm:flex-none' : ''}`}
+      >
         <span className="truncate font-semibold text-slate-100" title={username}>
           {username}
         </span>
@@ -41,14 +46,22 @@ export function PlayerPanel({
           {color}
         </span>
       </div>
-      <div className="mt-1 flex items-end justify-between">
+      <div
+        className={`flex items-end justify-between ${slim ? 'gap-3 max-sm:items-center sm:mt-1' : 'mt-1'}`}
+      >
         <span className="text-xs text-slate-300/70">
-          {isYou && <span className="block font-semibold text-cream">You</span>}
+          {isYou && (
+            <span
+              className={`font-semibold text-cream ${slim ? 'mr-2 sm:mr-0 sm:block' : 'block'}`}
+            >
+              You
+            </span>
+          )}
           Deck {drawPileSize}
           {!connected && <span className="ml-2 text-status-live">● offline</span>}
         </span>
         <span
-          className={`font-display text-4xl leading-none font-black [text-shadow:0_3px_0_#000] ${styles.score}`}
+          className={`font-display text-3xl leading-none font-black sm:text-4xl [text-shadow:0_3px_0_#000] ${styles.score}`}
           aria-label={`Score ${String(score)}`}
         >
           {score}
