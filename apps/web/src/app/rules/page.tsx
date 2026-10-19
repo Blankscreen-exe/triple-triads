@@ -254,6 +254,10 @@ export default function RulesPage() {
             </li>
             <li>To change decks, leave the room and join or create another.</li>
             <li>
+              Leaving the room during a match (<strong>Surrender</strong>) loses the match and
+              closes the room: the other player is sent back to the lobby and told you left.
+            </li>
+            <li>
               If a player disconnects, the game pauses for up to {seconds(RECONNECT_GRACE_MS) / 60}{' '}
               minutes. If they do not come back, they lose the match.
             </li>

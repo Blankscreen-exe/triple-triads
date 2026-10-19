@@ -254,6 +254,7 @@ After the match is decided:
 
 - If a player disconnects, the game pauses (including their turn timer) and waits **2 minutes** for them to reconnect.
 - If they don't return in time, the **match** counts as a **loss** for them and a win for the opponent. Leaving during a match, including between rounds, does the same.
+- **Leaving is not disconnecting.** A player who leaves on purpose (**Surrender** or **Leave room**, during a match or between matches) closes the room at once: it disappears from the lobby, and everyone still in it (the other player, spectators) is sent to the lobby with a notification "_Name_ left the room". The leaver goes to the lobby without one. Only a lost connection gets the 2-minute wait.
 - A round that starts while a player is away starts paused.
 
 ## 10. Player rank and streaks
