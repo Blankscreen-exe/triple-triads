@@ -3,6 +3,7 @@
 import { PLAYER_COLORS, type PlayerColor } from '@triple-triad/engine';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { FilterButton } from '@/components/ui/filter-button';
 import { SelectField } from '@/components/ui/select-field';
 import { TextField } from '@/components/ui/text-field';
 import {
@@ -93,34 +94,15 @@ export function RoomFilterBar({ filters, onChange, shown, total }: RoomFilterBar
             }}
           />
         </div>
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-controls="room-filter-options"
-          aria-label={activeCount > 0 ? `Filters (${String(activeCount)} on)` : 'Filters'}
-          onClick={() => {
+        <FilterButton
+          open={open}
+          onToggle={() => {
             setOpen((current) => !current);
           }}
-          className={`relative flex size-10.5 shrink-0 items-center justify-center rounded-md border text-cream transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-cream sm:hidden ${open ? 'border-cream bg-white/10' : 'border-frame/60 bg-black/25'}`}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5">
-            <path
-              d="M3.5 5h17l-6.5 8v5.5l-4 1.5v-7z"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinejoin="round"
-            />
-          </svg>
-          {activeCount > 0 && (
-            <span
-              aria-hidden
-              className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-action text-[11px] font-bold text-white"
-            >
-              {activeCount}
-            </span>
-          )}
-        </button>
+          activeCount={activeCount}
+          controls="room-filter-options"
+          className="sm:hidden"
+        />
       </div>
       <div id="room-filter-options" className={`space-y-3 ${open ? '' : 'max-sm:hidden'}`}>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.35fr)]">
