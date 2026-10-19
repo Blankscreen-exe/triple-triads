@@ -27,7 +27,7 @@ const PUBLIC_LINKS: readonly NavLink[] = [
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b-2 border-frame/70 bg-linear-to-b from-header-top to-header-bottom px-4 py-2.5 shadow-lg sm:gap-4 sm:px-6 sm:py-3">
+    <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b-2 border-frame/70 bg-linear-to-b from-header-top to-header-bottom px-4 shadow-lg max-sm:h-14 sm:gap-4 sm:px-6 sm:py-3">
       <div className="flex items-center gap-3 sm:gap-6">
         <Link
           href="/"

@@ -21,8 +21,8 @@ test('the deck list shows each deck’s stats, with the active deck first', asyn
   // The active deck can't be made active again.
   await expect(wanderer.getByRole('button', { name: 'Make active' })).toHaveCount(0);
 
-  // A long list scrolls inside its own area rather than stretching the page.
-  await expect(deckList(page)).toHaveCSS('overflow-y', 'auto');
+  // Long lists are paged; three decks fit on one page, so there are no page controls.
+  await expect(page.getByRole('navigation', { name: 'Decks pages' })).toHaveCount(0);
 });
 
 test('decks can be searched and filtered, and the filters stay in the URL', async ({ page }) => {

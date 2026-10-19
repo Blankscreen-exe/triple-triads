@@ -8,21 +8,25 @@ import { listDecks } from '@/server/decks/decks';
 import { getGameSettings } from '@/server/settings/settings';
 import { requireUser } from '@/server/web/current-user';
 import { DeckList, type DeckListItem } from './deck-list';
-import { NewDeckForm } from './new-deck-form';
+import { NewDeck } from './new-deck-form';
 
 export const metadata: Metadata = { title: 'Decks' };
 
 export default function DecksPage() {
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    // On phones the page is exactly the screen's height below the header: the deck list pages
+    // instead of the page scrolling.
+    <main className="mx-auto max-w-5xl px-4 py-8 max-sm:flex max-sm:h-[calc(100dvh-3.5rem)] max-sm:flex-col max-sm:py-3">
+      <div className="flex flex-wrap items-end justify-between gap-4 max-sm:flex-nowrap max-sm:items-center">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-wider text-cream">Your decks</h1>
-          <p className="mt-1 text-sm text-slate-300/80">
+          <h1 className="font-display text-2xl font-bold tracking-wider text-cream max-sm:text-xl">
+            Your decks
+          </h1>
+          <p className="mt-1 text-sm text-slate-300/80 max-sm:hidden">
             Your active deck is the one you bring to a game.
           </p>
         </div>
-        <NewDeckForm />
+        <NewDeck />
       </div>
       <Suspense fallback={<p className="mt-6 text-slate-300">Loading decks…</p>}>
         <Decks />
@@ -38,8 +42,8 @@ async function Decks() {
 
   if (decks.length === 0) {
     return (
-      <Window className="mt-6 p-6 text-center text-slate-200">
-        You have no decks yet. Name one above to start building.
+      <Window className="mt-6 p-6 text-center text-slate-200 max-sm:mt-3">
+        You have no decks yet. Create one to start building.
       </Window>
     );
   }
@@ -66,7 +70,7 @@ async function Decks() {
   });
 
   return (
-    <Window className="mt-6 p-5">
+    <Window className="mt-6 p-5 max-sm:mt-3 max-sm:flex max-sm:min-h-0 max-sm:flex-1 max-sm:flex-col max-sm:p-3">
       <DeckList decks={items} deckSize={getGameSettings(db).deckRules.size} />
     </Window>
   );

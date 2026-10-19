@@ -74,6 +74,45 @@ test('on a phone, the card maker has Attributes and Preview tabs, and Save on bo
   await expect(page).toHaveURL('/cards');
 });
 
+test('on a phone, the deck list fills the screen and pages instead of scrolling', async ({
+  browser,
+}) => {
+  const { page } = await newPhonePlayer(browser);
+  // Three starter decks plus six new ones: more than fit on one phone screen.
+  for (const name of ['One', 'Two', 'Three', 'Four', 'Five', 'Six']) {
+    await page.goto('/decks');
+    await page.getByRole('button', { name: '+ New' }).click();
+    const dialog = page.getByRole('dialog', { name: 'New deck' });
+    await dialog.getByLabel('New deck name').fill(name);
+    await dialog.getByRole('button', { name: 'New deck' }).click();
+    await expect(page).toHaveURL(/\/decks\/[\w-]+$/);
+  }
+
+  await page.goto('/decks');
+  const decks = page.getByRole('list', { name: 'Decks' });
+  const pages = page.getByRole('navigation', { name: 'Decks pages' });
+  await expect(pages).toContainText(/Page 1 of \d/);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(
+    PHONE.viewport.height,
+  );
+  const firstPage = await decks.getByRole('heading').allTextContents();
+
+  await pages.getByRole('button', { name: 'Next page' }).click();
+  await expect(pages).toContainText('Page 2 of');
+  const secondPage = await decks.getByRole('heading').allTextContents();
+  expect(firstPage.length + secondPage.length).toBeLessThanOrEqual(9);
+  expect(secondPage.some((name) => firstPage.includes(name))).toBe(false);
+
+  // Details and actions are behind each row's ⋯ button.
+  const name = secondPage[0] ?? '';
+  await decks.getByRole('button', { name: `More about ${name}` }).click();
+  const sheet = page.getByRole('dialog', { name });
+  await expect(sheet.getByText('With an element')).toBeVisible();
+  await expect(sheet.getByRole('link', { name: 'Edit' })).toBeVisible();
+  await sheet.getByRole('button', { name: 'Close' }).click();
+  await expect(sheet).toBeHidden();
+});
+
 test('on a phone, the game fills the screen without scrolling', async ({ browser }) => {
   const host = await newPhonePlayer(browser);
   const guest = await newPhonePlayer(browser);
