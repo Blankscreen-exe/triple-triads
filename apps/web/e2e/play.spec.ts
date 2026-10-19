@@ -206,3 +206,44 @@ test('pressing Escape cancels a drag', async ({ browser }) => {
   ).toHaveCount(0);
   await expect(page.getByText(YOUR_TURN)).toBeVisible();
 });
+
+test('when a player surrenders, the other is sent to the lobby and the room is gone', async ({
+  browser,
+}) => {
+  const host = await newPlayer(browser);
+  const guest = await newPlayer(browser);
+  const roomName = `Surrender ${host.name}`;
+  await createRoom(host.page, roomName);
+  await joinFromLobby(guest.page, roomName, 'Join');
+  await expect(guest.page.getByRole('status').filter({ hasText: /turn/ })).toBeVisible();
+
+  await host.page.getByRole('button', { name: /Surrender/ }).click();
+
+  for (const page of [host.page, guest.page]) {
+    await expect(page).toHaveURL(/\/play$/);
+    await expect(page.getByRole('listitem').filter({ hasText: roomName })).toHaveCount(0);
+  }
+  const notifications = guest.page.getByLabel('Notifications');
+  await expect(notifications).toHaveText(`${host.name} left the room×`);
+  // The player who left is not told about it.
+  await expect(host.page.getByLabel('Notifications')).toBeEmpty();
+});
+
+test('when a player disconnects, the game waits for them to come back', async ({ browser }) => {
+  const host = await newPlayer(browser);
+  const guest = await newPlayer(browser);
+  const roomName = `Away ${host.name}`;
+  await createRoom(host.page, roomName);
+  await joinFromLobby(guest.page, roomName, 'Join');
+  await expect(guest.page.getByRole('status').filter({ hasText: /turn/ })).toBeVisible();
+  const roomUrl = host.page.url();
+
+  await host.page.goto('about:blank');
+
+  await expect(guest.page.getByRole('status')).toContainText(`${host.name} disconnected`);
+  await expect(guest.page).toHaveURL(roomUrl);
+
+  await host.page.goto(roomUrl);
+  await expect(guest.page.getByRole('status').filter({ hasText: /turn/ })).toBeVisible();
+  await expect(host.page.getByRole('heading', { name: roomName })).toBeVisible();
+});

@@ -3,7 +3,7 @@
 import { opponentOf, type PlayerColor, type Position } from '@triple-triad/engine';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { CardView } from '@/components/cards/card-view';
 import { Board } from '@/components/game/board';
 import { DragGhost, useCardDrag } from '@/components/game/card-drag';
@@ -20,6 +20,7 @@ import { useGameStats } from '@/lib/use-game-stats';
 import { Button, buttonClasses } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
 import { Window } from '@/components/ui/window';
+import { notify } from '@/lib/notifications';
 import { useRoom } from '@/lib/realtime/hooks';
 import { ROOM_ERRORS, type FirstPlayerReason, type RoomSnapshot } from '@/lib/realtime/protocol';
 
@@ -33,14 +34,16 @@ export function GameRoom({ roomId, role }: GameRoomProps) {
   const room = useRoom(roomId, role);
   const { snapshot, error, closed, closedReason } = room;
 
+  // Out of the room, whether you left or it closed (e.g. the other player left): back to the
+  // lobby, saying why if it was not your own doing. Replace, so Back does not return to it.
+  useEffect(() => {
+    if (!closed) return;
+    if (closedReason) notify(closedReason);
+    router.replace('/play');
+  }, [closed, closedReason, router]);
+
   if (closed) {
-    return (
-      <Notice title={closedReason ?? 'You left the room'}>
-        <Link href="/play" className={buttonClasses('primary')}>
-          Back to the lobby
-        </Link>
-      </Notice>
-    );
+    return <p className="py-12 text-center text-slate-300">Returning to the lobby…</p>;
   }
 
   if (!snapshot) {
@@ -64,11 +67,6 @@ export function GameRoom({ roomId, role }: GameRoomProps) {
     return <p className="py-12 text-center text-slate-300">Joining the room…</p>;
   }
 
-  const leave = async () => {
-    await room.leave();
-    router.push('/play');
-  };
-
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -84,7 +82,7 @@ export function GameRoom({ roomId, role }: GameRoomProps) {
           {snapshot.spectators > 0 && (
             <span className="text-xs text-slate-300/70">{snapshot.spectators} watching</span>
           )}
-          <Button variant="secondary" onClick={() => void leave()}>
+          <Button variant="secondary" onClick={() => void room.leave()}>
             {snapshot.you.role === 'spectator'
               ? 'Stop watching'
               : snapshot.game && snapshot.status === 'playing'

@@ -49,7 +49,7 @@ export interface RoomConnection {
   readonly error: RoomError | null;
   /** You are no longer in the room (you left, or it closed). */
   readonly closed: boolean;
-  /** Why the room closed — a message like "Player X left the room", or null if you left yourself. */
+  /** Why the room closed (e.g. "Alice left the room"), or null if you left it yourself. */
   readonly closedReason: string | null;
   /** Server time minus local time, to show accurate countdowns. */
   readonly clockOffset: number;
@@ -68,6 +68,8 @@ export function useRoom(roomId: string, initialRole: 'player' | 'spectator'): Ro
   const [clockOffset, setClockOffset] = useState(0);
   // How we last joined, reused when re-joining after a reconnect.
   const membership = useRef({ password: '', as: initialRole });
+  // Set once you ask to leave, so the room closing behind you is not reported as news.
+  const leaving = useRef(false);
 
   const join = useCallback(
     async (password: string, as: 'player' | 'spectator') => {
@@ -89,7 +91,7 @@ export function useRoom(roomId: string, initialRole: 'player' | 'spectator'): Ro
     const onClosed = ({ roomId: closedId, reason }: { roomId: string; reason?: string }) => {
       if (closedId !== roomId) return;
       setClosed(true);
-      if (reason) setClosedReason(reason);
+      if (reason && !leaving.current) setClosedReason(reason);
     };
     // Re-join after every (re)connection; a seated player is simply reattached.
     const rejoin = () => {
@@ -120,12 +122,22 @@ export function useRoom(roomId: string, initialRole: 'player' | 'spectator'): Ro
 
   const vote = useCallback(
     (choice: VoteChoice) => {
-      void getSocket().emitWithAck('game:vote', { roomId, choice }).then(report);
+      if (choice === 'leave') leaving.current = true;
+      void getSocket()
+        .emitWithAck('game:vote', { roomId, choice })
+        .then((result) => {
+          report(result);
+          if (choice !== 'leave') return;
+          // Voting to leave takes you out of the room even though it stays open for the other.
+          if (result.ok) setClosed(true);
+          else leaving.current = false;
+        });
     },
     [roomId, report],
   );
 
   const leave = useCallback(async () => {
+    leaving.current = true;
     await getSocket().emitWithAck('room:leave', { roomId });
     setClosed(true);
   }, [roomId]);
