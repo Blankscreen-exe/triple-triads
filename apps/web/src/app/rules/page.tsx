@@ -250,7 +250,8 @@ export default function RulesPage() {
             <li>
               Once a match is decided, both players vote to <strong>play again</strong> or{' '}
               <strong>leave</strong>. If both play again, a new match starts with full decks and the
-              same rules.
+              same rules. Otherwise the <strong>room closes</strong> and both players go back to the
+              lobby.
             </li>
             <li>
               The <strong>loser starts</strong> the next match. After a drawn match, the player who
@@ -263,7 +264,7 @@ export default function RulesPage() {
             </li>
             <li>
               If a player disconnects, the game pauses for up to {seconds(RECONNECT_GRACE_MS) / 60}{' '}
-              minutes. If they do not come back, they lose the match.
+              minutes. If they do not come back, they lose the match and the room closes.
             </li>
           </ul>
         </Section>

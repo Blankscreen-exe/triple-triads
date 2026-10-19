@@ -190,7 +190,7 @@ To change the layout: edit `card-layout.json` and rerun the script.
 
 - 3 × 3 board.
 - Each player's 20-card deck is shuffled. Each player **draws 3 cards**.
-- **The host chooses their colour** (red or blue) when creating the room; the player who joins gets the other one. The joining player does not choose. If the host leaves, whoever becomes host keeps that colour.
+- **The host chooses their colour** (red or blue) when creating the room; the player who joins gets the other one. The joining player does not choose.
 - First game of a pairing: a **coin flip** (shown to both players) decides who goes first. Colour and turn order are independent: either colour can go first.
 
 ### 9.2 Turns
@@ -244,16 +244,16 @@ A **match** is one or more **rounds** (a round is one full board, 9.1–9.6). Th
 
 After the match is decided:
 
-- Both players vote **Play again** or **Leave**.
+- Both players vote **Play again** or **Leave**. The vote stays open until both have answered.
 - If both vote Play again, a new match starts in the same room with **full decks** and the **same rules**.
-- **30-second timeout**: no vote counts as Leave.
+- **Otherwise the room closes.** A room lasts only as long as its pairing: when a player leaves (Leave, Decline, Leave room, Surrender) or does not come back from a disconnect, the room closes and everyone still in it is sent to the lobby with a notification saying who left. Rooms never wait for a replacement player.
 - The **loser of the previous match starts** the next one. After a drawn match, the player who started it starts again. Colours never change between matches.
 - Decks cannot be changed between matches; to change, leave the room.
 
 ### 9.8 Disconnects
 
 - If a player disconnects, the game pauses (including their turn timer) and waits **2 minutes** for them to reconnect.
-- If they don't return in time, the **match** counts as a **loss** for them and a win for the opponent. Leaving during a match, including between rounds, does the same.
+- If they don't return in time, the **match** counts as a **loss** for them and a win for the opponent (if it was still being played), and the room closes ("_Name_ did not come back in time"). Leaving during a match, including between rounds, also loses it.
 - **Leaving is not disconnecting.** A player who leaves on purpose (**Surrender** or **Leave room**, during a match or between matches) closes the room at once: it disappears from the lobby, and everyone still in it (the other player, spectators) is sent to the lobby with a notification "_Name_ left the room". The leaver goes to the lobby without one. Only a lost connection gets the 2-minute wait.
 - A round that starts while a player is away starts paused.
 
