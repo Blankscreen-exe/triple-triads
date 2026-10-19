@@ -43,7 +43,20 @@ function nameFontSize(name: string): string {
   return `${String(NAME_FONT_SIZE * scale)}cqw`;
 }
 
+/*
+ * Small cards (narrower than 130px, e.g. on phones) use a compact face: the stats and element are
+ * enlarged, and the name and stars move into a larger band over the bottom of the art. At the
+ * full layout's proportions their name and stars would be only a few pixels tall. The switch is
+ * a CSS container query on the card's own width (the `@max-[130px]` classes), so it needs no
+ * JavaScript and follows the card's size wherever it is shown.
+ */
+/** Compact name text height, in container-width units, shrunk for long names down to a floor. */
+function compactNameFontSize(name: string): string {
+  return `${String(Math.max(8, 12 * Math.min(1, 12 / Math.max(name.length, 1))))}cqw`;
+}
+
 export function CardView({ card, side, pack = DEFAULT_ASSET_PACK, className = '' }: CardViewProps) {
+  const fontFamily = pack.font ? `"${pack.font.family}"` : 'var(--font-display)';
   return (
     <CardShell label={describeCard(card)} className={className}>
       {pack.font && <PackFontFace font={pack.font} />}
@@ -51,45 +64,74 @@ export function CardView({ card, side, pack = DEFAULT_ASSET_PACK, className = ''
       {card.artUrl && <ImageLayer url={card.artUrl} />}
       <ImageLayer url={pack.images.frame} />
 
-      {SIDES.map((statSide) => (
-        <Sprite
-          key={statSide}
-          box={layout.stats[statSide]}
-          url={pack.images.digits}
-          sheet={layout.sheets.digits}
-          cell={digitKey(card.stats[statSide])}
-        />
-      ))}
+      <div aria-hidden className="absolute inset-0 origin-top-left @max-[130px]:scale-150">
+        {SIDES.map((statSide) => (
+          <Sprite
+            key={statSide}
+            box={layout.stats[statSide]}
+            url={pack.images.digits}
+            sheet={layout.sheets.digits}
+            cell={digitKey(card.stats[statSide])}
+          />
+        ))}
+      </div>
 
       {card.element && (
-        <Sprite
-          box={layout.element}
-          url={pack.images.elements}
-          sheet={layout.sheets.elements}
-          cell={card.element}
-        />
+        <div aria-hidden className="absolute inset-0 origin-top-right @max-[130px]:scale-125">
+          <Sprite
+            box={layout.element}
+            url={pack.images.elements}
+            sheet={layout.sheets.elements}
+            cell={card.element}
+          />
+        </div>
       )}
 
-      {layout.stars.map((box, index) => (
-        <Sprite
-          key={box.join()}
-          box={box}
-          url={pack.images.stars}
-          sheet={layout.sheets.stars}
-          cell={index < card.stars ? 'filled' : 'empty'}
-        />
-      ))}
+      <div aria-hidden className="@max-[130px]:hidden">
+        {layout.stars.map((box, index) => (
+          <Sprite
+            key={box.join()}
+            box={box}
+            url={pack.images.stars}
+            sheet={layout.sheets.stars}
+            cell={index < card.stars ? 'filled' : 'empty'}
+          />
+        ))}
+
+        <div
+          className="absolute flex items-center justify-center overflow-hidden px-[1%] leading-none font-bold whitespace-nowrap text-white [text-shadow:0_0.3cqw_0.6cqw_rgb(0_0_0/0.8)]"
+          style={{
+            ...boxToPercent(layout.name),
+            fontSize: nameFontSize(card.name),
+            fontFamily,
+          }}
+        >
+          <span className="truncate">{card.name}</span>
+        </div>
+      </div>
 
       <div
         aria-hidden
-        className="absolute flex items-center justify-center overflow-hidden px-[1%] leading-none font-bold whitespace-nowrap text-white [text-shadow:0_0.3cqw_0.6cqw_rgb(0_0_0/0.8)]"
-        style={{
-          ...boxToPercent(layout.name),
-          fontSize: nameFontSize(card.name),
-          fontFamily: pack.font ? `"${pack.font.family}"` : 'var(--font-display)',
-        }}
+        className="absolute inset-x-0 bottom-0 hidden flex-col items-center gap-[1.5cqw] bg-linear-to-t from-black/85 via-black/70 to-transparent px-[3%] pt-[5cqw] pb-[3cqw] @max-[130px]:flex"
       >
-        <span className="truncate">{card.name}</span>
+        <span
+          className="max-w-full truncate leading-none font-bold text-white [text-shadow:0_0.5cqw_1cqw_rgb(0_0_0/0.9)]"
+          style={{ fontSize: compactNameFontSize(card.name), fontFamily }}
+        >
+          {card.name}
+        </span>
+        <span className="flex gap-[1cqw]">
+          {layout.stars.map((box, index) => (
+            <span
+              key={box.join()}
+              className="size-[11cqw] bg-no-repeat"
+              style={{
+                ...spritePosition(layout.sheets.stars, index < card.stars ? 'filled' : 'empty'),
+                backgroundImage: cssUrl(pack.images.stars),
+              }}
+            />
+          ))}
+        </span>
       </div>
     </CardShell>
   );
