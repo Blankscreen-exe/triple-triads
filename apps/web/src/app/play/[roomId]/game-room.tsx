@@ -16,6 +16,7 @@ import { CoinFlip } from '@/components/game/coin-flip';
 import { RoundAnnounce } from '@/components/game/round-announce';
 import { RuleChips } from '@/components/game/rule-chips';
 import { StatBoard } from '@/components/game/stat-board';
+import { WhiteFlagIcon } from '@/components/game/white-flag-icon';
 import { useGameStats } from '@/lib/use-game-stats';
 import { Button, buttonClasses } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
@@ -82,13 +83,24 @@ export function GameRoom({ roomId, role }: GameRoomProps) {
           {snapshot.spectators > 0 && (
             <span className="text-xs text-slate-300/70">{snapshot.spectators} watching</span>
           )}
-          <Button variant="secondary" onClick={() => void room.leave()}>
-            {snapshot.you.role === 'spectator'
-              ? 'Stop watching'
-              : snapshot.game && snapshot.status === 'playing'
-                ? '\u{1F3F3}️ Surrender'
-                : 'Leave room'}
-          </Button>
+          {snapshot.you.role === 'player' && snapshot.game && snapshot.status === 'playing' ? (
+            // Leaving mid-match loses it, so it is called what it is, and asked about first.
+            <Button
+              variant="secondary"
+              onClick={() => {
+                if (window.confirm('Surrender? You lose this match and the room closes.')) {
+                  void room.leave();
+                }
+              }}
+            >
+              <WhiteFlagIcon />
+              Surrender
+            </Button>
+          ) : (
+            <Button variant="secondary" onClick={() => void room.leave()}>
+              {snapshot.you.role === 'spectator' ? 'Stop watching' : 'Leave room'}
+            </Button>
+          )}
         </div>
       </header>
 

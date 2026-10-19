@@ -217,7 +217,11 @@ test('when a player surrenders, the other is sent to the lobby and the room is g
   await joinFromLobby(guest.page, roomName, 'Join');
   await expect(guest.page.getByRole('status').filter({ hasText: /turn/ })).toBeVisible();
 
-  await host.page.getByRole('button', { name: /Surrender/ }).click();
+  host.page.once('dialog', (dialog) => {
+    expect(dialog.message()).toContain('You lose this match');
+    void dialog.accept();
+  });
+  await host.page.getByRole('button', { name: 'Surrender' }).click();
 
   for (const page of [host.page, guest.page]) {
     await expect(page).toHaveURL(/\/play$/);
