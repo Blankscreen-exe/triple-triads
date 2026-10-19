@@ -24,7 +24,7 @@ test('on a phone, the main links are in a menu', async ({ browser }) => {
   await expect(menu).toHaveAttribute('aria-expanded', 'false');
 });
 
-test('on a phone, the game fits the screen width and the hand is a row', async ({ browser }) => {
+test('on a phone, the game fills the screen without scrolling', async ({ browser }) => {
   const host = await newPhonePlayer(browser);
   const guest = await newPhonePlayer(browser);
   const roomName = `Phone ${host.name}`;
@@ -43,8 +43,13 @@ test('on a phone, the game fits the screen width and the hand is a row', async (
   const page = host.page;
   const hand = page.getByRole('list', { name: 'Your hand' }).getByRole('button');
   await expect(hand).not.toHaveCount(0);
-  // Nothing sticks out sideways, so the page never scrolls left and right.
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  // Nothing sticks out, so the page never scrolls, sideways or down.
+  expect(
+    await page.evaluate(() => [
+      document.documentElement.scrollWidth,
+      document.documentElement.scrollHeight,
+    ]),
+  ).toEqual([PHONE.viewport.width, PHONE.viewport.height]);
 
   const board = await page.getByRole('list', { name: 'Board' }).boundingBox();
   const [first, second] = [await hand.nth(0).boundingBox(), await hand.nth(1).boundingBox()];
@@ -53,6 +58,21 @@ test('on a phone, the game fits the screen width and the hand is a row', async (
   expect(second.x).toBeGreaterThan(first.x);
   expect(second.y).toBe(first.y);
   expect(first.y).toBeGreaterThan(board.y + board.height);
-  // The board and your hand fit on the screen together (under the 56px header).
-  expect(first.y + first.height - board.y).toBeLessThan(PHONE.viewport.height - 56);
+  expect(first.y + first.height).toBeLessThanOrEqual(PHONE.viewport.height);
+
+  // Everything else is behind buttons: the full scoreboard behind More, the room behind the menu.
+  const score = page.getByRole('group', { name: 'Score' });
+  await expect(score).toContainText('Round 1 of 3');
+  await score.getByRole('button', { name: 'More' }).click();
+  const scoreboard = page.getByRole('dialog', { name: 'Scoreboard' });
+  await expect(scoreboard.getByText('Cards captured')).toBeVisible();
+  await scoreboard.getByRole('button', { name: 'Close' }).click();
+  await expect(scoreboard).toBeHidden();
+
+  await page.getByRole('button', { name: 'Game menu' }).click();
+  const menu = page.getByRole('dialog', { name: 'Game menu' });
+  await expect(menu.getByRole('heading', { name: roomName })).toBeVisible();
+  await expect(menu.getByRole('button', { name: 'Surrender' })).toBeVisible();
+  await menu.getByRole('button', { name: 'Back to the game' }).click();
+  await expect(menu).toBeHidden();
 });

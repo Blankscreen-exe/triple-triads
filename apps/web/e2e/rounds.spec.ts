@@ -111,10 +111,10 @@ test('every round of a best-of-3 match is played; three drawn rounds draw the ma
 
   for (let round = 1; round <= 3; round++) {
     for (const page of [host, guest]) {
-      // The stat board shows the round too; check the status line above the board.
-      await expect(page.getByRole('status').getByText(`Round ${String(round)} of 3`)).toBeVisible({
-        timeout: NEXT_ROUND_TIMEOUT,
-      });
+      // The full scoreboard shows the round too; check the score strip above the board.
+      await expect(
+        page.getByRole('group', { name: 'Score' }).getByText(`Round ${String(round)} of 3`),
+      ).toBeVisible({ timeout: NEXT_ROUND_TIMEOUT });
     }
     if (round > 1) {
       await expect(host.getByRole('status')).toContainText(`The last round was a draw, so`);

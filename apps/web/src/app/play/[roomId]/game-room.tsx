@@ -16,11 +16,12 @@ import { ResultPanel } from '@/components/game/result-panel';
 import { CoinFlip } from '@/components/game/coin-flip';
 import { RoundAnnounce } from '@/components/game/round-announce';
 import { RuleChips } from '@/components/game/rule-chips';
-import { StatBoard } from '@/components/game/stat-board';
+import { ScoreStrip } from '@/components/game/score-strip';
 import { WhiteFlagIcon } from '@/components/game/white-flag-icon';
 import { useGameStats } from '@/lib/use-game-stats';
 import { Button, buttonClasses } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
+import { Modal, ModalClose } from '@/components/ui/modal';
 import { Window } from '@/components/ui/window';
 import { notify } from '@/lib/notifications';
 import { useRoom } from '@/lib/realtime/hooks';
@@ -71,7 +72,10 @@ export function GameRoom({ roomId, role }: GameRoomProps) {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-start justify-between gap-3">
+      {/* On phones a game fills the screen, with these in its menu instead. */}
+      <header
+        className={`flex items-start justify-between gap-3 ${snapshot.game ? 'max-sm:hidden' : ''}`}
+      >
         <div className="min-w-0">
           <h1 className="truncate font-display text-xl font-bold tracking-wider text-cream sm:text-2xl">
             {snapshot.name}
@@ -84,29 +88,16 @@ export function GameRoom({ roomId, role }: GameRoomProps) {
           {snapshot.spectators > 0 && (
             <span className="text-xs text-slate-300/70">{snapshot.spectators} watching</span>
           )}
-          {snapshot.you.role === 'player' && snapshot.game && snapshot.status === 'playing' ? (
-            // Leaving mid-match loses it, so it is called what it is, and asked about first.
-            <Button
-              variant="secondary"
-              onClick={() => {
-                if (window.confirm('Surrender? You lose this match and the room closes.')) {
-                  void room.leave();
-                }
-              }}
-            >
-              <WhiteFlagIcon />
-              Surrender
-            </Button>
-          ) : (
-            <Button variant="secondary" onClick={() => void room.leave()}>
-              {snapshot.you.role === 'spectator' ? 'Stop watching' : 'Leave room'}
-            </Button>
-          )}
+          <LeaveButton snapshot={snapshot} room={room} />
         </div>
       </header>
 
       {error && (
-        <p role="alert" className="rounded-md bg-status-live/30 px-3 py-2 text-sm">
+        // Floats over the full-screen game on phones.
+        <p
+          role="alert"
+          className="rounded-md bg-status-live/30 px-3 py-2 text-sm max-sm:fixed max-sm:inset-x-3 max-sm:top-24 max-sm:z-50 max-sm:bg-status-live/90"
+        >
           {ROOM_ERRORS[error]}
         </p>
       )}
@@ -219,25 +210,35 @@ function Table({
 
   return (
     <>
-      <div className="space-y-5">
+      {/*
+       * On phones the game fills the screen (over the site header) and never scrolls: the score
+       * and a menu on top, then the turn, the opponent, the board (as large as the space left
+       * allows) and your hand. Room details, the full scoreboard and leaving are behind buttons.
+       */}
+      <div className="space-y-5 max-sm:fixed max-sm:inset-0 max-sm:z-40 max-sm:flex max-sm:flex-col max-sm:gap-2 max-sm:space-y-0 max-sm:overscroll-none max-sm:bg-night max-sm:px-3 max-sm:pt-2 max-sm:pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <ScoreStrip game={game} stats={gameStats}>
+          <GameMenu snapshot={snapshot} room={room} />
+        </ScoreStrip>
         <StatusLine
           snapshot={snapshot}
           clockOffset={room.clockOffset}
           myTurn={myTurn}
           hasSelection={!!selection}
         />
-        <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start sm:justify-center sm:gap-6">
+        <div className="flex flex-col items-center gap-3 max-sm:min-h-0 max-sm:flex-1 max-sm:gap-2 sm:flex-row sm:items-start sm:justify-center sm:gap-6">
           {side(left)}
-          {/* Sized to the screen's height too, so the board and your hand fit on screen together. */}
-          <div className="relative w-full max-w-[calc((100svh-420px)*0.72)] min-w-56 sm:w-[clamp(240px,min(48vw,(100svh-260px)*0.72),460px)] sm:max-w-none">
-            <Board
-              game={game}
-              canPlace={myTurn && selection !== null}
-              onPlace={place}
-              acceptsDrop={myTurn}
-              drag={drag.drag}
-            />
-            <CaptureBanner game={game} />
+          {/* On phones the board takes the height left over, measured with a size container. */}
+          <div className="flex w-full min-h-0 flex-1 items-center justify-center [container-type:size] sm:contents">
+            <div className="relative w-[min(100cqw,calc(100cqh*0.72))] sm:w-[clamp(240px,min(48vw,(100svh-320px)*0.72),460px)]">
+              <Board
+                game={game}
+                canPlace={myTurn && selection !== null}
+                onPlace={place}
+                acceptsDrop={myTurn}
+                drag={drag.drag}
+              />
+              <CaptureBanner game={game} />
+            </div>
           </div>
           {side(right)}
         </div>
@@ -276,21 +277,9 @@ function Table({
           <RoundAnnounce round={game.match.round} turn={view.turn} />
         )}
         {view.result && game.match.nextRoundAt !== null && (
-          <div className="mx-auto max-w-sm">
+          // Phones show the short version in the status line.
+          <div className="mx-auto max-w-sm max-sm:hidden">
             <RoundBreak snapshot={snapshot} clockOffset={room.clockOffset} />
-          </div>
-        )}
-        {gameStats && (
-          <div className="mx-auto max-w-md">
-            <StatBoard
-              stats={gameStats}
-              players={{
-                red: game.players.red.username,
-                blue: game.players.blue.username,
-              }}
-              match={game.match}
-              gameOver={view.result !== null}
-            />
           </div>
         )}
       </div>
@@ -324,7 +313,8 @@ function StatusLine({
   if (!game) return null;
   if (game.view.result) {
     // Between rounds: say so at the top too, as the details below the board may be off-screen.
-    const { nextRoundAt, round } = game.match;
+    const { match } = game;
+    const { nextRoundAt, round } = match;
     if (nextRoundAt === null) return null;
     const roundWinner = game.view.result.winner;
     const roundLabel = roundWinner
@@ -334,6 +324,10 @@ function StatusLine({
       <p className="text-center text-sm" role="status">
         {roundLabel} · Round {round + 1} in{' '}
         <Countdown deadline={nextRoundAt} clockOffset={clockOffset} />
+        <span className="sm:hidden">
+          {' '}
+          · Cards left {match.cardsLeft.red}–{match.cardsLeft.blue}
+        </span>
       </p>
     );
   }
@@ -351,15 +345,9 @@ function StatusLine({
   const active = game.players[game.view.activePlayer].username;
   return (
     <div className="space-y-1.5 text-center" role="status">
-      {game.match.format === 'until-winner' && (
-        <p className="font-display text-xs tracking-[0.2em] text-slate-400 uppercase">
-          Round {game.match.round} of 3
-          {(game.match.seriesScore.red > 0 || game.match.seriesScore.blue > 0) &&
-            ` · ${String(game.match.seriesScore.red)}–${String(game.match.seriesScore.blue)}`}
-        </p>
-      )}
       {game.view.turn === 1 && (
-        <p className="text-sm text-slate-300">
+        // The coin flip announces this on phones, where space is short.
+        <p className="text-sm text-slate-300 max-sm:hidden">
           {firstPlayerMessage(
             game.players[game.firstPlayer.color].username,
             game.firstPlayer.reason,
@@ -381,11 +369,102 @@ function StatusLine({
           <Countdown
             deadline={game.turnDeadline}
             clockOffset={clockOffset}
-            className="font-display text-2xl text-cream"
+            className="font-display text-xl text-cream sm:text-2xl"
           />
         )}
       </div>
     </div>
+  );
+}
+
+/** Surrender during a match (asked about first, as it loses it); otherwise leave or stop watching. */
+function LeaveButton({
+  snapshot,
+  room,
+  className,
+}: {
+  readonly snapshot: RoomSnapshot;
+  readonly room: ReturnType<typeof useRoom>;
+  readonly className?: string;
+}) {
+  if (snapshot.you.role === 'player' && snapshot.game && snapshot.status === 'playing') {
+    return (
+      <Button
+        variant="secondary"
+        className={className}
+        onClick={() => {
+          if (window.confirm('Surrender? You lose this match and the room closes.')) {
+            void room.leave();
+          }
+        }}
+      >
+        <WhiteFlagIcon />
+        Surrender
+      </Button>
+    );
+  }
+  return (
+    <Button variant="secondary" className={className} onClick={() => void room.leave()}>
+      {snapshot.you.role === 'spectator' ? 'Stop watching' : 'Leave room'}
+    </Button>
+  );
+}
+
+/** Phones only: the room's details and leaving, in a sheet from the bottom of the screen. */
+function GameMenu({
+  snapshot,
+  room,
+}: {
+  readonly snapshot: RoomSnapshot;
+  readonly room: ReturnType<typeof useRoom>;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        aria-label="Game menu"
+        aria-haspopup="dialog"
+        onClick={() => {
+          setOpen(true);
+        }}
+        className="flex size-8 items-center justify-center rounded-md text-cream hover:bg-white/10 sm:hidden"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5">
+          <path
+            d="M4 7h16M4 12h16M4 17h16"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
+      </button>
+      {open && (
+        <Modal
+          label="Game menu"
+          variant="sheet"
+          onClose={() => {
+            setOpen(false);
+          }}
+        >
+          <Window className="space-y-4 rounded-b-none p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+            <div>
+              <h2 className="font-display text-xl font-bold tracking-wider text-cream">
+                {snapshot.name}
+              </h2>
+              {snapshot.spectators > 0 && (
+                <p className="text-xs text-slate-300/70">{snapshot.spectators} watching</p>
+              )}
+            </div>
+            <RuleChips options={snapshot.options} />
+            <div className="flex gap-3">
+              <LeaveButton snapshot={snapshot} room={room} className="flex-1" />
+              <ModalClose className="flex-1">Back to the game</ModalClose>
+            </div>
+          </Window>
+        </Modal>
+      )}
+    </>
   );
 }
 
