@@ -2,8 +2,10 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { PackEditor } from '@/components/packs/pack-editor';
 import { ActionButton } from '@/components/ui/action-button';
+import { Pagination } from '@/components/ui/pagination';
 import { Window } from '@/components/ui/window';
 import type { PackPart } from '@/lib/asset-pack-spec';
+import { pageFromQuery, pageHref, paginate } from '@/lib/pagination';
 import { getDatabase } from '@/server/db';
 import {
   DEFAULT_PACK_OWNER,
@@ -16,7 +18,10 @@ import { resetDefaultPackPart, resetPlayerPackAction, uploadDefaultPackPart } fr
 
 export const metadata: Metadata = { title: 'Card style' };
 
-export default function AdminPacksPage() {
+/** Players' card styles listed per page. */
+const PAGE_SIZE = 10;
+
+export default function AdminPacksPage({ searchParams }: PageProps<'/admin/packs'>) {
   return (
     <>
       <h1 className="font-display text-2xl font-bold tracking-wider text-cream">
@@ -27,7 +32,7 @@ export default function AdminPacksPage() {
       </p>
       <Suspense fallback={<p className="text-slate-300">Loading…</p>}>
         <DefaultPack />
-        <CustomPacks />
+        <CustomPacks searchParams={searchParams} />
       </Suspense>
     </>
   );
@@ -46,21 +51,23 @@ async function DefaultPack() {
   );
 }
 
-async function CustomPacks() {
+async function CustomPacks({ searchParams }: Pick<PageProps<'/admin/packs'>, 'searchParams'>) {
   await requireAdmin();
-  const packs = listCustomPacks(getDatabase());
+  const query = await searchParams;
+  // Which parts a style replaces is only known once its files are read, so it pages here.
+  const packs = paginate(listCustomPacks(getDatabase()), pageFromQuery(query), PAGE_SIZE);
   return (
     <Window className="mt-8 p-5" aria-label="Players' card styles">
       <h2 className="font-display text-lg font-bold tracking-wider text-cream">
         Players&apos; card styles
       </h2>
-      {packs.length === 0 ? (
+      {packs.total === 0 ? (
         <p className="mt-2 text-sm text-slate-300/80">No player has customised their style.</p>
       ) : (
         <ul className="mt-3 space-y-2">
-          {packs.map((pack) => (
+          {packs.items.map((pack) => (
             <li key={pack.userId} className="flex items-center justify-between gap-3">
-              <span className="text-slate-100">
+              <span className="min-w-0 break-words text-slate-100">
                 {pack.username}{' '}
                 <span className="text-xs text-slate-300/70">
                   ({pack.parts} {pack.parts === 1 ? 'part' : 'parts'} replaced)
@@ -77,6 +84,13 @@ async function CustomPacks() {
           ))}
         </ul>
       )}
+      <Pagination
+        label="Players' card styles"
+        className="mt-4"
+        page={packs.page}
+        pageCount={packs.pageCount}
+        hrefFor={(page) => pageHref('/admin/packs', query, page)}
+      />
     </Window>
   );
 }

@@ -5,7 +5,9 @@
  * banned, and the last remaining admin cannot be demoted.
  */
 import { randomBytes } from 'node:crypto';
-import { and, asc, count, eq, isNull } from 'drizzle-orm';
+import { and, asc, count, eq, isNull, sql } from 'drizzle-orm';
+import { loadPage, type Page, type PageRequest } from '@/lib/pagination';
+import { usernameKey } from '@/lib/validation/credentials';
 import { hashPassword } from '../auth/password';
 import { deleteUserSessions } from '../auth/sessions';
 import type { AppDatabase } from '../db/client';
@@ -27,21 +29,35 @@ export type UserAdminError =
 export type UserAdminResult<T = null> =
   { readonly ok: true; readonly data: T } | { readonly ok: false; readonly error: UserAdminError };
 
-export function listUsers(db: AppDatabase): AdminUserRow[] {
-  return db
-    .select()
-    .from(users)
-    .orderBy(asc(users.usernameKey))
-    .all()
-    .map((user) => ({
-      id: user.id,
-      username: user.username,
-      role: user.role,
-      rating: user.rating,
-      gamesPlayed: user.wins + user.losses + user.draws,
-      createdAt: user.createdAt,
-      bannedAt: user.bannedAt,
-    }));
+/** One page of the accounts, by username; `search` keeps those whose name contains it. */
+export function listUsers(
+  db: AppDatabase,
+  { page, pageSize }: PageRequest,
+  search = '',
+): Page<AdminUserRow> {
+  const key = usernameKey(search);
+  // instr, unlike LIKE, needs no escaping of the search text.
+  const matches = key === '' ? undefined : sql`instr(${users.usernameKey}, ${key}) > 0`;
+  const total = db.select({ total: count() }).from(users).where(matches).get()?.total ?? 0;
+  return loadPage(total, page, pageSize, (offset, limit) =>
+    db
+      .select()
+      .from(users)
+      .where(matches)
+      .orderBy(asc(users.usernameKey))
+      .limit(limit)
+      .offset(offset)
+      .all()
+      .map((user) => ({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        rating: user.rating,
+        gamesPlayed: user.wins + user.losses + user.draws,
+        createdAt: user.createdAt,
+        bannedAt: user.bannedAt,
+      })),
+  );
 }
 
 /** Sets a new random password, logs the user out everywhere, and returns the password once. */

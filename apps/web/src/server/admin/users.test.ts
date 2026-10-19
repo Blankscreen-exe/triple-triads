@@ -4,6 +4,8 @@ import { createTestDatabase, createTestUser } from '../testing/test-database';
 import { authenticateUser } from '../users/users';
 import { listUsers, resetPassword, setBanned, setRole } from './users';
 
+const ALL = { page: 1, pageSize: 100 };
+
 /** The first account is the admin; the second a player. */
 async function adminAndPlayer() {
   const db = createTestDatabase();
@@ -16,10 +18,34 @@ describe('listUsers', () => {
   it('lists everyone with their role and status', async () => {
     const { db } = await adminAndPlayer();
 
-    expect(listUsers(db).map((user) => [user.username, user.role, user.bannedAt])).toEqual([
+    expect(
+      listUsers(db, ALL).items.map((user) => [user.username, user.role, user.bannedAt]),
+    ).toEqual([
       ['admin', 'admin', null],
       ['player', 'player', null],
     ]);
+  });
+
+  it('pages through accounts by username', async () => {
+    const { db } = await adminAndPlayer();
+    await createTestUser(db, 'Zed');
+    await createTestUser(db, 'bea');
+
+    const second = listUsers(db, { page: 2, pageSize: 2 });
+
+    expect(second).toMatchObject({ page: 2, pageCount: 2, total: 4 });
+    expect(second.items.map((user) => user.username)).toEqual(['player', 'Zed']);
+  });
+
+  it('finds accounts by part of their name, ignoring case', async () => {
+    const { db } = await adminAndPlayer();
+    await createTestUser(db, 'Play_Maker');
+
+    const found = listUsers(db, ALL, ' PLAY ');
+
+    expect(found.total).toBe(2);
+    expect(found.items.map((user) => user.username)).toEqual(['Play_Maker', 'player']);
+    expect(listUsers(db, ALL, '%').total).toBe(0);
   });
 });
 
@@ -70,10 +96,10 @@ describe('setRole', () => {
     const { db, admin, player } = await adminAndPlayer();
 
     setRole(db, admin.id, player.id, 'admin');
-    expect(listUsers(db).find((user) => user.id === player.id)?.role).toBe('admin');
+    expect(listUsers(db, ALL).items.find((user) => user.id === player.id)?.role).toBe('admin');
 
     setRole(db, player.id, admin.id, 'player');
-    expect(listUsers(db).find((user) => user.id === admin.id)?.role).toBe('player');
+    expect(listUsers(db, ALL).items.find((user) => user.id === admin.id)?.role).toBe('player');
   });
 
   it('never leaves the game without an admin', async () => {

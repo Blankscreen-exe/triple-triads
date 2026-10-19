@@ -187,17 +187,19 @@ describe('seeding', () => {
   });
 });
 
+const FIRST_PAGE = { page: 1, pageSize: 10 };
+
 describe('moderation', () => {
   it('lists custom cards with their creators and removes any of them', async () => {
     const player = await createTestUser(db, 'artist');
     const created = await createCustomCard(db, storage, player.id, CARD, await art(150));
     if (!created.ok) throw new Error(created.error);
 
-    expect(listCustomCards(db).map((entry) => [entry.card.name, entry.creator])).toEqual([
-      ['Moomba', 'artist'],
-    ]);
+    expect(
+      listCustomCards(db, FIRST_PAGE).items.map((entry) => [entry.card.name, entry.creator]),
+    ).toEqual([['Moomba', 'artist']]);
     expect(await removeCustomCard(db, storage, created.cardId)).toBe(true);
-    expect(listCustomCards(db)).toEqual([]);
+    expect(listCustomCards(db, FIRST_PAGE).items).toEqual([]);
     expect(await removeCustomCard(db, storage, 'generic-sand-lizard')).toBe(false);
   });
 });

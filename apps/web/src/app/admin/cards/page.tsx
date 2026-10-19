@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { CardView } from '@/components/cards/card-view';
-import { toCardFace } from '@/components/cards/to-card-face';
+import { FilterableCardGrid } from '@/components/cards/filterable-card-grid';
+import { toCardFace, toFilterableCard } from '@/components/cards/to-card-face';
 import { buttonClasses } from '@/components/ui/button';
 import { Window } from '@/components/ui/window';
 import { listGenericCards } from '@/server/cards/generic-cards';
@@ -39,10 +40,12 @@ async function GenericCardGrid() {
   const cards = listGenericCards(db);
   const pack = getAssetPack(db, DEFAULT_PACK_OWNER);
   return (
-    <Window className="mt-6 p-5">
-      <ul className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-        {cards.map((card) => (
-          <li key={card.id}>
+    <Window className="mt-6 p-5 max-sm:px-3">
+      <FilterableCardGrid
+        items={cards.map((card) => ({
+          key: card.id,
+          card: toFilterableCard(card),
+          content: (
             <Link
               href={`/admin/cards/${card.id}`}
               aria-label={`Edit ${card.name}`}
@@ -50,9 +53,9 @@ async function GenericCardGrid() {
             >
               <CardView card={toCardFace(card)} side="blue" pack={pack} />
             </Link>
-          </li>
-        ))}
-      </ul>
+          ),
+        }))}
+      />
     </Window>
   );
 }

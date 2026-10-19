@@ -20,6 +20,11 @@ test('an admin creates a generic card', async ({ page }) => {
   await page.getByRole('button', { name: 'Save card' }).click();
 
   await expect(page).toHaveURL('/admin/cards');
+  // The grid is paged, weakest cards last: search for it.
+  await page
+    .getByRole('search', { name: 'Filter cards' })
+    .getByLabel('Search')
+    .fill('Garden Chocobo');
   await expect(page.getByRole('link', { name: 'Edit Garden Chocobo' })).toBeVisible();
 });
 
@@ -30,6 +35,10 @@ test('an admin bans and unbans a player', async ({ page, browser }) => {
 
   await logInAsAdmin(page);
   await page.goto('/admin/users');
+  // Every test signs players up, so find this one by name.
+  await page.getByRole('search', { name: 'Find users' }).getByLabel('Username').fill(playerName);
+  await page.getByRole('button', { name: 'Search' }).click();
+  await expect(page).toHaveURL(`/admin/users?q=${playerName}`);
   const row = page.getByRole('row', { name: playerName });
   page.once('dialog', (dialog) => void dialog.accept());
   await row.getByRole('button', { name: 'Ban' }).click();

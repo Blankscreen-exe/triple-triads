@@ -31,12 +31,15 @@ async function AdminShell({ children }: { readonly children: ReactNode }) {
   await requireAdmin();
   return (
     <>
-      <nav aria-label="Admin" className="mb-6 flex flex-wrap gap-1 border-b border-frame/30 pb-3">
+      <nav
+        aria-label="Admin"
+        className="mb-6 flex flex-wrap gap-1 border-b border-frame/30 pb-3 max-sm:-mx-4 max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:px-4 max-sm:[scrollbar-width:none]"
+      >
         {SECTIONS.map(({ href, label }) => (
           <Link
             key={href}
             href={href}
-            className="rounded px-3 py-1.5 text-sm text-slate-200/80 hover:bg-white/10 hover:text-white"
+            className="shrink-0 rounded px-3 py-1.5 text-sm whitespace-nowrap text-slate-200/80 hover:bg-white/10 hover:text-white"
           >
             {label}
           </Link>
