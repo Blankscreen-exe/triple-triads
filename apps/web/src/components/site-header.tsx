@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { getCurrentUser } from '@/server/web/current-user';
+import { MobileNav } from './mobile-nav';
 import { UserMenu } from './user-menu';
 
-interface NavLink {
+export interface NavLink {
   readonly href: string;
   readonly label: string;
 }
@@ -26,11 +27,11 @@ const PUBLIC_LINKS: readonly NavLink[] = [
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b-2 border-frame/70 bg-linear-to-b from-header-top to-header-bottom px-6 py-3 shadow-lg">
-      <div className="flex items-center gap-6">
+    <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b-2 border-frame/70 bg-linear-to-b from-header-top to-header-bottom px-4 py-2.5 shadow-lg sm:gap-4 sm:px-6 sm:py-3">
+      <div className="flex items-center gap-3 sm:gap-6">
         <Link
           href="/"
-          className="font-display text-xl font-bold tracking-[0.2em] text-cream uppercase [text-shadow:0_2px_0_#000]"
+          className="font-display text-base font-bold tracking-[0.15em] whitespace-nowrap text-cream uppercase [text-shadow:0_2px_0_#000] sm:text-xl sm:tracking-[0.2em]"
         >
           Triple Triad
         </Link>
@@ -49,7 +50,16 @@ export function SiteHeader() {
 
 async function SessionNav() {
   const user = await getCurrentUser();
-  return <MainNav links={user ? [...PLAYER_LINKS, ...PUBLIC_LINKS] : PUBLIC_LINKS} />;
+  const links = user ? [...PLAYER_LINKS, ...PUBLIC_LINKS] : PUBLIC_LINKS;
+  return (
+    <>
+      <MainNav links={links} />
+      {/* The header's own Admin link is hidden on phones with the username, so it is listed here. */}
+      <MobileNav
+        links={user?.role === 'admin' ? [...links, { href: '/admin', label: 'Admin' }] : links}
+      />
+    </>
+  );
 }
 
 function MainNav({ links }: { readonly links: readonly NavLink[] }) {

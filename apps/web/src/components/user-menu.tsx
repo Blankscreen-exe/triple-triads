@@ -33,7 +33,8 @@ export async function UserMenu() {
           {tierFor(stats.rating).label} · {stats.rating}
         </span>
       )}
-      <span className="text-sm text-slate-100">
+      {/* On phones, Profile and Admin are in the menu instead. */}
+      <span className="hidden text-sm text-slate-100 sm:inline">
         <Link href="/profile" className="hover:text-cream hover:underline" title="Your profile">
           {user.username}
         </Link>
