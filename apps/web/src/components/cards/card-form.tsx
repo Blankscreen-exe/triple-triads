@@ -17,6 +17,7 @@ import { startTransition, useActionState, useEffect, useId, useRef, useState } f
 import { CardView } from '@/components/cards/card-view';
 import { ArtCropper } from '@/components/cards/art-cropper';
 import { Button, buttonClasses } from '@/components/ui/button';
+import { TabList } from '@/components/ui/tabs';
 import { TextField } from '@/components/ui/text-field';
 import { Window } from '@/components/ui/window';
 import type { AssetPack } from '@/lib/asset-packs';
@@ -104,12 +105,36 @@ export function CardForm({
   );
 
   const rank = rankCard(stats, element, scoring);
+  // Narrow screens show the fields or the preview, chosen with tabs; Save and Cancel stay in a
+  // bar at the bottom of the screen either way.
+  const [tab, setTab] = useState<'attributes' | 'preview'>('attributes');
+  const formId = useId();
+  const starsLabel = `Score ${String(rank.score)} · ${String(rank.stars)} ${rank.stars === 1 ? 'star' : 'stars'}`;
 
   return (
-    <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_280px]">
-      <Window className="p-5">
+    <div className="grid gap-6 max-md:gap-4 max-md:pb-28 md:grid-cols-[minmax(0,1fr)_280px]">
+      <TabList
+        label="Card maker"
+        panelIdPrefix="card"
+        className="md:hidden"
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { id: 'attributes', label: 'Attributes' },
+          { id: 'preview', label: 'Preview' },
+        ]}
+      />
+      <Window
+        id="card-attributes"
+        className={`p-5 max-sm:p-4 ${tab === 'attributes' ? '' : 'max-md:hidden'}`}
+      >
         <form
+          id={formId}
           className="space-y-5"
+          // A required field left empty on the Preview tab: show the fields, so it can be fixed.
+          onInvalidCapture={() => {
+            setTab('attributes');
+          }}
           // Submitted manually rather than via `action`: React resets forms after an action,
           // which would clear the chosen art file when the server reports an error.
           onSubmit={(event) => {
@@ -195,25 +220,13 @@ export function CardForm({
               </p>
             )}
           </div>
-
-          {state.error && (
-            <p role="alert" className="rounded-md bg-status-live/30 px-3 py-2 text-sm">
-              {state.error}
-            </p>
-          )}
-
-          <div className="flex gap-3">
-            <Button type="submit" disabled={isPending || !rank.allowed || artError !== null}>
-              {isPending ? 'Saving…' : 'Save card'}
-            </Button>
-            <Link href={cancelHref} className={buttonClasses('secondary')}>
-              Cancel
-            </Link>
-          </div>
         </form>
       </Window>
 
-      <div className="space-y-3">
+      <div
+        id="card-preview"
+        className={`space-y-3 max-md:mx-auto max-md:w-full max-md:max-w-72 md:row-span-2 ${tab === 'preview' ? '' : 'max-md:hidden'}`}
+      >
         <CardView
           card={{
             name: name.trim() || 'New card',
@@ -225,14 +238,47 @@ export function CardForm({
           side="blue"
           pack={pack}
         />
-        <p className="text-center text-sm text-slate-200" aria-live="polite">
-          Score {rank.score} · {rank.stars} {rank.stars === 1 ? 'star' : 'stars'}
+        <p className="text-center text-sm text-slate-200 max-md:hidden" aria-live="polite">
+          {starsLabel}
         </p>
+      </div>
+
+      {/* Below the fields on wide screens; a bar fixed to the bottom of narrow ones. */}
+      <div className="space-y-3 md:col-start-1 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-20 max-md:border-t-2 max-md:border-frame/70 max-md:bg-header-bottom max-md:px-4 max-md:pt-3 max-md:pb-[max(0.75rem,env(safe-area-inset-bottom))] max-md:shadow-[0_-8px_20px_rgb(0_0_0/0.45)]">
         {!rank.allowed && (
-          <p role="alert" className="rounded-md bg-status-live/30 px-3 py-2 text-center text-sm">
+          <p role="alert" className="rounded-md bg-status-live/30 px-3 py-2 text-sm">
             Too strong: cards can be worth at most 5 stars. Lower some stats.
           </p>
         )}
+        {state.error && (
+          <p role="alert" className="rounded-md bg-status-live/30 px-3 py-2 text-sm">
+            {state.error}
+          </p>
+        )}
+        <div className="flex items-center gap-3">
+          <Button
+            type="submit"
+            form={formId}
+            disabled={isPending || !rank.allowed || artError !== null}
+          >
+            {isPending ? 'Saving…' : 'Save card'}
+          </Button>
+          <Link href={cancelHref} className={buttonClasses('secondary')}>
+            Cancel
+          </Link>
+          {/* The stars at a glance while the preview is on the other tab. */}
+          <span
+            role="img"
+            aria-label={starsLabel}
+            className="ml-auto text-right text-xs leading-tight text-slate-300 md:hidden"
+          >
+            <span className="block text-base tracking-wider text-gold">
+              {'★'.repeat(rank.stars)}
+              <span className="text-slate-500">{'☆'.repeat(Math.max(0, 5 - rank.stars))}</span>
+            </span>
+            {rank.score}
+          </span>
+        </div>
       </div>
 
       {rawImageSrc && (

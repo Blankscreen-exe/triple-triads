@@ -49,6 +49,31 @@ test('on a phone, the lobby has Join and Create tabs, and filters behind a butto
   await expect(filters).toBeHidden();
 });
 
+test('on a phone, the card maker has Attributes and Preview tabs, and Save on both', async ({
+  browser,
+}) => {
+  const { page } = await newPhonePlayer(browser);
+  await page.goto('/cards/new');
+  const name = page.getByLabel('Name', { exact: true });
+  const save = page.getByRole('button', { name: 'Save card' });
+
+  // Saving with no name from the Preview tab brings the fields back to fix it.
+  await page.getByRole('tab', { name: 'Preview' }).click();
+  await expect(name).toBeHidden();
+  await save.click();
+  await expect(page.getByRole('tab', { name: 'Attributes' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+
+  await name.fill('Pocket Moogle');
+  await page.getByRole('tab', { name: 'Preview' }).click();
+  await expect(page.getByRole('img', { name: /^Pocket Moogle, / })).toBeVisible();
+  await expect(save).toBeInViewport();
+  await save.click();
+  await expect(page).toHaveURL('/cards');
+});
+
 test('on a phone, the game fills the screen without scrolling', async ({ browser }) => {
   const host = await newPhonePlayer(browser);
   const guest = await newPhonePlayer(browser);
