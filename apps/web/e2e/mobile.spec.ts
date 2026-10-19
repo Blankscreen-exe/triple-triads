@@ -24,12 +24,38 @@ test('on a phone, the main links are in a menu', async ({ browser }) => {
   await expect(menu).toHaveAttribute('aria-expanded', 'false');
 });
 
+test('on a phone, the lobby has Join and Create tabs, and filters behind a button', async ({
+  browser,
+}) => {
+  const { page } = await newPhonePlayer(browser);
+  await page.goto('/play');
+
+  const join = page.getByRole('tab', { name: /^Join/ });
+  const create = page.getByRole('tab', { name: 'Create room' });
+  await expect(join).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByLabel('Room name')).toBeHidden();
+
+  // Only the search box shows until the filter button is pressed.
+  const filters = page.getByRole('search', { name: 'Filter rooms' });
+  await expect(filters.getByLabel('Search')).toBeVisible();
+  await expect(filters.getByLabel('Timer')).toBeHidden();
+  await filters.getByRole('button', { name: 'Filters' }).click();
+  await filters.getByLabel('Timer').selectOption('30');
+  await expect(filters.getByRole('button', { name: 'Filters (1 on)' })).toBeVisible();
+
+  await create.click();
+  await expect(create).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByLabel('Room name')).toBeVisible();
+  await expect(filters).toBeHidden();
+});
+
 test('on a phone, the game fills the screen without scrolling', async ({ browser }) => {
   const host = await newPhonePlayer(browser);
   const guest = await newPhonePlayer(browser);
   const roomName = `Phone ${host.name}`;
 
   await host.page.goto('/play');
+  await host.page.getByRole('tab', { name: 'Create room' }).click();
   await host.page.getByLabel('Room name').fill(roomName);
   await host.page.getByRole('button', { name: 'Create room' }).click();
   await expect(host.page.getByText('Waiting for an opponent…')).toBeVisible();

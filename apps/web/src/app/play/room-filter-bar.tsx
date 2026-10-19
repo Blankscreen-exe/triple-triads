@@ -1,6 +1,7 @@
 'use client';
 
 import { PLAYER_COLORS, type PlayerColor } from '@triple-triad/engine';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { SelectField } from '@/components/ui/select-field';
 import { TextField } from '@/components/ui/text-field';
@@ -72,109 +73,148 @@ export function RoomFilterBar({ filters, onChange, shown, total }: RoomFilterBar
     });
   };
   const filtered = isRoomFiltered(filters);
+  // Phones: everything but the search box is behind the filter button.
+  const [open, setOpen] = useState(false);
+  const activeCount =
+    [filters.seat, filters.color, filters.timer, filters.password].filter((value) => value !== null)
+      .length + filters.rules.length;
 
   return (
     <div role="search" aria-label="Filter rooms" className="space-y-3">
-      <TextField
-        label="Search"
-        type="search"
-        placeholder="Room or player name"
-        value={filters.query}
-        onChange={(event) => {
-          update({ query: event.target.value });
-        }}
-      />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.35fr)]">
-        <SelectField
-          label="Seats"
-          value={filters.seat ?? ANY}
-          onChange={(value) => {
-            update({ seat: pick(SEAT_FILTERS, value) });
+      <div className="flex items-end gap-2">
+        <div className="min-w-0 flex-1">
+          <TextField
+            label="Search"
+            type="search"
+            placeholder="Room or player name"
+            value={filters.query}
+            onChange={(event) => {
+              update({ query: event.target.value });
+            }}
+          />
+        </div>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls="room-filter-options"
+          aria-label={activeCount > 0 ? `Filters (${String(activeCount)} on)` : 'Filters'}
+          onClick={() => {
+            setOpen((current) => !current);
           }}
+          className={`relative flex size-10.5 shrink-0 items-center justify-center rounded-md border text-cream transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-cream sm:hidden ${open ? 'border-cream bg-white/10' : 'border-frame/60 bg-black/25'}`}
         >
-          <option value={ANY}>All rooms</option>
-          {SEAT_FILTERS.map((seat) => (
-            <option key={seat} value={seat}>
-              {SEAT_LABELS[seat]}
-            </option>
-          ))}
-        </SelectField>
-        <SelectField
-          label="Your colour"
-          value={filters.color ?? ANY}
-          onChange={(value) => {
-            update({ color: pick(PLAYER_COLORS, value) });
-          }}
-        >
-          <option value={ANY}>Any</option>
-          {PLAYER_COLORS.map((color) => (
-            <option key={color} value={color}>
-              {COLOR_LABELS[color]}
-            </option>
-          ))}
-        </SelectField>
-        <SelectField
-          label="Timer"
-          value={filters.timer ?? ANY}
-          onChange={(value) => {
-            update({ timer: pick(TIMER_FILTERS, value) });
-          }}
-        >
-          <option value={ANY}>Any</option>
-          {TIMER_FILTERS.map((timer) => (
-            <option key={timer} value={timer}>
-              {TIMER_LABELS[timer]}
-            </option>
-          ))}
-        </SelectField>
-        <SelectField
-          label="Password"
-          value={filters.password ?? ANY}
-          onChange={(value) => {
-            update({ password: pick(PASSWORD_FILTERS, value) });
-          }}
-        >
-          <option value={ANY}>Any</option>
-          {PASSWORD_FILTERS.map((password) => (
-            <option key={password} value={password}>
-              {PASSWORD_LABELS[password]}
-            </option>
-          ))}
-        </SelectField>
-        <SelectField
-          label="Sort"
-          value={filters.sort}
-          onChange={(value) => {
-            update({ sort: pick(ROOM_SORTS, value) ?? NO_ROOM_FILTERS.sort });
-          }}
-        >
-          {ROOM_SORTS.map((sort) => (
-            <option key={sort} value={sort}>
-              {SORT_LABELS[sort]}
-            </option>
-          ))}
-        </SelectField>
-      </div>
-      <div role="group" aria-labelledby="room-rule-filters" className="flex flex-wrap gap-1.5">
-        <span id="room-rule-filters" className="mr-1 self-center text-sm text-slate-100">
-          Must have
-        </span>
-        {RULE_FILTERS.map((rule) => {
-          const on = filters.rules.includes(rule);
-          return (
-            <button
-              key={rule}
-              type="button"
-              aria-pressed={on}
-              onClick={() => {
-                toggleRule(rule);
-              }}
-              className={`rounded-sm border px-2 py-0.5 text-[11px] tracking-wider uppercase transition focus-visible:outline-2 focus-visible:outline-cream ${on ? 'border-cream bg-action text-white' : 'border-frame/50 bg-black/20 text-slate-200 hover:bg-white/10'}`}
+          <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5">
+            <path
+              d="M3.5 5h17l-6.5 8v5.5l-4 1.5v-7z"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinejoin="round"
+            />
+          </svg>
+          {activeCount > 0 && (
+            <span
+              aria-hidden
+              className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-action text-[11px] font-bold text-white"
             >
-              {RULE_LABELS[rule]}
-            </button>
-          );
-        })}
+              {activeCount}
+            </span>
+          )}
+        </button>
+      </div>
+      <div id="room-filter-options" className={`space-y-3 ${open ? '' : 'max-sm:hidden'}`}>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.35fr)]">
+          <SelectField
+            label="Seats"
+            value={filters.seat ?? ANY}
+            onChange={(value) => {
+              update({ seat: pick(SEAT_FILTERS, value) });
+            }}
+          >
+            <option value={ANY}>All rooms</option>
+            {SEAT_FILTERS.map((seat) => (
+              <option key={seat} value={seat}>
+                {SEAT_LABELS[seat]}
+              </option>
+            ))}
+          </SelectField>
+          <SelectField
+            label="Your colour"
+            value={filters.color ?? ANY}
+            onChange={(value) => {
+              update({ color: pick(PLAYER_COLORS, value) });
+            }}
+          >
+            <option value={ANY}>Any</option>
+            {PLAYER_COLORS.map((color) => (
+              <option key={color} value={color}>
+                {COLOR_LABELS[color]}
+              </option>
+            ))}
+          </SelectField>
+          <SelectField
+            label="Timer"
+            value={filters.timer ?? ANY}
+            onChange={(value) => {
+              update({ timer: pick(TIMER_FILTERS, value) });
+            }}
+          >
+            <option value={ANY}>Any</option>
+            {TIMER_FILTERS.map((timer) => (
+              <option key={timer} value={timer}>
+                {TIMER_LABELS[timer]}
+              </option>
+            ))}
+          </SelectField>
+          <SelectField
+            label="Password"
+            value={filters.password ?? ANY}
+            onChange={(value) => {
+              update({ password: pick(PASSWORD_FILTERS, value) });
+            }}
+          >
+            <option value={ANY}>Any</option>
+            {PASSWORD_FILTERS.map((password) => (
+              <option key={password} value={password}>
+                {PASSWORD_LABELS[password]}
+              </option>
+            ))}
+          </SelectField>
+          <SelectField
+            label="Sort"
+            value={filters.sort}
+            onChange={(value) => {
+              update({ sort: pick(ROOM_SORTS, value) ?? NO_ROOM_FILTERS.sort });
+            }}
+          >
+            {ROOM_SORTS.map((sort) => (
+              <option key={sort} value={sort}>
+                {SORT_LABELS[sort]}
+              </option>
+            ))}
+          </SelectField>
+        </div>
+        <div role="group" aria-labelledby="room-rule-filters" className="flex flex-wrap gap-1.5">
+          <span id="room-rule-filters" className="mr-1 self-center text-sm text-slate-100">
+            Must have
+          </span>
+          {RULE_FILTERS.map((rule) => {
+            const on = filters.rules.includes(rule);
+            return (
+              <button
+                key={rule}
+                type="button"
+                aria-pressed={on}
+                onClick={() => {
+                  toggleRule(rule);
+                }}
+                className={`rounded-sm border px-2 py-0.5 text-[11px] tracking-wider uppercase transition focus-visible:outline-2 focus-visible:outline-cream ${on ? 'border-cream bg-action text-white' : 'border-frame/50 bg-black/20 text-slate-200 hover:bg-white/10'}`}
+              >
+                {RULE_LABELS[rule]}
+              </button>
+            );
+          })}
+        </div>
       </div>
       <div className="flex min-h-8 items-center gap-3 text-sm text-slate-300/80">
         <p aria-live="polite">

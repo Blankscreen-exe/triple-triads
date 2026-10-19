@@ -32,10 +32,17 @@ export function Lobby({
     roomFiltersToSearchParams,
   );
   const visible = rooms === null ? [] : applyRoomFilters(rooms, filters);
+  // Narrow screens show one panel at a time, chosen with tabs; wide ones show both side by side.
+  const [tab, setTab] = useState<LobbyTab>('join');
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <Window className="space-y-4 p-5" aria-label="Rooms">
+    <div className="grid gap-6 max-lg:gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <LobbyTabs tab={tab} onChange={setTab} roomCount={rooms?.length ?? null} />
+      <Window
+        id="lobby-join"
+        className={`space-y-4 p-5 max-sm:p-4 ${tab === 'join' ? '' : 'max-lg:hidden'}`}
+        aria-label="Rooms"
+      >
         <h2 className="font-display text-lg font-bold tracking-wider text-cream">Rooms</h2>
         <RoomFilterBar
           filters={filters}
@@ -60,12 +67,77 @@ export function Lobby({
           </ul>
         )}
       </Window>
-      <Window className="p-5">
+      <Window
+        id="lobby-create"
+        className={`p-5 max-sm:p-4 ${tab === 'create' ? '' : 'max-lg:hidden'}`}
+        aria-label="Create room"
+      >
         <h2 className="mb-4 font-display text-lg font-bold tracking-wider text-cream">
           Create room
         </h2>
         <CreateRoomForm defaultName={`${username}'s room`} policy={policy} />
       </Window>
+    </div>
+  );
+}
+
+type LobbyTab = 'join' | 'create';
+
+const TABS: readonly { readonly id: LobbyTab; readonly label: string }[] = [
+  { id: 'join', label: 'Join' },
+  { id: 'create', label: 'Create room' },
+];
+
+/** Narrow screens only: switches between the room list and the create form. */
+function LobbyTabs({
+  tab,
+  onChange,
+  roomCount,
+}: {
+  readonly tab: LobbyTab;
+  readonly onChange: (tab: LobbyTab) => void;
+  readonly roomCount: number | null;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Lobby"
+      className="grid grid-cols-2 gap-1 rounded-lg border border-frame/50 bg-black/25 p-1 lg:hidden"
+      onKeyDown={(event) => {
+        // Arrow keys move between the two tabs, as in any tab list.
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        const next = tab === 'join' ? 'create' : 'join';
+        onChange(next);
+        document.getElementById(`lobby-tab-${next}`)?.focus();
+      }}
+    >
+      {TABS.map(({ id, label }) => {
+        const selected = tab === id;
+        return (
+          <button
+            key={id}
+            id={`lobby-tab-${id}`}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            aria-controls={`lobby-${id}`}
+            tabIndex={selected ? 0 : -1}
+            onClick={() => {
+              onChange(id);
+            }}
+            className={`flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-cream ${selected ? 'bg-linear-to-b from-gold-light to-gold text-ink' : 'text-slate-200 hover:bg-white/10'}`}
+          >
+            {label}
+            {id === 'join' && roomCount !== null && (
+              <span
+                className={`rounded-full px-1.5 text-xs ${selected ? 'bg-ink/15' : 'bg-white/10'}`}
+              >
+                {roomCount}
+              </span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
