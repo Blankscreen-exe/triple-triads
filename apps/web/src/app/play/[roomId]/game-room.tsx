@@ -134,6 +134,10 @@ function Table({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const game = snapshot.game;
+  // The match result can be closed; it shows again for the next match.
+  const showResult = game?.view.result != null && game.match.nextRoundAt === null;
+  const [resultClosed, setResultClosed] = useState(false);
+  if (resultClosed && !showResult) setResultClosed(false);
   const gameStats = useGameStats(game);
   const you = snapshot.you.color;
   const playing = snapshot.status === 'playing' && game !== null && !game.paused;
@@ -146,6 +150,17 @@ function Table({
     },
   });
   if (!game) return null;
+
+  // The opponent left after the match and you chose to wait: this is an open room again.
+  if (resultClosed && snapshot.status === 'waiting') {
+    return (
+      <Notice title="Waiting for an opponent…">
+        <p className="text-sm text-slate-300/80">
+          Share this page&apos;s address, or wait for someone to join from the lobby.
+        </p>
+      </Notice>
+    );
+  }
 
   const { view } = game;
   // The viewer's side sits on the right (as in FF8); spectators see red left, blue right.
@@ -290,8 +305,16 @@ function Table({
           </div>
         )}
       </div>
-      {view.result && game.match.nextRoundAt === null && (
-        <ResultPanel room={snapshot} onVote={room.vote} stats={gameStats} />
+      {showResult && !resultClosed && (
+        <ResultPanel
+          room={snapshot}
+          onVote={room.vote}
+          onLeave={() => void room.leave()}
+          onDismiss={() => {
+            setResultClosed(true);
+          }}
+          stats={gameStats}
+        />
       )}
     </>
   );

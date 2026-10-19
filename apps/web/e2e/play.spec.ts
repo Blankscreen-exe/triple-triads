@@ -53,12 +53,13 @@ async function playTurn(pages: readonly Page[]) {
   await expect(active.getByText(YOUR_TURN)).toBeHidden();
 }
 
-test('two players play a full match and agree to a rematch', async ({ browser }) => {
-  // Matches are best of 3 and every round is played: 27 turns plus the breaks between rounds.
-  test.setTimeout(180_000);
+const RESULT_HEADING = /^(Victory|Defeat|Draw)$/;
+
+/** Two new players play a whole best-of-3 match in a new room, up to the result screen. */
+async function playFullMatch(browser: Browser, roomPrefix: string) {
   const alice = await newPlayer(browser);
   const bob = await newPlayer(browser);
-  const roomName = `Duel ${alice.name}`;
+  const roomName = `${roomPrefix} ${alice.name}`;
 
   await createRoom(alice.page, roomName);
   await joinFromLobby(bob.page, roomName, 'Join');
@@ -70,13 +71,20 @@ test('two players play a full match and agree to a rematch', async ({ browser })
     );
   }
 
+  // Every round is played: 27 turns plus the breaks between rounds.
   for (let turn = 0; turn < 27; turn++) await playTurn([alice.page, bob.page]);
 
-  const outcomes = ['Victory', 'Defeat', 'Draw'];
   for (const { page } of [alice, bob]) {
-    await expect(
-      page.getByRole('heading', { name: new RegExp(`^(${outcomes.join('|')})$`) }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: RESULT_HEADING })).toBeVisible();
+  }
+  return { alice, bob };
+}
+
+test('two players play a full match and agree to a rematch', async ({ browser }) => {
+  test.setTimeout(180_000);
+  const { alice, bob } = await playFullMatch(browser, 'Duel');
+
+  for (const { page } of [alice, bob]) {
     // The game was recorded and the rating change is shown.
     await expect(page.getByText(/^Rating \d+/)).toBeVisible();
   }
@@ -93,13 +101,32 @@ test('two players play a full match and agree to a rematch', async ({ browser })
   await bob.page.getByRole('button', { name: 'Accept' }).click();
 
   for (const { page } of [alice, bob]) {
-    await expect(
-      page.getByRole('heading', { name: new RegExp(`^(${outcomes.join('|')})$`) }),
-    ).toBeHidden();
+    await expect(page.getByRole('heading', { name: RESULT_HEADING })).toBeHidden();
     await expect(
       page.getByRole('list', { name: 'Board' }).getByRole('img', { name: /, \d stars?, top / }),
     ).toHaveCount(0);
   }
+});
+
+test('after a declined rematch, the result screen lets you wait or leave', async ({ browser }) => {
+  test.setTimeout(180_000);
+  const { alice, bob } = await playFullMatch(browser, 'Declined');
+
+  await alice.page.getByRole('button', { name: 'Play again' }).click();
+  await expect(alice.page.getByText('Waiting for your opponent…')).toBeVisible();
+  // Waiting for an answer is not a dead end either.
+  await expect(alice.page.getByRole('button', { name: 'Leave', exact: true })).toBeVisible();
+
+  await bob.page.getByRole('button', { name: 'Decline' }).click();
+  await expect(bob.page).toHaveURL(/\/play$/);
+
+  await expect(alice.page.getByText(`${bob.name} declined the rematch.`)).toBeVisible();
+  await alice.page.getByRole('button', { name: 'Wait for a new opponent' }).click();
+  await expect(alice.page.getByRole('heading', { name: RESULT_HEADING })).toBeHidden();
+  await expect(alice.page.getByText('Waiting for an opponent…')).toBeVisible();
+
+  await alice.page.getByRole('button', { name: 'Leave room' }).click();
+  await expect(alice.page).toHaveURL(/\/play$/);
 });
 
 test('a spectator watches without seeing either hand', async ({ browser }) => {

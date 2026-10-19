@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { PlayerColor } from '@triple-triad/engine';
 import type { GameStats } from '@/lib/game-stats';
 import type { RoomSnapshot, VoteChoice } from '@/lib/realtime/protocol';
@@ -12,10 +12,15 @@ import { Window } from '../ui/window';
 interface ResultPanelProps {
   readonly room: RoomSnapshot;
   readonly onVote: (choice: VoteChoice) => void;
+  /** Leave the room (or stop watching) and go back to the lobby. */
+  readonly onLeave: () => void;
+  /** Close this panel and stay: to wait for a new opponent, or (spectators) to see the board. */
+  readonly onDismiss: () => void;
   readonly stats: GameStats | null;
 }
 
-export function ResultPanel({ room, onVote, stats }: ResultPanelProps) {
+/** The end of a match. Every state offers a way on: play again, wait, or leave. */
+export function ResultPanel({ room, onVote, onLeave, onDismiss, stats }: ResultPanelProps) {
   const game = room.game;
   const result = game?.view.result;
   const [showPerf, setShowPerf] = useState(false);
@@ -72,7 +77,18 @@ export function ResultPanel({ room, onVote, stats }: ResultPanelProps) {
         )}
         {you && game.outcome && <RatingChange outcome={game.outcome[you]} />}
 
-        {room.you.role === 'player' && <RematchVote room={room} onVote={onVote} />}
+        {room.you.role === 'player' ? (
+          <RematchVote room={room} onVote={onVote} onLeave={onLeave} onDismiss={onDismiss} />
+        ) : (
+          <div className="mt-4 flex gap-3">
+            <Button className="flex-1" onClick={onDismiss}>
+              Keep watching
+            </Button>
+            <Button variant="secondary" className="flex-1" onClick={onLeave}>
+              Stop watching
+            </Button>
+          </div>
+        )}
 
         {stats && (
           <button
@@ -93,9 +109,13 @@ export function ResultPanel({ room, onVote, stats }: ResultPanelProps) {
 function RematchVote({
   room,
   onVote,
+  onLeave,
+  onDismiss,
 }: {
   readonly room: RoomSnapshot;
   readonly onVote: (choice: VoteChoice) => void;
+  readonly onLeave: () => void;
+  readonly onDismiss: () => void;
 }) {
   const [declined, setDeclined] = useState<string | null>(null);
   const prevState = useRef<{ hadRematch: boolean; myVote: string | null; opponentName: string }>({
@@ -127,26 +147,50 @@ function RematchVote({
     };
   }, [room.rematch, myVote, opponentName]);
 
-  if (declined) {
-    return (
-      <div className="mt-4">
-        <p className="text-sm font-semibold text-score-red">{declined} declined the rematch.</p>
-        <p className="mt-2 text-xs text-slate-300/80">Waiting for a new opponent…</p>
+  // The opponent is gone and the room is open for someone new: wait for them, or go.
+  const opponentGone = (message: ReactNode) => (
+    <div className="mt-4 space-y-3">
+      {message}
+      <div className="flex gap-3">
+        <Button className="flex-1" onClick={onDismiss}>
+          Wait for a new opponent
+        </Button>
+        <Button variant="secondary" className="flex-1" onClick={onLeave}>
+          Back to the lobby
+        </Button>
       </div>
+    </div>
+  );
+
+  if (declined) {
+    return opponentGone(
+      <p className="text-sm font-semibold text-score-red">{declined} declined the rematch.</p>,
     );
   }
 
   if (!room.rematch) {
-    if (room.status === 'waiting') {
-      return (
-        <p className="mt-3 text-sm text-slate-300/80">Your opponent left. Waiting for a new one…</p>
-      );
-    }
-    return null;
+    return opponentGone(
+      <p className="text-sm text-slate-300/80">
+        {room.status === 'waiting' ? 'Your opponent left.' : 'This match is over.'}
+      </p>,
+    );
   }
 
   if (myVote === 'continue') {
-    return <p className="mt-4 text-sm text-slate-100">Waiting for your opponent…</p>;
+    return (
+      <div className="mt-4 space-y-3">
+        <p className="text-sm text-slate-100">Waiting for your opponent…</p>
+        <Button
+          variant="secondary"
+          className="w-full"
+          onClick={() => {
+            onVote('leave');
+          }}
+        >
+          Leave
+        </Button>
+      </div>
+    );
   }
 
   if (opponentVote === 'continue') {
