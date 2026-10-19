@@ -49,8 +49,6 @@ const SORT_LABELS: Record<DeckSort, string> = {
 
 /** Decks per page on wider screens; phones show as many as fit. */
 const PAGE_SIZE = 8;
-/** Space between rows (Tailwind `space-y-2`), for working out how many fit. */
-const ROW_GAP = 8;
 
 interface DeckListProps {
   readonly decks: readonly DeckListItem[];
@@ -71,7 +69,7 @@ export function DeckList({ decks, deckSize }: DeckListProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [list, setList] = useState<HTMLUListElement | null>(null);
   const phone = useMediaQuery(PHONE_QUERY);
-  const pageSize = useItemsThatFit(list, { enabled: phone, gap: ROW_GAP, fallback: PAGE_SIZE });
+  const pageSize = useItemsThatFit(list, { fit: phone, rows: PAGE_SIZE });
 
   const visible = applyDeckFilters(decks, filters);
   const filtered = isDeckFiltered(filters);
@@ -163,7 +161,7 @@ export function DeckList({ decks, deckSize }: DeckListProps) {
       <ul
         ref={setList}
         aria-label="Decks"
-        className="space-y-2 max-sm:min-h-0 max-sm:flex-1 max-sm:overflow-hidden"
+        className="flex flex-col gap-2 max-sm:min-h-0 max-sm:flex-1 max-sm:overflow-hidden"
       >
         {pages.items.map((deck) => (
           <DeckRow key={deck.id} deck={deck} deckSize={deckSize} />

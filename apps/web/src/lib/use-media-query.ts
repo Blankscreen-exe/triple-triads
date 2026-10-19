@@ -19,3 +19,6 @@ export function useMediaQuery(query: string): boolean {
 
 /** Phones: below Tailwind's `sm` breakpoint. */
 export const PHONE_QUERY = '(max-width: 639.98px)';
+
+/** Wide screens: Tailwind's `lg` breakpoint and up. */
+export const LARGE_QUERY = '(min-width: 1024px)';
