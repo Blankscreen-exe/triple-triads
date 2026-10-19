@@ -582,7 +582,8 @@ export class RoomManager {
 
     const [remaining] = room.seats;
     if (!remaining || (explicit && wasInGame)) {
-      this.#closeRoom(room, remaining ? `${leaverName} left the room` : undefined);
+      // Everyone still here (the other player, spectators) is told who left.
+      this.#closeRoom(room, `${leaverName} left the room`);
       return;
     }
     if (room.hostId === userId) room.hostId = remaining.user.id;

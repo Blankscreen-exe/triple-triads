@@ -517,14 +517,15 @@ describe('leaving and disconnecting', () => {
     expect(events.roomClosed).toHaveBeenCalledWith(roomId, 'Alice left the room');
   });
 
-  it('closes the room when the last player leaves', () => {
+  it('closes the room when the last player leaves, telling spectators who left', () => {
     const manager = createManager();
     manager.createRoom(alice, roomInput());
+    manager.joinRoom(bob, { roomId: 'room-1', password: '', as: 'spectator' });
 
     manager.leaveRoom(alice.id, 'room-1');
 
     expect(manager.listRooms()).toEqual([]);
-    expect(events.roomClosed).toHaveBeenCalledWith('room-1', undefined);
+    expect(events.roomClosed).toHaveBeenCalledWith('room-1', 'Alice left the room');
     expect(manager.roomOfPlayer(alice.id)).toBeNull();
   });
 });
