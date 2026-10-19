@@ -12,6 +12,12 @@ export interface Page<T> {
   readonly last: number;
 }
 
+/** Which page of a list to load, and how many items a page holds. */
+export interface PageRequest {
+  readonly page: number;
+  readonly pageSize: number;
+}
+
 /** Where a page sits in a list of `total` items, for fetching just that page (e.g. from SQL). */
 export interface PageWindow {
   readonly page: number;

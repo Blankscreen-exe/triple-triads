@@ -2,7 +2,15 @@ import type { PlayerColor } from '@triple-triad/engine';
 import { describe, expect, it } from 'vitest';
 import type { AppDatabase } from '../db/client';
 import { createTestDatabase, createTestUser } from '../testing/test-database';
-import { getPlayerStats, leaderboard, listRecentMatches, recordMatch } from './matches';
+import {
+  getPlayerStats,
+  leaderboard,
+  leaderboardPosition,
+  matchHistory,
+  recordMatch,
+} from './matches';
+
+const FIRST_PAGE = { page: 1, pageSize: 10 };
 
 async function twoPlayers(db: AppDatabase) {
   const alice = await createTestUser(db, 'alice');
@@ -88,7 +96,7 @@ describe('recordMatch', () => {
 
     finish(db, alice, bob, 'blue', true);
 
-    expect(listRecentMatches(db, bob.id)[0]).toMatchObject({
+    expect(matchHistory(db, bob.id, FIRST_PAGE).items[0]).toMatchObject({
       result: 'win',
       forfeit: true,
       ratingChange: 16,
@@ -96,14 +104,14 @@ describe('recordMatch', () => {
   });
 });
 
-describe('listRecentMatches', () => {
+describe('matchHistory', () => {
   it('shows each game from the player’s point of view, newest first', async () => {
     const db = createTestDatabase();
     const { alice, bob } = await twoPlayers(db);
     finish(db, alice, bob, 'red');
     finish(db, bob, alice, null);
 
-    const history = listRecentMatches(db, alice.id);
+    const history = matchHistory(db, alice.id, FIRST_PAGE).items;
 
     expect(history.map((match) => [match.opponent, match.result])).toEqual([
       ['bob', 'draw'],
@@ -117,7 +125,21 @@ describe('listRecentMatches', () => {
     const { alice, bob } = await twoPlayers(db);
     finish(db, alice, bob, 'blue', false, 3);
 
-    expect(listRecentMatches(db, alice.id)[0]).toMatchObject({ result: 'loss', rounds: 3 });
+    expect(matchHistory(db, alice.id, FIRST_PAGE).items[0]).toMatchObject({
+      result: 'loss',
+      rounds: 3,
+    });
+  });
+
+  it('pages through the games, newest first', async () => {
+    const db = createTestDatabase();
+    const { alice, bob } = await twoPlayers(db);
+    for (const rounds of [1, 2, 3, 4, 5]) finish(db, alice, bob, 'red', false, rounds);
+
+    const second = matchHistory(db, alice.id, { page: 2, pageSize: 2 });
+
+    expect(second).toMatchObject({ page: 2, pageCount: 3, total: 5, first: 3, last: 4 });
+    expect(second.items.map((match) => match.rounds)).toEqual([3, 2]);
   });
 });
 
@@ -128,6 +150,48 @@ describe('leaderboard', () => {
     await createTestUser(db, 'carol');
     finish(db, alice, bob, 'blue');
 
-    expect(leaderboard(db).map((player) => player.username)).toEqual(['bob', 'alice']);
+    expect(leaderboard(db, FIRST_PAGE).items.map((player) => player.username)).toEqual([
+      'bob',
+      'alice',
+    ]);
+  });
+
+  it('pages the ranking and numbers players by their position', async () => {
+    const db = createTestDatabase();
+    const { alice, bob } = await twoPlayers(db);
+    const carol = await createTestUser(db, 'carol');
+    finish(db, alice, bob, 'red');
+    finish(db, carol, bob, 'red');
+
+    const second = leaderboard(db, { page: 2, pageSize: 2 });
+
+    expect(second).toMatchObject({ page: 2, pageCount: 2, total: 3 });
+    expect(second.items.map((player) => [player.position, player.username])).toEqual([[3, 'bob']]);
+  });
+});
+
+describe('leaderboardPosition', () => {
+  it('matches the leaderboard, ties broken by wins and then by name', async () => {
+    const db = createTestDatabase();
+    const { alice, bob } = await twoPlayers(db);
+    const carol = await createTestUser(db, 'carol');
+    const dave = await createTestUser(db, 'dave');
+    finish(db, alice, bob, null);
+    finish(db, carol, dave, null);
+
+    const ranking = leaderboard(db, FIRST_PAGE).items;
+    for (const player of [alice, bob, carol, dave]) {
+      expect(leaderboardPosition(db, player.id)).toBe(
+        ranking.find((ranked) => ranked.username === player.username)?.position,
+      );
+    }
+    expect(ranking.map((player) => player.username)).toEqual(['alice', 'bob', 'carol', 'dave']);
+  });
+
+  it('is null for players who have not finished a game', async () => {
+    const db = createTestDatabase();
+    const { alice } = await twoPlayers(db);
+
+    expect(leaderboardPosition(db, alice.id)).toBeNull();
   });
 });

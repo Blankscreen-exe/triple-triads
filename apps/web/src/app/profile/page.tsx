@@ -6,10 +6,13 @@ import { buttonClasses } from '@/components/ui/button';
 import { Window } from '@/components/ui/window';
 import { getDatabase } from '@/server/db';
 import { listDecks } from '@/server/decks/decks';
-import { getPlayerStats, listRecentMatches } from '@/server/matches/matches';
+import { getPlayerStats, matchHistory } from '@/server/matches/matches';
 import { requireUser } from '@/server/web/current-user';
 
 export const metadata: Metadata = { title: 'Profile' };
+
+/** Games shown on the profile; the rest are in the match history. */
+const RECENT_GAMES = 5;
 
 /** The signed-in player's page: active deck, rating, record and recent matches. */
 export default function ProfilePage() {
@@ -28,6 +31,7 @@ async function Profile() {
   const db = getDatabase();
   const activeDeck = listDecks(db, user.id).find((deck) => deck.isActive);
   const stats = getPlayerStats(db, user.id);
+  const recent = matchHistory(db, user.id, { page: 1, pageSize: RECENT_GAMES });
 
   return (
     <Window className="mt-6 space-y-4 p-8 text-center">
@@ -48,7 +52,22 @@ async function Profile() {
           Your decks
         </Link>
       </div>
-      {stats && <PlayerRecord stats={stats} recent={listRecentMatches(db, user.id, 5)} />}
+      {stats && (
+        <PlayerRecord
+          stats={stats}
+          recent={recent.items}
+          more={
+            recent.total > recent.items.length && (
+              <Link
+                href="/profile/matches"
+                className="block text-sm text-cream underline underline-offset-2"
+              >
+                All {recent.total} games
+              </Link>
+            )
+          }
+        />
+      )}
     </Window>
   );
 }

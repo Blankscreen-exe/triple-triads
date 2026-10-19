@@ -3,7 +3,8 @@
  */
 import { randomUUID } from 'node:crypto';
 import { PLAYER_COLORS, opponentOf, type PlayerColor } from '@triple-triad/engine';
-import { desc, eq, gt, inArray, or, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gt, inArray, lt, or, sql } from 'drizzle-orm';
+import { loadPage, type Page, type PageRequest } from '@/lib/pagination';
 import type { MatchOutcome } from '@/lib/realtime/protocol';
 import { ratingChange } from '@/lib/rating';
 import type { AppDatabase, DbExecutor } from '../db/client';
@@ -112,16 +113,37 @@ export interface MatchSummary {
   readonly rounds: number;
 }
 
-/** The player's most recent games, newest first, from their point of view. */
-export function listRecentMatches(db: DbExecutor, userId: string, limit = 10): MatchSummary[] {
-  const rows = db
-    .select()
-    .from(matches)
-    .where(or(eq(matches.redUserId, userId), eq(matches.blueUserId, userId)))
-    // rowid breaks ties between games recorded in the same millisecond.
-    .orderBy(desc(matches.playedAt), desc(sql`rowid`))
-    .limit(limit)
-    .all();
+/** One page of the player's games, newest first, from their point of view. */
+export function matchHistory(
+  db: DbExecutor,
+  userId: string,
+  { page, pageSize }: PageRequest,
+): Page<MatchSummary> {
+  const playedBy = or(eq(matches.redUserId, userId), eq(matches.blueUserId, userId));
+  const total = db.select({ total: count() }).from(matches).where(playedBy).get()?.total ?? 0;
+  return loadPage(total, page, pageSize, (offset, limit) =>
+    summarise(
+      db,
+      userId,
+      db
+        .select()
+        .from(matches)
+        .where(playedBy)
+        // rowid breaks ties between games recorded in the same millisecond.
+        .orderBy(desc(matches.playedAt), desc(sql`rowid`))
+        .limit(limit)
+        .offset(offset)
+        .all(),
+    ),
+  );
+}
+
+/** Matches as seen by one of their players, with the opponents' current names. */
+function summarise(
+  db: DbExecutor,
+  userId: string,
+  rows: readonly (typeof matches.$inferSelect)[],
+): MatchSummary[] {
   const opponentIds = rows.map((row) =>
     row.redUserId === userId ? row.blueUserId : row.redUserId,
   );
@@ -157,20 +179,64 @@ export function listRecentMatches(db: DbExecutor, userId: string, limit = 10): M
   });
 }
 
-/** Highest-rated players who have played at least one game. */
-export function leaderboard(db: DbExecutor, limit = 50): PlayerStats[] {
-  return db
-    .select({
-      username: users.username,
-      rating: users.rating,
-      wins: users.wins,
-      losses: users.losses,
-      draws: users.draws,
-      streak: users.streak,
-    })
+/** A player on the leaderboard, with their position on it (from 1). */
+export interface RankedPlayer extends PlayerStats {
+  readonly position: number;
+}
+
+/** Only players who have finished a game are ranked. */
+const RANKED = gt(sql`${users.wins} + ${users.losses} + ${users.draws}`, 0);
+
+/** One page of the leaderboard: highest rating first, then most wins, then by name. */
+export function leaderboard(db: DbExecutor, { page, pageSize }: PageRequest): Page<RankedPlayer> {
+  const total = db.select({ total: count() }).from(users).where(RANKED).get()?.total ?? 0;
+  return loadPage(total, page, pageSize, (offset, limit) =>
+    db
+      .select({
+        username: users.username,
+        rating: users.rating,
+        wins: users.wins,
+        losses: users.losses,
+        draws: users.draws,
+        streak: users.streak,
+      })
+      .from(users)
+      .where(RANKED)
+      .orderBy(desc(users.rating), desc(users.wins), users.username)
+      .limit(limit)
+      .offset(offset)
+      .all()
+      .map((player, index) => ({ ...player, position: offset + index + 1 })),
+  );
+}
+
+/** Where the player stands on the leaderboard (from 1), or null if they are not on it yet. */
+export function leaderboardPosition(db: DbExecutor, userId: string): number | null {
+  const player = db
+    .select({ rating: users.rating, wins: users.wins, username: users.username })
     .from(users)
-    .where(gt(sql`${users.wins} + ${users.losses} + ${users.draws}`, 0))
-    .orderBy(desc(users.rating), desc(users.wins), users.username)
-    .limit(limit)
-    .all();
+    .where(and(eq(users.id, userId), RANKED))
+    .get();
+  if (!player) return null;
+  // Everyone the leaderboard's order puts first.
+  const ahead =
+    db
+      .select({ total: count() })
+      .from(users)
+      .where(
+        and(
+          RANKED,
+          or(
+            gt(users.rating, player.rating),
+            and(eq(users.rating, player.rating), gt(users.wins, player.wins)),
+            and(
+              eq(users.rating, player.rating),
+              eq(users.wins, player.wins),
+              lt(users.username, player.username),
+            ),
+          ),
+        ),
+      )
+      .get()?.total ?? 0;
+  return ahead + 1;
 }

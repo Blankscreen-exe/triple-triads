@@ -88,10 +88,20 @@ test('two players play a full match and agree to a rematch', async ({ browser })
     await expect(page.getByText(/^Rating \d+/)).toBeVisible();
   }
 
+  const room = alice.page.url();
   await alice.page.goto('/rankings');
-  await expect(alice.page.getByRole('cell', { name: alice.name, exact: true })).toBeVisible();
-  await expect(alice.page.getByRole('cell', { name: bob.name, exact: true })).toBeVisible();
-  await alice.page.goBack();
+  // Other tests' players may push Alice past the first page: her position links to hers.
+  await expect(alice.page.getByText(/^You are #\d+/)).toBeVisible();
+  const showMine = alice.page.getByRole('link', { name: 'Show my page' });
+  if (await showMine.isVisible()) await showMine.click();
+  await expect(
+    alice.page.locator('tr[aria-current="true"]').getByRole('cell', { name: alice.name }),
+  ).toBeVisible();
+  // The game is at the top of her match history.
+  await alice.page.goto('/profile/matches');
+  await expect(alice.page.getByRole('table', { name: /^Games 1–1 of 1$/ })).toBeVisible();
+  await expect(alice.page.getByRole('row').nth(1)).toContainText(bob.name);
+  await alice.page.goto(room);
 
   await alice.page.getByRole('button', { name: 'Play again' }).click();
   await expect(alice.page.getByText('Waiting for your opponent…')).toBeVisible();
