@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { RuleChips } from '@/components/game/rule-chips';
 import { Button } from '@/components/ui/button';
+import { TabList } from '@/components/ui/tabs';
 import { Window } from '@/components/ui/window';
 import { joinRoom, useLobby } from '@/lib/realtime/hooks';
 import { ROOM_ERRORS, type RoomError, type RoomSummary } from '@/lib/realtime/protocol';
@@ -37,7 +38,27 @@ export function Lobby({
 
   return (
     <div className="grid gap-6 max-lg:gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <LobbyTabs tab={tab} onChange={setTab} roomCount={rooms?.length ?? null} />
+      <TabList
+        label="Lobby"
+        panelIdPrefix="lobby"
+        className="lg:hidden"
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          {
+            id: 'join',
+            label: (
+              <>
+                Join
+                {rooms !== null && (
+                  <span className="rounded-full bg-black/15 px-1.5 text-xs">{rooms.length}</span>
+                )}
+              </>
+            ),
+          },
+          { id: 'create', label: 'Create room' },
+        ]}
+      />
       <Window
         id="lobby-join"
         className={`space-y-4 p-5 max-sm:p-4 ${tab === 'join' ? '' : 'max-lg:hidden'}`}
@@ -82,65 +103,6 @@ export function Lobby({
 }
 
 type LobbyTab = 'join' | 'create';
-
-const TABS: readonly { readonly id: LobbyTab; readonly label: string }[] = [
-  { id: 'join', label: 'Join' },
-  { id: 'create', label: 'Create room' },
-];
-
-/** Narrow screens only: switches between the room list and the create form. */
-function LobbyTabs({
-  tab,
-  onChange,
-  roomCount,
-}: {
-  readonly tab: LobbyTab;
-  readonly onChange: (tab: LobbyTab) => void;
-  readonly roomCount: number | null;
-}) {
-  return (
-    <div
-      role="tablist"
-      aria-label="Lobby"
-      className="grid grid-cols-2 gap-1 rounded-lg border border-frame/50 bg-black/25 p-1 lg:hidden"
-      onKeyDown={(event) => {
-        // Arrow keys move between the two tabs, as in any tab list.
-        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-        const next = tab === 'join' ? 'create' : 'join';
-        onChange(next);
-        document.getElementById(`lobby-tab-${next}`)?.focus();
-      }}
-    >
-      {TABS.map(({ id, label }) => {
-        const selected = tab === id;
-        return (
-          <button
-            key={id}
-            id={`lobby-tab-${id}`}
-            type="button"
-            role="tab"
-            aria-selected={selected}
-            aria-controls={`lobby-${id}`}
-            tabIndex={selected ? 0 : -1}
-            onClick={() => {
-              onChange(id);
-            }}
-            className={`flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-cream ${selected ? 'bg-linear-to-b from-gold-light to-gold text-ink' : 'text-slate-200 hover:bg-white/10'}`}
-          >
-            {label}
-            {id === 'join' && roomCount !== null && (
-              <span
-                className={`rounded-full px-1.5 text-xs ${selected ? 'bg-ink/15' : 'bg-white/10'}`}
-              >
-                {roomCount}
-              </span>
-            )}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 function RoomRow({ room }: { readonly room: RoomSummary }) {
   const router = useRouter();
