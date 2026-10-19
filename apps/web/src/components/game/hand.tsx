@@ -1,11 +1,12 @@
 'use client';
 
 import type { HandView, PlayerColor } from '@triple-triad/engine';
-import type { CSSProperties } from 'react';
+import { useCallback, useState, type CSSProperties } from 'react';
 import type { AssetPack } from '@/lib/asset-packs';
 import type { CardInfo } from '@/lib/realtime/protocol';
 import { CardBack, CardView } from '../cards/card-view';
 import type { CardDragControls } from './card-drag';
+import { CardMenu } from './card-menu';
 
 interface HandProps {
   readonly label: string;
@@ -13,12 +14,17 @@ interface HandProps {
   readonly color: PlayerColor;
   readonly pack: AssetPack;
   readonly cards: Readonly<Record<string, CardInfo>>;
-  /** Present for the viewer's own hand: lets them pick a card to play. */
+  /**
+   * Present for the viewer's own hand. Tapping a card opens a menu: Preview, or Use (then choose a
+   * square). Cards can also be dragged straight onto the board.
+   */
   readonly selection?: {
     readonly selectedId: string | null;
+    /** Your turn: cards can be used and dragged. */
     readonly enabled: boolean;
-    readonly onSelect: (instanceId: string) => void;
-    /** Drag-and-drop onto the board, alongside click-to-select. */
+    /** Choose a card to play, or null to change your mind. */
+    readonly onSelect: (instanceId: string | null) => void;
+    readonly onPreview: (instanceId: string) => void;
     readonly drag: CardDragControls;
   };
 }
@@ -32,6 +38,10 @@ const ROW_CARD_PERCENT = 24;
  * stacked so the top of each card stays visible.
  */
 export function Hand({ label, hand, color, pack, cards, selection }: HandProps) {
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const closeMenu = useCallback(() => {
+    setMenuFor(null);
+  }, []);
   const count = hand.cards?.length ?? hand.size;
   const rowOverlap =
     count > 1 ? Math.max(0, ROW_CARD_PERCENT - (100 - ROW_CARD_PERCENT) / (count - 1)) : 0;
@@ -56,6 +66,12 @@ export function Hand({ label, hand, color, pack, cards, selection }: HandProps) 
     );
   }
 
+  // Starting a drag, or the card leaving the hand, closes its menu.
+  const openMenu =
+    selection?.drag.drag || !hand.cards.some((card) => card.instanceId === menuFor)
+      ? null
+      : menuFor;
+
   return (
     <ol aria-label={label} className={list}>
       {hand.cards.map((instance, index) => {
@@ -67,27 +83,51 @@ export function Hand({ label, hand, color, pack, cards, selection }: HandProps) 
         );
         const selected = selection?.selectedId === instance.instanceId;
         const dragged = selection?.drag.drag?.instanceId === instance.instanceId;
+        const menuOpen = openMenu === instance.instanceId;
         return (
           <li
             key={instance.instanceId}
             className={`relative transition-transform ${slot(index)} ${selected ? '-translate-y-3 sm:translate-y-0 sm:-translate-x-6' : ''}`}
-            style={slotStyle(index, selected ? 20 : index)}
+            style={slotStyle(index, menuOpen ? 30 : selected ? 20 : index)}
           >
             {selection ? (
-              <button
-                type="button"
-                disabled={!selection.enabled}
-                aria-pressed={selected}
-                onClick={() => {
-                  selection.onSelect(instance.instanceId);
-                }}
-                {...selection.drag.sourceProps(instance.instanceId)}
-                className={`block w-full rounded-[3%/2.2%] transition-opacity select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cream enabled:cursor-grab enabled:touch-none ${
-                  selected ? 'outline-3 outline-offset-2 outline-cream' : ''
-                } ${dragged ? 'opacity-30' : ''}`}
-              >
-                {card}
-              </button>
+              <>
+                <button
+                  type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                  aria-pressed={selected}
+                  onClick={() => {
+                    setMenuFor(menuOpen ? null : instance.instanceId);
+                  }}
+                  {...selection.drag.sourceProps(instance.instanceId)}
+                  className={`block w-full rounded-[3%/2.2%] transition-opacity select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cream ${
+                    selection.enabled ? 'cursor-grab touch-none' : 'cursor-pointer'
+                  } ${selected ? 'outline-3 outline-offset-2 outline-cream' : ''} ${dragged ? 'opacity-30' : ''}`}
+                >
+                  {card}
+                </button>
+                {menuOpen && (
+                  <CardMenu
+                    cardName={face?.name ?? 'Card'}
+                    canUse={selection.enabled}
+                    selected={selected}
+                    onPreview={() => {
+                      setMenuFor(null);
+                      selection.onPreview(instance.instanceId);
+                    }}
+                    onUse={() => {
+                      setMenuFor(null);
+                      selection.onSelect(instance.instanceId);
+                    }}
+                    onCancel={() => {
+                      setMenuFor(null);
+                      selection.onSelect(null);
+                    }}
+                    onClose={closeMenu}
+                  />
+                )}
+              </>
             ) : (
               card
             )}

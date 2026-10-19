@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import { CardView } from '@/components/cards/card-view';
+import { CardPreview } from '@/components/game/card-preview';
 import { Board } from '@/components/game/board';
 import { DragGhost, useCardDrag } from '@/components/game/card-drag';
 import { CaptureBanner } from '@/components/game/capture-banner';
@@ -131,6 +132,7 @@ function Table({
   readonly room: ReturnType<typeof useRoom>;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const game = snapshot.game;
   const gameStats = useGameStats(game);
   const you = snapshot.you.color;
@@ -153,6 +155,10 @@ function Table({
   // Selection is only valid while it is still in hand and still your turn.
   const selection =
     myTurn && myHand.some((card) => card.instanceId === selectedId) ? selectedId : null;
+
+  // Only a card still in your hand can be previewed from it.
+  const previewCard = myHand.find((card) => card.instanceId === previewId);
+  const previewFace = previewCard ? game.cards[previewCard.card.id] : undefined;
 
   const draggedCard = myHand.find((card) => card.instanceId === drag.drag?.instanceId);
   const draggedFace = draggedCard ? game.cards[draggedCard.card.id] : undefined;
@@ -197,9 +203,8 @@ function Table({
             selection: {
               selectedId: selection,
               enabled: myTurn,
-              onSelect: (id: string) => {
-                setSelectedId((current) => (current === id ? null : id));
-              },
+              onSelect: setSelectedId,
+              onPreview: setPreviewId,
               drag,
             },
           })}
@@ -232,6 +237,25 @@ function Table({
           </div>
           {side(right)}
         </div>
+        {previewCard && previewFace && (
+          <CardPreview
+            card={previewFace}
+            side={right}
+            pack={game.players[right].pack}
+            onClose={() => {
+              setPreviewId(null);
+            }}
+            {...(myTurn && {
+              action: {
+                label: 'Use',
+                onClick: () => {
+                  setSelectedId(previewCard.instanceId);
+                  setPreviewId(null);
+                },
+              },
+            })}
+          />
+        )}
         <DragGhost controls={drag}>
           {draggedFace && (
             <CardView card={draggedFace} side={right} pack={game.players[right].pack} />

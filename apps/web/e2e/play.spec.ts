@@ -45,6 +45,7 @@ async function playTurn(pages: readonly Page[]) {
 
   // Cards in a hand overlap; the last one is on top and fully clickable.
   await active.getByRole('list', { name: 'Your hand' }).getByRole('button').last().click();
+  await active.getByRole('menuitem', { name: 'Use' }).click();
   await active
     .getByRole('button', { name: /^Place card on row/ })
     .first()
@@ -149,8 +150,11 @@ test('the host picks their colour and the coin flip picks who starts', async ({ 
   }
 });
 
-/** Starts a game between two new players and returns the page whose turn it is. */
-async function gameOnYourTurn(browser: Browser, roomPrefix: string): Promise<Page> {
+/** Starts a game between two new players; `page` is the one whose turn it is. */
+async function gameOnYourTurn(
+  browser: Browser,
+  roomPrefix: string,
+): Promise<{ page: Page; other: Page }> {
   const alice = await newPlayer(browser);
   const bob = await newPlayer(browser);
   const roomName = `${roomPrefix} ${alice.name}`;
@@ -165,7 +169,7 @@ async function gameOnYourTurn(browser: Browser, roomPrefix: string): Promise<Pag
     expect(active).toBeDefined();
   }).toPass({ timeout: 15_000 });
   if (!active) throw new Error('unreachable');
-  return active;
+  return { page: active, other: active === alice.page ? bob.page : alice.page };
 }
 
 /** Presses on the top card of the hand and moves it over a board square, without letting go. */
@@ -183,7 +187,7 @@ async function dragCardOver(page: Page, position: number) {
 }
 
 test('a card can be dragged from the hand onto the board', async ({ browser }) => {
-  const page = await gameOnYourTurn(browser, 'Drag');
+  const { page } = await gameOnYourTurn(browser, 'Drag');
 
   const square = await dragCardOver(page, 4);
   await page.mouse.up();
@@ -195,7 +199,7 @@ test('a card can be dragged from the hand onto the board', async ({ browser }) =
 });
 
 test('pressing Escape cancels a drag', async ({ browser }) => {
-  const page = await gameOnYourTurn(browser, 'Cancel');
+  const { page } = await gameOnYourTurn(browser, 'Cancel');
 
   await dragCardOver(page, 4);
   await page.keyboard.press('Escape');
@@ -205,6 +209,50 @@ test('pressing Escape cancels a drag', async ({ browser }) => {
     page.getByRole('list', { name: 'Board' }).getByRole('img', { name: /, \d stars?, top / }),
   ).toHaveCount(0);
   await expect(page.getByText(YOUR_TURN)).toBeVisible();
+});
+
+test('tapping a card offers Preview and Use; Use then a square plays it', async ({ browser }) => {
+  const { page } = await gameOnYourTurn(browser, 'Menu');
+  const card = page.getByRole('list', { name: 'Your hand' }).getByRole('button').last();
+  const cardName = (await card.getByRole('img').getAttribute('aria-label'))?.split(',')[0] ?? '';
+
+  await card.click();
+  await page.getByRole('menuitem', { name: 'Preview' }).click();
+  const preview = page.getByRole('dialog', { name: `Preview: ${cardName}` });
+  await expect(preview.getByRole('img', { name: new RegExp(`^${cardName}, `) })).toBeVisible();
+  await preview.getByRole('button', { name: 'Close' }).click();
+  await expect(preview).toBeHidden();
+  await expect(page.getByText(YOUR_TURN)).toBeVisible();
+
+  // Escape closes the menu without choosing anything.
+  await card.click();
+  await expect(page.getByRole('menu')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('menu')).toBeHidden();
+
+  await card.click();
+  await page.getByRole('menuitem', { name: 'Use' }).click();
+  await expect(page.getByText('Choose a square')).toBeVisible();
+  await page.getByRole('button', { name: 'Place card on row 2, column 2' }).click();
+
+  await expect(
+    page
+      .getByRole('list', { name: 'Board' })
+      .getByRole('img', { name: new RegExp(`^${cardName}, `) }),
+  ).toBeVisible();
+  await expect(page.getByText(YOUR_TURN)).toBeHidden();
+});
+
+test('cards can be previewed while waiting, but only used on your turn', async ({ browser }) => {
+  const { other } = await gameOnYourTurn(browser, 'Wait');
+  const card = other.getByRole('list', { name: 'Your hand' }).getByRole('button').last();
+
+  await card.click();
+  await expect(other.getByRole('menuitem', { name: /^Use/ })).toBeDisabled();
+  await other.getByRole('menuitem', { name: 'Preview' }).click();
+  const preview = other.getByRole('dialog', { name: /^Preview: / });
+  await expect(preview).toBeVisible();
+  await expect(preview.getByRole('button', { name: 'Use' })).toHaveCount(0);
 });
 
 test('when a player surrenders, the other is sent to the lobby and the room is gone', async ({

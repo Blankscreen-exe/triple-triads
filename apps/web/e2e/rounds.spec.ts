@@ -68,6 +68,7 @@ async function playTurn(pages: readonly Page[]) {
   }).toPass({ timeout: 10_000 });
   if (!active) throw new Error('unreachable');
   await active.getByRole('list', { name: 'Your hand' }).getByRole('button').last().click();
+  await active.getByRole('menuitem', { name: 'Use' }).click();
   await active
     .getByRole('button', { name: /^Place card on row/ })
     .first()
