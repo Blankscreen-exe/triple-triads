@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
-import { signUp, uniqueUsername } from './helpers';
+import { findRoom, signUp, uniqueUsername } from './helpers';
 
 const YOUR_TURN = 'Your turn: choose a card';
 
@@ -23,8 +23,7 @@ async function createRoom(page: Page, roomName: string, color: 'Red' | 'Blue' = 
 }
 
 async function joinFromLobby(page: Page, roomName: string, action: 'Join' | 'Watch') {
-  await page.goto('/play');
-  const row = page.getByRole('listitem').filter({ hasText: roomName });
+  const row = await findRoom(page, roomName);
   await row.getByRole('button', { name: action }).click();
   await expect(page.getByRole('heading', { name: roomName })).toBeVisible();
 }
@@ -148,10 +147,10 @@ test('the lobby updates live when a room is created', async ({ browser }) => {
   const host = await newPlayer(browser);
   const roomName = `Live ${host.name}`;
 
-  await watcher.page.goto('/play');
+  const row = await findRoom(watcher.page, roomName);
   await createRoom(host.page, roomName);
 
-  await expect(watcher.page.getByRole('listitem').filter({ hasText: roomName })).toBeVisible();
+  await expect(row).toBeVisible();
 });
 
 test('the host picks their colour and the coin flip picks who starts', async ({ browser }) => {
@@ -160,10 +159,7 @@ test('the host picks their colour and the coin flip picks who starts', async ({ 
   const roomName = `Colours ${host.name}`;
 
   await createRoom(host.page, roomName, 'Blue');
-  await guest.page.goto('/play');
-  await expect(guest.page.getByRole('listitem').filter({ hasText: roomName })).toContainText(
-    'you play red',
-  );
+  await expect(await findRoom(guest.page, roomName)).toContainText('you play red');
   await joinFromLobby(guest.page, roomName, 'Join');
 
   for (const { page } of [host, guest]) {

@@ -37,3 +37,16 @@ export async function logInAsAdmin(page: Page) {
   await logIn(page, ADMIN.username, ADMIN.password);
   await expect(page.getByText(`Welcome back, ${ADMIN.username}`)).toBeVisible();
 }
+
+/**
+ * Opens the lobby searched for one room and returns its row. Searching like a player would keeps
+ * the room on the first page, whatever other tests have left open.
+ */
+export async function findRoom(page: Page, roomName: string) {
+  await page.goto('/play');
+  await page.getByRole('search', { name: 'Filter rooms' }).getByLabel('Search').fill(roomName);
+  return page.getByRole('list', { name: 'Open rooms' }).getByRole('listitem', {
+    name: roomName,
+    exact: true,
+  });
+}

@@ -18,9 +18,15 @@ export function ruleLabels(options: RoomOptions): string[] {
   ].filter((label): label is string => typeof label === 'string');
 }
 
-export function RuleChips({ options }: { readonly options: RoomOptions }) {
+export function RuleChips({
+  options,
+  className = '',
+}: {
+  readonly options: RoomOptions;
+  readonly className?: string;
+}) {
   return (
-    <ul className="flex flex-wrap gap-1.5" aria-label="Rules">
+    <ul className={`flex flex-wrap gap-1.5 ${className}`} aria-label="Rules">
       {ruleLabels(options).map((label) => (
         <li
           key={label}
