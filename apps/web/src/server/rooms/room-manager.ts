@@ -207,7 +207,7 @@ export class RoomManager {
       this.#changed(room, { lobby: true });
       return ok(null);
     }
-    if (room.seats.some((seat) => seat.user.id === userId)) this.#removeSeat(room, userId, true);
+    if (room.seats.some((seat) => seat.user.id === userId)) this.#removeSeat(room, userId);
     return ok(null);
   }
 
@@ -231,7 +231,7 @@ export class RoomManager {
       userId,
       setTimeout(() => {
         room.timers.reconnect.delete(userId);
-        this.#removeSeat(room, userId);
+        this.#removeSeat(room, userId, 'timed-out');
       }, this.#deps.reconnectGraceMs),
     );
 
@@ -552,43 +552,26 @@ export class RoomManager {
     }
   }
 
-  #removeSeat(room: Room, userId: string, explicit = false): void {
-    const timer = room.timers.reconnect.get(userId);
-    if (timer) clearTimeout(timer);
-    room.timers.reconnect.delete(userId);
-
-    const leavingSeat = room.seats.find((seat) => seat.user.id === userId);
-    const leaverName = leavingSeat?.user.username ?? 'A player';
-    const wasInGame = room.status === 'playing' || room.status === 'finished';
+  /**
+   * A player is gone for good: they left (including voting to leave after a match) or did not
+   * come back in time. A room lasts only as long as its pairing, so it closes, and everyone
+   * still in it (the other player, spectators) is told why. Leaving mid-match forfeits it.
+   */
+  #removeSeat(room: Room, userId: string, cause: 'left' | 'timed-out' = 'left'): void {
+    const leaverName =
+      room.seats.find((seat) => seat.user.id === userId)?.user.username ?? 'A player';
+    let reason =
+      cause === 'timed-out'
+        ? `${leaverName} did not come back in time`
+        : `${leaverName} left the room`;
 
     const game = room.game;
-    if (room.status === 'playing' && game) {
-      const color = colorOf(game, userId);
-      if (color) {
-        this.#finishMatch(
-          room,
-          { winner: opponentOf(color), score: computeScore(game.state) },
-          true,
-        );
-      }
+    const color = game && colorOf(game, userId);
+    if (room.status === 'playing' && game && color) {
+      this.#finishMatch(room, { winner: opponentOf(color), score: computeScore(game.state) }, true);
+      if (cause === 'timed-out') reason += ' and forfeits the match';
     }
-    if (room.rematch) {
-      this.#clearTimer(room, 'rematch');
-      room.rematch = null;
-    }
-
-    room.seats = room.seats.filter((seat) => seat.user.id !== userId);
-    this.#playerRoom.delete(userId);
-
-    const [remaining] = room.seats;
-    if (!remaining || (explicit && wasInGame)) {
-      // Everyone still here (the other player, spectators) is told who left.
-      this.#closeRoom(room, `${leaverName} left the room`);
-      return;
-    }
-    if (room.hostId === userId) room.hostId = remaining.user.id;
-    room.status = 'waiting';
-    this.#changed(room, { lobby: true });
+    this.#closeRoom(room, reason);
   }
 
   #markConnected(room: Room, userId: string): void {

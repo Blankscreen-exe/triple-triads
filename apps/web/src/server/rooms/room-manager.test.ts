@@ -232,19 +232,6 @@ describe('creating and joining rooms', () => {
     expect(snapshot?.game?.view.activePlayer).toBe('blue');
   });
 
-  it('keeps the host colour for whoever becomes host when the creator disconnects', () => {
-    const manager = createManager();
-    manager.createRoom(alice, roomInput({ hostColor: 'blue' }));
-    manager.joinRoom(bob, { roomId: 'room-1', password: '', as: 'player' });
-    manager.disconnected(alice.id, 'room-1');
-    vi.advanceTimersByTime(RECONNECT_GRACE_MS);
-
-    manager.joinRoom(carol, { roomId: 'room-1', password: '', as: 'player' });
-
-    expect(manager.snapshot('room-1', bob.id)?.you.color).toBe('blue');
-    expect(manager.snapshot('room-1', carol.id)?.you.color).toBe('red');
-  });
-
   it('checks the room password', () => {
     const manager = createManager();
     manager.createRoom(alice, roomInput({ password: 'secret' }));
@@ -422,17 +409,30 @@ describe('finishing and rematches', () => {
     expect(game?.view.activePlayer).toBe('blue');
   });
 
-  it('ends the room’s pairing when a player votes to leave', () => {
+  it('closes the room when a player votes to leave, even after the other voted to continue', () => {
     const manager = createManager();
     const roomId = startedGame(manager);
     playToEnd(manager, roomId);
 
+    manager.vote(alice.id, roomId, 'continue');
     manager.vote(bob.id, roomId, 'leave');
-    const snapshot = manager.snapshot(roomId, alice.id);
 
-    expect(snapshot?.status).toBe('waiting');
-    expect(snapshot?.seats.map((seat) => seat.username)).toEqual(['Alice']);
-    expect(snapshot?.rematch).toBeNull();
+    expect(manager.listRooms()).toEqual([]);
+    expect(manager.roomOfPlayer(alice.id)).toBeNull();
+    expect(events.roomClosed).toHaveBeenCalledWith(roomId, 'Bob left the room');
+  });
+
+  it('closes the room when a player leaves after the match', () => {
+    const manager = createManager();
+    const roomId = startedGame(manager);
+    playToEnd(manager, roomId);
+
+    manager.leaveRoom(alice.id, roomId);
+
+    expect(finished).toHaveLength(1);
+    expect(finished[0]?.forfeit).toBe(false);
+    expect(manager.listRooms()).toEqual([]);
+    expect(events.roomClosed).toHaveBeenCalledWith(roomId, 'Alice left the room');
   });
 
   it('keeps the rematch vote open indefinitely', () => {
@@ -504,7 +504,25 @@ describe('leaving and disconnecting', () => {
     vi.advanceTimersByTime(RECONNECT_GRACE_MS);
 
     expect(finished[0]).toMatchObject({ forfeit: true, result: { winner: 'blue' } });
-    expect(manager.snapshot(roomId, bob.id)?.seats.map((seat) => seat.username)).toEqual(['Bob']);
+    expect(manager.listRooms()).toEqual([]);
+    expect(manager.roomOfPlayer(bob.id)).toBeNull();
+    expect(events.roomClosed).toHaveBeenCalledWith(
+      roomId,
+      'Alice did not come back in time and forfeits the match',
+    );
+  });
+
+  it('closes the room when a player does not come back after the match', () => {
+    const manager = createManager();
+    const roomId = startedGame(manager);
+    playToEnd(manager, roomId);
+
+    manager.disconnected(alice.id, roomId);
+    vi.advanceTimersByTime(RECONNECT_GRACE_MS);
+
+    expect(finished).toHaveLength(1);
+    expect(manager.listRooms()).toEqual([]);
+    expect(events.roomClosed).toHaveBeenCalledWith(roomId, 'Alice did not come back in time');
   });
 
   it('closes the room when the host leaves mid-game', () => {
