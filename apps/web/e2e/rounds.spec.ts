@@ -78,7 +78,7 @@ async function playTurn(pages: readonly Page[]) {
   await expect(active.getByText(YOUR_TURN)).toBeHidden();
 }
 
-test('every round of a best-of-3 match is played; three drawn rounds draw the match', async ({
+test('a drawn round leads to the next; three drawn rounds draw a best-of-3 match', async ({
   browser,
 }) => {
   test.setTimeout(180_000);
@@ -114,7 +114,7 @@ test('every round of a best-of-3 match is played; three drawn rounds draw the ma
       ).toBeVisible({ timeout: NEXT_ROUND_TIMEOUT });
     }
     if (round > 1) {
-      await expect(host.getByRole('status')).toContainText(`The last round was a draw, so`);
+      await expect(host.getByRole('status')).toContainText('Players take turns to start');
     }
     for (let turn = 0; turn < 9; turn++) await playTurn([host, guest]);
 

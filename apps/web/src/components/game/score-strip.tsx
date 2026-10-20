@@ -3,7 +3,7 @@
 import type { PlayerColor } from '@triple-triad/engine';
 import { useState, type ReactNode } from 'react';
 import type { GameStats } from '@/lib/game-stats';
-import type { GameSnapshot } from '@/lib/realtime/protocol';
+import { MATCH_ROUNDS, type GameSnapshot } from '@/lib/realtime/protocol';
 import { Button } from '../ui/button';
 import { Modal, ModalClose } from '../ui/modal';
 import { StatBoard } from './stat-board';
@@ -42,7 +42,7 @@ export function ScoreStrip({ game, stats, children }: ScoreStripProps) {
             players={players}
           />
           <span className="font-display tracking-wider whitespace-nowrap text-slate-300 uppercase">
-            Round {match.round} of 3
+            Round {match.round} of {MATCH_ROUNDS}
           </span>
         </>
       )}

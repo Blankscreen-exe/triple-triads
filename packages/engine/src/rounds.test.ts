@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Position } from './board';
 import { applyMove, createGame } from './game';
 import { BASIC_RULES, MIN_CARDS_PER_GAME } from './rules';
-import { canPlayRound, maxRounds, remainingAfterRound } from './rounds';
+import { canPlayRound, isMatchOver, maxRounds, remainingAfterRound, roundsWon } from './rounds';
 import type { GameState } from './state';
 import { firstCard, uniformDeck } from './test-utils';
 import type { CardDefinition } from './types';
@@ -98,6 +98,38 @@ describe('canPlayRound', () => {
     expect(rounds).toBe(3);
     expect(maxRounds(20)).toBe(rounds);
     expect([decks.red.length, decks.blue.length]).toEqual([6, 7]);
+  });
+});
+
+const red = { winner: 'red' } as const;
+const blue = { winner: 'blue' } as const;
+const drawn = { winner: null };
+
+describe('roundsWon', () => {
+  it("counts each player's wins, and no one's for a draw", () => {
+    expect(roundsWon([])).toEqual({ red: 0, blue: 0 });
+    expect(roundsWon([red, drawn, blue, red])).toEqual({ red: 2, blue: 1 });
+  });
+});
+
+describe('isMatchOver', () => {
+  it('ends a best of 3 as soon as one player cannot be caught', () => {
+    expect(isMatchOver([], 3)).toBe(false);
+    expect(isMatchOver([red], 3)).toBe(false);
+    expect(isMatchOver([red, red], 3)).toBe(true);
+    expect(isMatchOver([blue, blue], 3)).toBe(true);
+  });
+
+  it('plays on while the trailing player can still level the match', () => {
+    expect(isMatchOver([red, blue], 3)).toBe(false);
+    expect(isMatchOver([drawn, red], 3)).toBe(false);
+    expect(isMatchOver([drawn, drawn], 3)).toBe(false);
+  });
+
+  it('ends once every round is played, even level', () => {
+    expect(isMatchOver([drawn, drawn, drawn], 3)).toBe(true);
+    expect(isMatchOver([red, blue, drawn], 3)).toBe(true);
+    expect(isMatchOver([drawn], 1)).toBe(true);
   });
 });
 

@@ -1,6 +1,6 @@
 /**
- * Matches of several rounds (design/SPEC.md, 9.7): when a round is drawn, the next one is played
- * with what is left of each deck, until someone wins or the decks run out.
+ * Matches of several rounds (design/SPEC.md, 9.7): each round is played with what is left of each
+ * deck, until one player cannot be caught, the rounds are all played, or the decks run out.
  */
 import { CELL_COUNT } from './board';
 import { MIN_CARDS_PER_GAME } from './rules';
@@ -34,6 +34,30 @@ export function canPlayRound(
   decks: Readonly<Record<PlayerColor, readonly CardDefinition[]>>,
 ): boolean {
   return PLAYER_COLORS.every((color) => decks[color].length >= MIN_CARDS_PER_GAME);
+}
+
+/** Rounds won by each player; a drawn round counts for neither. */
+export function roundsWon(
+  results: readonly { readonly winner: PlayerColor | null }[],
+): Record<PlayerColor, number> {
+  const won = { red: 0, blue: 0 };
+  for (const { winner } of results) {
+    if (winner) won[winner]++;
+  }
+  return won;
+}
+
+/**
+ * Whether a match of at most `rounds` rounds is over after these results: they have all been
+ * played, or one player has won more rounds than are left to play (2–0 in a best of 3).
+ */
+export function isMatchOver(
+  results: readonly { readonly winner: PlayerColor | null }[],
+  rounds: number,
+): boolean {
+  const left = rounds - results.length;
+  const won = roundsWon(results);
+  return left <= 0 || Math.abs(won.red - won.blue) > left;
 }
 
 /**

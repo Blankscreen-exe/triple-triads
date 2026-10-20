@@ -601,7 +601,7 @@ describe('matches of several rounds', () => {
       nextRoundAt: null,
       cardsLeft: { red: 15, blue: 16 },
     });
-    expect(game?.firstPlayer).toEqual({ color: 'blue', reason: 'round-drawn' });
+    expect(game?.firstPlayer).toEqual({ color: 'blue', reason: 'next-round' });
     expect(game?.view.activePlayer).toBe('blue');
     expect(game?.view.result).toBeNull();
     // Dave draws for his first turn from what is left: 16 − 3 in hand − 1 drawn.
@@ -636,7 +636,32 @@ describe('matches of several rounds', () => {
     expect(next?.firstPlayer).toEqual({ color: 'red', reason: 'last-game-drawn' });
   });
 
-  it('plays all 3 rounds even if one player wins early; match winner has most round wins', () => {
+  it('ends early once a player has won 2 rounds: the third could not change the result', () => {
+    const manager = createManager();
+    const roomId = startedGame(manager, untilWinner(), true, erin, dave);
+
+    // Her 9s beat Dave's 5s: Erin wins round 1, and the match goes on at 1–0.
+    for (let turn = 0; turn < 9; turn++) playPreferring(manager, roomId, 'erin-nine');
+    expect(manager.snapshot(roomId, erin.id)?.status).toBe('playing');
+    expect(manager.snapshot(roomId, erin.id)?.game?.match.seriesScore).toEqual({ red: 1, blue: 0 });
+    vi.advanceTimersByTime(ROUND_BREAK_MS);
+
+    // Round 2 as well: 2–0 with one round left decides the match.
+    for (let turn = 0; turn < 9; turn++) playPreferring(manager, roomId, 'erin-nine');
+    const snapshot = manager.snapshot(roomId, erin.id);
+
+    expect(snapshot?.status).toBe('finished');
+    expect(snapshot?.game?.match).toMatchObject({
+      round: 2,
+      seriesScore: { red: 2, blue: 0 },
+      nextRoundAt: null,
+    });
+    expect(finished).toHaveLength(1);
+    expect(finished[0]).toMatchObject({ rounds: 2, forfeit: false, result: { winner: 'red' } });
+    expect(snapshot?.rematch).not.toBeNull();
+  });
+
+  it('plays the third round at 1–0, which could still level the match', () => {
     const manager = createManager();
     const roomId = startedGame(manager, untilWinner(), true, erin, dave);
 

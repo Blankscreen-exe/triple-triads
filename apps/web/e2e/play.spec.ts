@@ -70,8 +70,13 @@ async function playFullMatch(browser: Browser, roomPrefix: string) {
     );
   }
 
-  // Every round is played: 27 turns plus the breaks between rounds.
-  for (let turn = 0; turn < 27; turn++) await playTurn([alice.page, bob.page]);
+  // Rounds of 9 turns until the match is decided: 2–0 ends it after two.
+  const result = alice.page.getByRole('heading', { name: RESULT_HEADING });
+  for (let round = 1; round <= 3; round++) {
+    for (let turn = 0; turn < 9; turn++) await playTurn([alice.page, bob.page]);
+    await expect(result.or(alice.page.getByText(/^Round \d starts in/))).toBeVisible();
+    if (await result.isVisible()) break;
+  }
 
   for (const { page } of [alice, bob]) {
     await expect(page.getByRole('heading', { name: RESULT_HEADING })).toBeVisible();

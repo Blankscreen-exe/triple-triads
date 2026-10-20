@@ -18,6 +18,7 @@ import { ELEMENT_LABELS, formatStat } from '@/lib/elements';
 import { STARTING_RATING, TIERS } from '@/lib/rating';
 import {
   MATCH_FORMAT_LABELS,
+  MATCH_ROUNDS,
   RECONNECT_GRACE_MS,
   ROUND_BREAK_MS,
   TURN_TIMER_OPTIONS,
@@ -223,8 +224,13 @@ export default function RulesPage() {
           </Suspense>
           <ul className="list-disc space-y-2 pl-5">
             <li>
-              In rooms set to <strong>Until there is a winner</strong>, a drawn round is followed by
-              another after a {seconds(ROUND_BREAK_MS)}-second break, until someone wins.
+              In <strong>{MATCH_FORMAT_LABELS['until-winner']}</strong> rooms, a match is up to{' '}
+              {MATCH_ROUNDS} rounds, with a {seconds(ROUND_BREAK_MS)}-second break between them.
+            </li>
+            <li>
+              The match ends <strong>as soon as one player cannot be caught</strong>: 2–0 after two
+              rounds settles it. Otherwise all {MATCH_ROUNDS} rounds are played, and whoever won
+              more of them wins the match; level is a draw.
             </li>
             <li>
               <strong>Cards you place are used up</strong> for the rest of the match, even if they
@@ -232,11 +238,11 @@ export default function RulesPage() {
               best cards early can leave you short later.
             </li>
             <li>
-              After a drawn round, <strong>the other player starts</strong> the next one.
+              After each round, <strong>the other player starts</strong> the next one.
             </li>
             <li>
               Each round needs {MIN_CARDS_PER_GAME} cards per player, so a {DECK_SIZE}-card deck
-              lasts up to {MAX_ROUNDS} rounds. If every round is drawn, the match is a draw.
+              lasts up to {MAX_ROUNDS} rounds.
             </li>
             <li>
               In <strong>Single game</strong> rooms the match is one round, so {STARTING_SCORE}–

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { PlayerColor } from '@triple-triad/engine';
 import type { GameStats } from '@/lib/game-stats';
-import type { RoomSnapshot, VoteChoice } from '@/lib/realtime/protocol';
+import { MATCH_ROUNDS, type RoomSnapshot, type VoteChoice } from '@/lib/realtime/protocol';
 import { formatStreak, tierFor } from '@/lib/rating';
 import { StatBoard } from './stat-board';
 import { Button } from '../ui/button';
@@ -75,7 +75,7 @@ export function ResultPanel({ room, onVote, onLeave, onDismiss, stats }: ResultP
         {game.match.roundResults.length > 0 && (
           <p className="text-xs text-slate-300/80">
             Series: Red {game.match.seriesScore.red} – {game.match.seriesScore.blue} Blue
-            {' · '}Round {game.match.round} of 3
+            {' · '}Round {game.match.round} of {MATCH_ROUNDS}
           </p>
         )}
         {you && game.outcome && <RatingChange outcome={game.outcome[you]} />}

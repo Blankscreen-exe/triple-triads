@@ -12,11 +12,13 @@ import {
   POSITIONS,
   applyMove,
   canPlayRound,
+  isMatchOver,
   computeScore,
   createGame,
   opponentOf,
   playRandomMove,
   remainingAfterRound,
+  roundsWon,
   type Board,
   type CardDefinition,
   type CaptureEvent,
@@ -29,6 +31,7 @@ import { DEFAULT_ASSET_PACK, type AssetPack } from '@/lib/asset-packs';
 import {
   RECONNECT_GRACE_MS,
   REMATCH_VOTE_MS,
+  MATCH_ROUNDS,
   ROUND_BREAK_MS,
   type Ack,
   type CardInfo,
@@ -449,8 +452,9 @@ export class RoomManager {
   }
 
   /**
-   * A round is over. In best-of-3, all 3 rounds are played (or until decks run out).
-   * The match winner is whoever won the most rounds.
+   * A round is over. A best-of-3 match goes on to the next round unless one player can no longer
+   * be caught (2–0), all 3 rounds are played, or the decks run out; then whoever won more rounds
+   * wins the match.
    */
   #endRound(room: Room, game: ActiveGame, result: GameResult): void {
     const match = room.match;
@@ -477,7 +481,7 @@ export class RoomManager {
 
     if (
       room.options.format === 'single' ||
-      match.roundResults.length >= 3 ||
+      isMatchOver(match.roundResults, MATCH_ROUNDS) ||
       !canPlayRound(decks)
     ) {
       this.#finishMatchBySeriesScore(room, false);
@@ -488,7 +492,7 @@ export class RoomManager {
     const nextFirstPlayerId = game.players[opponentOf(game.firstPlayer)].user.id;
     room.timers.round = setTimeout(() => {
       room.timers.round = null;
-      this.#startRound(room, nextFirstPlayerId, 'round-drawn');
+      this.#startRound(room, nextFirstPlayerId, 'next-round');
       this.#changed(room);
     }, this.#deps.roundBreakMs);
   }
@@ -496,11 +500,7 @@ export class RoomManager {
   #finishMatchBySeriesScore(room: Room, forfeit: boolean): void {
     const match = room.match;
     if (!match) return;
-    const wins = { red: 0, blue: 0 };
-    for (const r of match.roundResults) {
-      if (r.winner === 'red') wins.red++;
-      else if (r.winner === 'blue') wins.blue++;
-    }
+    const wins = roundsWon(match.roundResults);
     const lastResult = match.roundResults[match.roundResults.length - 1];
     const winner = wins.red > wins.blue ? 'red' : wins.blue > wins.red ? 'blue' : null;
     const score = lastResult?.score ?? { red: 5, blue: 5 };

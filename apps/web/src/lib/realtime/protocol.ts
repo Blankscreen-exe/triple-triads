@@ -27,19 +27,23 @@ export type TurnSeconds = (typeof TURN_TIMER_OPTIONS)[number];
 export const RECONNECT_GRACE_MS = 2 * 60 * 1000;
 /** How long the continue/leave vote after a game stays open. */
 export const REMATCH_VOTE_MS = 30 * 1000;
-/** The pause between a drawn round and the next round of the same match. */
+/** The pause between one round of a match and the next. */
 export const ROUND_BREAK_MS = 5 * 1000;
 
+/** The most rounds in an `until-winner` match: a best of 3. */
+export const MATCH_ROUNDS = 3;
+
 /**
- * `until-winner`: a drawn round is followed by another, played with what is left of each deck,
- * until someone wins or the decks run out. `single`: one round; a draw ends the match.
+ * `until-winner`: a best of {@link MATCH_ROUNDS} rounds, each played with what is left of each
+ * deck. It ends as soon as one player cannot be caught (2–0), or after the last round, or when the
+ * decks run out. `single`: one round; a draw ends the match.
  */
 export const MATCH_FORMATS = ['until-winner', 'single'] as const;
 export type MatchFormat = (typeof MATCH_FORMATS)[number];
 
 /** How the match format is described in forms. */
 export const MATCH_FORMAT_LABELS: Readonly<Record<MatchFormat, string>> = {
-  'until-winner': 'Until there is a winner',
+  'until-winner': 'Best of 3',
   single: 'Single game',
 };
 
@@ -146,7 +150,7 @@ export type MatchOutcome = Readonly<Record<PlayerColor, PlayerOutcome>>;
  * the previous match being a draw (the same player starts again), or the previous round of this
  * match being a draw (the other player starts).
  */
-export type FirstPlayerReason = 'coin-flip' | 'lost-last-game' | 'last-game-drawn' | 'round-drawn';
+export type FirstPlayerReason = 'coin-flip' | 'lost-last-game' | 'last-game-drawn' | 'next-round';
 
 export interface RoundResult {
   readonly winner: PlayerColor | null;

@@ -62,7 +62,7 @@ export interface RoundOutcome {
   readonly score: { readonly red: number; readonly blue: number };
 }
 
-/** A match: best of 3 rounds (see RoomOptions.format). */
+/** A match: one round, or a best of 3 that ends early at 2–0 (see RoomOptions.format). */
 export interface Match {
   /** The round being played, or the one just finished. Starts at 1. */
   round: number;

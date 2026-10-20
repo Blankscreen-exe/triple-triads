@@ -1,6 +1,6 @@
 import type { PlayerColor } from '@triple-triad/engine';
 import type { GameStats, CapturesByType } from '@/lib/game-stats';
-import type { MatchSnapshot } from '@/lib/realtime/protocol';
+import { MATCH_ROUNDS, type MatchSnapshot } from '@/lib/realtime/protocol';
 import { Window } from '../ui/window';
 
 interface StatBoardProps {
@@ -114,7 +114,9 @@ function Scoreboard({
       <div className="mt-3 space-y-2">
         <ScoreRow label="Rounds won" red={match.seriesScore.red} blue={match.seriesScore.blue} />
         <ScoreRow label="Cards left" red={match.cardsLeft.red} blue={match.cardsLeft.blue} />
-        <p className="text-center text-[10px] text-slate-400">Round {match.round} of 3</p>
+        <p className="text-center text-[10px] text-slate-400">
+          Round {match.round} of {MATCH_ROUNDS}
+        </p>
       </div>
     </div>
   );

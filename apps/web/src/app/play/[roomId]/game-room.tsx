@@ -476,12 +476,12 @@ function firstPlayerMessage(username: string, reason: FirstPlayerReason, round: 
       return `${username} lost the last game, so goes first.`;
     case 'last-game-drawn':
       return `The last game was a draw, so ${username} goes first again.`;
-    case 'round-drawn':
-      return `The last round was a draw, so ${username} starts round ${String(round)}.`;
+    case 'next-round':
+      return `Players take turns to start: ${username} starts round ${String(round)}.`;
   }
 }
 
-/** Between the rounds of a match: the drawn round's score and when the next round starts. */
+/** Between the rounds of a match: the last round's score and when the next round starts. */
 function RoundBreak({
   snapshot,
   clockOffset,

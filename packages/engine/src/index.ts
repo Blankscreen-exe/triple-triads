@@ -31,4 +31,4 @@ export {
   type DeckViolation,
 } from './deck';
 export { Rng } from './rng';
-export { canPlayRound, maxRounds, remainingAfterRound } from './rounds';
+export { canPlayRound, isMatchOver, maxRounds, remainingAfterRound, roundsWon } from './rounds';

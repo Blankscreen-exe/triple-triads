@@ -2,7 +2,13 @@
  * Building what each participant receives. Snapshots are personalised: the game view comes from
  * the engine's `viewFor`, and display data is included only for cards the viewer can see.
  */
-import { PLAYER_COLORS, viewFor, type GameView, type PlayerColor } from '@triple-triad/engine';
+import {
+  PLAYER_COLORS,
+  roundsWon,
+  viewFor,
+  type GameView,
+  type PlayerColor,
+} from '@triple-triad/engine';
 import type {
   CardInfo,
   GameSnapshot,
@@ -133,16 +139,11 @@ function matchSnapshot(room: Room, game: ActiveGame): MatchSnapshot {
     winner: r.winner,
     score: r.score,
   }));
-  const seriesScore = { red: 0, blue: 0 };
-  for (const r of roundResults) {
-    if (r.winner === 'red') seriesScore.red++;
-    else if (r.winner === 'blue') seriesScore.blue++;
-  }
   return {
     format: room.options.format,
     round: match?.round ?? 1,
     roundResults,
-    seriesScore,
+    seriesScore: roundsWon(roundResults),
     nextRoundAt: match?.nextRoundAt ?? null,
     cardsLeft,
   };

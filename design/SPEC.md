@@ -170,19 +170,19 @@ To change the layout: edit `card-layout.json` and rerun the script.
 
 ### 8.1 Room options (set by the host before creating the room)
 
-| Option                    | Effect                                                 |
-| ------------------------- | ------------------------------------------------------ |
-| Show cards in hand (Open) | Both players can see each other's hands                |
-| Same                      | See 9.4                                                |
-| Plus                      | See 9.4                                                |
-| Combo                     | See 9.4                                                |
-| Same Wall                 | See 9.4                                                |
-| Your colour               | **Red** or **Blue** for the host; see 9.1              |
-| Elemental                 | **Off** / **Normal** / **All squares**. See 9.5        |
-| Turn timer                | Time limit per turn                                    |
-| Match                     | **Until there is a winner** / **Single game**. See 9.7 |
-| Password                  | Room requires a password to join                       |
-| Spectators allowed        | Others can watch                                       |
+| Option                    | Effect                                          |
+| ------------------------- | ----------------------------------------------- |
+| Show cards in hand (Open) | Both players can see each other's hands         |
+| Same                      | See 9.4                                         |
+| Plus                      | See 9.4                                         |
+| Combo                     | See 9.4                                         |
+| Same Wall                 | See 9.4                                         |
+| Your colour               | **Red** or **Blue** for the host; see 9.1       |
+| Elemental                 | **Off** / **Normal** / **All squares**. See 9.5 |
+| Turn timer                | Time limit per turn                             |
+| Match                     | **Best of 3** / **Single game**. See 9.7        |
+| Password                  | Room requires a password to join                |
+| Spectators allowed        | Others can watch                                |
 
 ## 9. Gameplay rules
 
@@ -233,13 +233,14 @@ Room setting with three modes. At the start of each game, squares are given rand
 
 ### 9.7 Matches, rounds and rematch
 
-A **match** is one or more **rounds** (a round is one full board, 9.1–9.6). The room option "Match" decides what happens when a round is drawn:
+A **match** is one or more **rounds** (a round is one full board, 9.1–9.6). The room option "Match" decides how many:
 
-- **Until there is a winner** (default): a drawn round is followed, after a **5-second** break, by another round of the same match.
-  - **Placed cards are used up** for the rest of the match, whether or not they were captured. Cards drawn but not placed go back into the deck, which is reshuffled for the next round.
+- **Best of 3** (default): up to 3 rounds, with a **5-second** break between them.
+  - The match ends **as soon as one player cannot be caught**, i.e. has won more rounds than are left to play: **2–0 ends it after two rounds**. Otherwise all 3 rounds are played. Whoever won more rounds wins the match; level (e.g. three drawn rounds, or 1–1 and a draw) is a **drawn match**.
+  - **Placed cards are used up** for the rest of the match, whether or not they were captured. Cards drawn but not placed go back into the deck, which is reshuffled for the next round (unless the room's Carry Hand rule keeps them in hand).
   - **The other player starts** the next round.
-  - A round needs 8 cards per player (3 in hand + 5 draws), so 20-card decks allow **up to 3 rounds**. If every round is drawn, the **match is a draw**.
-  - Simulations with the starter decks (cautious play) gave about 37% drawn single rounds but only about 6% drawn matches.
+  - A round needs 8 cards per player (3 in hand + 5 draws), so 20-card decks allow **up to 3 rounds**.
+  - Simulations with the starter decks (cautious play) gave about 37% drawn single rounds. Under the earlier rule (play on only after a drawn round) about 6% of matches were drawn.
 - **Single game**: the match is one round; a drawn round is a drawn match.
 
 After the match is decided:
