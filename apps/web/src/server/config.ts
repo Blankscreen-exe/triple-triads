@@ -9,6 +9,32 @@ const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'
 
 const booleanFlag = z.enum(['true', 'false']).transform((value) => value === 'true');
 
+/** One label of a hostname, or `*` for any one label. */
+const LABEL = '(?:\\*|[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)';
+/** A hostname without scheme or port; a leading `**.` stands for one or more labels. */
+const HOST_PATTERN = new RegExp(`^(?:\\*\\*\\.)?${LABEL}(?:\\.${LABEL})*$`);
+
+const hostPatterns = z
+  .string()
+  .default('')
+  .transform((value) =>
+    value
+      .split(',')
+      .map((entry) => entry.trim().toLowerCase())
+      .filter((entry) => entry !== ''),
+  )
+  .pipe(
+    z.array(
+      z
+        .string()
+        .regex(
+          HOST_PATTERN,
+          'Expected a hostname such as play.example.com or *.trycloudflare.com, without https:// or a port.',
+        )
+        .refine((pattern) => /[a-z0-9]/.test(pattern), 'A wildcard alone would allow every site.'),
+    ),
+  );
+
 const configSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -20,6 +46,11 @@ const configSchema = z
     DATA_DIR: z.string().min(1).default('./data'),
     /** Session cookies are HTTPS-only. Defaults to on in production. */
     SECURE_COOKIES: booleanFlag.optional(),
+    /**
+     * Comma-separated public hostnames the app is also reached at, such as a tunnel's, when they do
+     * not reach the server as its host. next.config.ts reads the same variable.
+     */
+    ALLOWED_ORIGINS: hostPatterns,
     STORAGE_DRIVER: z.enum(['local', 'minio']).default('local'),
     MINIO_ENDPOINT: z.string().min(1).optional(),
     MINIO_PORT: z.coerce.number().int().min(1).max(65_535).default(9000),
@@ -67,6 +98,8 @@ export interface ServerConfig {
   /** Absolute path of the SQLite database file. */
   readonly databasePath: string;
   readonly secureCookies: boolean;
+  /** Hostname patterns of other sites allowed to send requests that change data. */
+  readonly allowedOrigins: readonly string[];
   readonly storage: StorageConfig;
 }
 
@@ -97,6 +130,7 @@ export function loadConfig(env: Readonly<Record<string, string | undefined>>): S
     dataDir,
     databasePath: resolve(dataDir, DATABASE_FILE),
     secureCookies: values.SECURE_COOKIES ?? values.NODE_ENV === 'production',
+    allowedOrigins: values.ALLOWED_ORIGINS,
     storage:
       values.STORAGE_DRIVER === 'minio'
         ? {

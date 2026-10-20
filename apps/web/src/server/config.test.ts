@@ -13,8 +13,22 @@ describe('loadConfig', () => {
       dataDir: resolve('data'),
       databasePath: resolve('data', 'triple-triad.db'),
       secureCookies: false,
+      allowedOrigins: [],
       storage: { driver: 'local', dir: resolve('data', 'uploads') },
     });
+  });
+
+  it('reads the extra hostnames the app is served from', () => {
+    expect(
+      loadConfig({ ALLOWED_ORIGINS: ' Play.Example.com, *.trycloudflare.com,,**.ngrok.app ' })
+        .allowedOrigins,
+    ).toEqual(['play.example.com', '*.trycloudflare.com', '**.ngrok.app']);
+  });
+
+  it('rejects allowed origins that are not hostnames', () => {
+    for (const value of ['https://play.example.com', 'play.example.com:443', '*', 'a.**.com']) {
+      expect(() => loadConfig({ ALLOWED_ORIGINS: value }), value).toThrow(ConfigError);
+    }
   });
 
   it('makes cookies HTTPS-only in production unless told otherwise', () => {

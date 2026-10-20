@@ -4,6 +4,7 @@ import {
   type BackupManifest,
   type RestoreError,
 } from '@/server/backup/backup';
+import { loadConfig } from '@/server/config';
 import { getDatabase } from '@/server/db';
 import { getRealtime } from '@/server/realtime/registry';
 import { getStorage } from '@/server/storage';
@@ -32,7 +33,10 @@ const reply = (body: RestoreResponse, status = 200) => Response.json(body, { sta
 export async function POST(request: Request): Promise<Response> {
   const user = await getCurrentUser();
   if (user?.role !== 'admin') return new Response(null, { status: 404 });
-  if (!isSameOrigin(request)) return reply({ ok: false, error: 'Request refused.' }, 403);
+  const { allowedOrigins } = loadConfig(process.env);
+  if (!isSameOrigin(request, allowedOrigins)) {
+    return reply({ ok: false, error: 'Request refused.' }, 403);
+  }
 
   const declaredSize = Number(request.headers.get('content-length') ?? 0);
   if (declaredSize > MAX_BACKUP_BYTES) {

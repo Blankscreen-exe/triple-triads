@@ -101,6 +101,12 @@ test without an account:
 cloudflared tunnel --url http://localhost:3000
 ```
 
+To reach the development server (`pnpm dev`) through a tunnel, list the tunnel's hostname in
+`ALLOWED_ORIGINS`, e.g. `ALLOWED_ORIGINS=*.trycloudflare.com`. Next.js serves its development
+scripts to `localhost` only, so without it pages load but no button works. The same setting is
+needed in production behind a tunnel or proxy that forwards its own host (`localhost:3000`) rather
+than the public one: saving then fails, and the log shows "Invalid Server Actions request".
+
 ### Reverse proxy with automatic HTTPS (Caddy)
 
 On a VPS with a domain pointing at it, [Caddy](https://caddyserver.com) obtains certificates
@@ -205,6 +211,7 @@ message naming it.
 | `LOG_LEVEL`        | `info`                           | `fatal` `error` `warn` `info` `debug` `trace` `silent`                       |
 | `NODE_ENV`         | `development` (`production`)     | Set by `pnpm start` and the image.                                           |
 | `SECURE_COOKIES`   | `true` in production             | HTTPS-only session cookies. See [plain HTTP](#plain-http-on-a-home-network). |
+| `ALLOWED_ORIGINS`  |                                  | Tunnel hostnames. See [Cloudflare Tunnel](#cloudflare-tunnel-no-open-ports). |
 | `STORAGE_DRIVER`   | `local`                          | `local` or `minio`.                                                          |
 | `MINIO_ENDPOINT`   |                                  | Host name of the S3-compatible server (required for `minio`).                |
 | `MINIO_PORT`       | `9000`                           |                                                                              |
