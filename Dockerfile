@@ -71,6 +71,7 @@ COPY --from=build /app/apps/web/.next ./.next
 COPY --from=build /app/apps/web/dist ./dist
 COPY apps/web/package.json apps/web/next.config.ts ./
 COPY apps/web/public ./public
+COPY apps/web/assets ./assets
 COPY apps/web/drizzle ./drizzle
 
 RUN mkdir -p /data && chown node:node /data

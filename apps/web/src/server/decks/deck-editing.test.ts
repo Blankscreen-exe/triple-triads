@@ -149,7 +149,7 @@ describe('deleteDeck', () => {
     expect(deleteDeck(db, user.id, wanderer.id).ok).toBe(true);
 
     expect(listDecks(db, user.id).map((deck) => [deck.name, deck.isActive])).toEqual([
-      ['Elementalist', true],
+      ['Stardust Crusaders', true],
       ['Vanguard', false],
     ]);
   });

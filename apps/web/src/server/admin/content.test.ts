@@ -172,7 +172,7 @@ describe('starter decks', () => {
     deleteStarterDeck(db, wanderer.id);
 
     expect(listStarterDecks(db).map((deck) => [deck.name, deck.isDefault])).toEqual([
-      ['Elementalist', true],
+      ['Stardust Crusaders', true],
       ['Vanguard', false],
     ]);
   });

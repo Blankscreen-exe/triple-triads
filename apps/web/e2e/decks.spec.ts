@@ -12,7 +12,11 @@ test('the deck list shows each deck’s stats, with the active deck first', asyn
   await expect(filters(page)).toContainText('3 decks');
   // The active deck comes first; the others follow by most recent change.
   await expect.poll(async () => (await deckNames(page))[0]).toBe('Wanderer');
-  expect((await deckNames(page)).toSorted()).toEqual(['Elementalist', 'Vanguard', 'Wanderer']);
+  expect((await deckNames(page)).toSorted()).toEqual([
+    'Stardust Crusaders',
+    'Vanguard',
+    'Wanderer',
+  ]);
   const wanderer = deckList(page).getByRole('listitem', { name: 'Wanderer' });
   await expect(wanderer.getByText('Active', { exact: true })).toBeVisible();
   await expect(wanderer.getByText('Ready', { exact: true })).toBeVisible();
@@ -45,7 +49,7 @@ test('decks can be searched and filtered, and the filters stay in the URL', asyn
 
   await filters(page).getByLabel('Status').selectOption('');
   await filters(page).getByLabel('Sort').selectOption('name');
-  await expect.poll(() => deckNames(page)).toEqual(['Elementalist', 'Vanguard', 'Wanderer']);
+  await expect.poll(() => deckNames(page)).toEqual(['Stardust Crusaders', 'Vanguard', 'Wanderer']);
 });
 
 test('each deck can be edited on its own page, or deleted', async ({ page }) => {
@@ -77,7 +81,7 @@ test('each deck can be edited on its own page, or deleted', async ({ page }) => 
   await page.goto('/decks');
   page.once('dialog', (dialog) => void dialog.accept());
   await deckList(page)
-    .getByRole('listitem', { name: 'Elementalist' })
+    .getByRole('listitem', { name: 'Stardust Crusaders' })
     .getByRole('button', { name: 'Delete' })
     .click();
 

@@ -1,6 +1,6 @@
 /**
  * Default generic cards and starter decks, inserted on first startup so the game is playable out
- * of the box. These are placeholders until the owner supplies art; afterwards the catalogue is
+ * of the box. Most are placeholders until the owner supplies art; afterwards the catalogue is
  * managed from the admin panel.
  *
  * Every starter deck must satisfy the deck rules; `starter-content.test.ts` enforces this.
@@ -13,6 +13,8 @@ export interface StarterCard {
   /** [top, right, bottom, left] */
   readonly stats: readonly [StatValue, StatValue, StatValue, StatValue];
   readonly element: Element | null;
+  /** The card's art, a file name in assets/starter-art without extension; null for none yet. */
+  readonly art: string | null;
 }
 
 export interface StarterDeck {
@@ -28,7 +30,15 @@ const card = (
   name: string,
   stats: StarterCard['stats'],
   element: Element | null = null,
-): StarterCard => ({ id: `generic-${slug}`, name, stats, element });
+): StarterCard => ({ id: `generic-${slug}`, name, stats, element, art: null });
+
+/** A card with a portrait, in assets/starter-art/<slug>.webp. */
+const portrait = (
+  slug: string,
+  name: string,
+  stats: StarterCard['stats'],
+  element: Element | null = null,
+): StarterCard => ({ ...card(slug, name, stats, element), art: slug });
 
 export const STARTER_CARDS: readonly StarterCard[] = [
   // ★
@@ -57,7 +67,36 @@ export const STARTER_CARDS: readonly StarterCard[] = [
   card('tempest-roc', 'Tempest Roc', [7, 9, 6, 3], 'thunder'),
   // ★★★★★
   card('sky-wyrm', 'Sky Wyrm', [10, 4, 6, 9], 'wind'),
+
+  // Stardust Crusaders
+  // ★
+  portrait('alessi', 'Alessi', [2, 5, 3, 4]),
+  portrait('steely-dan', 'Steely Dan', [4, 2, 4, 3]),
+  // ★★
+  portrait('hol-horse', 'Hol Horse', [6, 4, 2, 6]),
+  portrait('enya-the-hag', 'Enya the Hag', [5, 5, 2, 5], 'poison'),
+  portrait('anubis', 'Anubis', [7, 2, 3, 5]),
+  portrait('mariah', 'Mariah', [2, 6, 5, 3], 'thunder'),
+  portrait('j-geil', 'J. Geil', [3, 5, 3, 6]),
+  portrait('daniel-darby', "Daniel J. D'Arby", [4, 3, 6, 2]),
+  portrait('forever', 'Forever', [6, 2, 4, 5]),
+  portrait('imposter-tennille', 'Imposter Tennille', [3, 4, 4, 6], 'water'),
+  // ★★★
+  portrait('noriaki-kakyoin', 'Noriaki Kakyoin', [7, 6, 3, 6], 'water'),
+  portrait('polnareff', 'Polnareff', [8, 5, 2, 6]),
+  portrait('avdol', 'Avdol', [6, 7, 5, 3], 'fire'),
+  portrait('iggy', 'Iggy', [4, 7, 2, 8], 'earth'),
+  portrait('telence-darby', "Telence T. D'Arby", [3, 6, 8, 4]),
+  portrait('will-zeppeli', 'Will A. Zeppeli', [7, 3, 6, 5], 'holy'),
+  // ★★★★
+  portrait('jotaro-kujo', 'Jotaro Kujo', [9, 8, 4, 6]),
+  portrait('joseph-joestar', 'Joseph Joestar', [7, 8, 7, 4], 'thunder'),
+  portrait('vanilla-ice', 'Vanilla Ice', [9, 4, 8, 6]),
+  // ★★★★★
+  portrait('dio', 'DIO', [10, 7, 3, 9]),
 ];
+
+export const STARDUST_CRUSADERS_DECK_ID = 'starter-stardust-crusaders';
 
 export const STARTER_DECKS: readonly StarterDeck[] = [
   {
@@ -78,21 +117,13 @@ export const STARTER_DECKS: readonly StarterDeck[] = [
     },
   },
   {
-    id: 'starter-elementalist',
-    name: 'Elementalist',
+    id: STARDUST_CRUSADERS_DECK_ID,
+    name: 'Stardust Crusaders',
     isDefault: false,
-    cards: {
-      'generic-bog-beetle': 3,
-      'generic-pebble-golem': 3,
-      'generic-ember-imp': 1,
-      'generic-frost-wisp': 1,
-      'generic-storm-hawk': 3,
-      'generic-prickle-jack': 2,
-      'generic-reef-crab': 3,
-      'generic-tide-siren': 2,
-      'generic-sky-lancer': 1,
-      'generic-tempest-roc': 1,
-    },
+    // One of each portrait.
+    cards: Object.fromEntries(
+      STARTER_CARDS.filter((starter) => starter.art !== null).map((starter) => [starter.id, 1]),
+    ),
   },
   {
     id: 'starter-vanguard',

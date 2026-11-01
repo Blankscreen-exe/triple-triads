@@ -6,13 +6,14 @@ test('the trunk shows every owned card drawn with the default pack', async ({ pa
 
   await page.goto('/trunk');
 
-  await expect(page.getByText('21 cards', { exact: true })).toBeVisible();
+  await expect(page.getByText('35 cards', { exact: true })).toBeVisible();
   await expect(
     page.getByRole('img', {
       name: 'Sky Wyrm, 5 stars, top A, right 4, bottom 6, left 9, Wind element',
     }),
   ).toBeVisible();
   // Sand Lizard is in two starter decks: 3 + 2 copies.
+  await page.getByLabel('Search').fill('Sand Lizard');
   const sandLizard = page
     .getByRole('listitem')
     .filter({ has: page.getByRole('img', { name: /^Sand Lizard,/ }) });

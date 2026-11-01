@@ -119,15 +119,17 @@ test('on a phone, the trunk pages three columns of cards, with filters behind a 
   const { page } = await newPhonePlayer(browser);
   await page.goto('/trunk');
   const filters = page.getByRole('search', { name: 'Filter cards' });
-  await expect(filters).toContainText('21 cards');
+  await expect(filters).toContainText('35 cards');
 
   const cards = page.getByRole('list', { name: 'Cards' }).getByRole('listitem');
   const pages = page.getByRole('navigation', { name: 'Cards pages' });
   // Four rows of three.
   await expect(cards).toHaveCount(12);
   await pages.getByRole('button', { name: 'Next page' }).click();
-  await expect(pages).toContainText('Page 2 of 2');
-  await expect(cards).toHaveCount(9);
+  await expect(pages).toContainText('Page 2 of 3');
+  await expect(cards).toHaveCount(12);
+  await pages.getByRole('button', { name: 'Next page' }).click();
+  await expect(cards).toHaveCount(11);
 
   await expect(filters.getByLabel('Stars')).toBeHidden();
   await filters.getByRole('button', { name: 'Filters' }).click();
@@ -159,7 +161,7 @@ test('on a phone, the deck editor has Deck and Trunk tabs, and Save stays on scr
   const cards = trunk.getByRole('list', { name: 'Trunk cards' }).getByRole('button');
   await expect(cards).toHaveCount(12);
   await trunk.getByRole('button', { name: 'Next page' }).click();
-  await expect(cards).toHaveCount(9);
+  await expect(cards).toHaveCount(12);
 
   await trunk.getByLabel('Search').fill('Sky Wyrm');
   await trunk.getByRole('button', { name: 'Add Sky Wyrm' }).click();

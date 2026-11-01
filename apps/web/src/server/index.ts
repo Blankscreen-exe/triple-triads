@@ -8,10 +8,12 @@ import { existsSync } from 'node:fs';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import next from 'next';
 import { ConfigError, loadConfig } from './config';
+import { seedStarterArt } from './catalog/starter-art';
 import { closeDatabase } from './db/client';
 import { prepareDatabase, scheduleSessionCleanup } from './db/startup';
 import { createLogger } from './logger';
 import { createSocketServer } from './realtime/socket-server';
+import { getStorage } from './storage';
 
 const HEALTH_PATH = '/healthz';
 const SHUTDOWN_TIMEOUT_MS = 10_000;
@@ -25,6 +27,13 @@ async function main(): Promise<void> {
   // Migrate before Next.js starts: its server code assumes an up-to-date schema.
   const db = prepareDatabase(config.databasePath, logger);
   const stopSessionCleanup = scheduleSessionCleanup(db, logger);
+  try {
+    const stored = await seedStarterArt(db, getStorage());
+    if (stored > 0) logger.info({ stored }, 'stored the starter card art');
+  } catch (error) {
+    // Cards work without art, and the next startup tries again.
+    logger.error({ err: error }, 'could not store the starter card art');
+  }
 
   const httpServer = createServer();
   const app = next({

@@ -47,7 +47,7 @@ describe('registerUser', () => {
 
     const decks = listDecks(db, result.user.id);
 
-    expect(decks.map((deck) => deck.name)).toEqual(['Wanderer', 'Elementalist', 'Vanguard']);
+    expect(decks.map((deck) => deck.name)).toEqual(['Wanderer', 'Stardust Crusaders', 'Vanguard']);
     expect(decks.filter((deck) => deck.isActive).map((deck) => deck.name)).toEqual(['Wanderer']);
     expect(decks.every((deck) => deck.size === 20 && deck.violations.length === 0)).toBe(true);
   });

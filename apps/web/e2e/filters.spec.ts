@@ -20,8 +20,9 @@ test('the trunk can be searched, filtered and sorted, and keeps filters in the U
   await page.goto('/trunk');
   // The count appears once the cards have streamed in.
   await expect(filterBar(page)).toContainText(/\d+ cards$/);
-  const total = (await cardNames(page)).length;
-  expect(total).toBeGreaterThan(5);
+  // The grid is paged, so the total comes from the count.
+  const total = /(\d+) cards$/.exec((await filterBar(page).textContent()) ?? '')?.[1];
+  expect(Number(total)).toBeGreaterThan(5);
 
   await filterBar(page).getByLabel('Search').fill('wyrm');
   await expect(page).toHaveURL(/\/trunk\?q=wyrm$/);
@@ -35,7 +36,7 @@ test('the trunk can be searched, filtered and sorted, and keeps filters in the U
 
   await filterBar(page).getByRole('button', { name: 'Clear filters' }).click();
   await expect(page).toHaveURL(/\/trunk$/);
-  await expect.poll(async () => (await cardNames(page)).length).toBe(total);
+  await expect(filterBar(page)).toContainText(`${String(total)} cards`);
 
   await filterBar(page).getByLabel('Stars').selectOption('1');
   await filterBar(page).getByLabel('Element').selectOption('none');

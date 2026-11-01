@@ -1,5 +1,7 @@
+import { existsSync } from 'node:fs';
 import { rankCard, statKey, validateDeck } from '@triple-triad/engine';
 import { describe, expect, it } from 'vitest';
+import { starterArtPath } from './starter-art';
 import { STARTER_CARDS, STARTER_DECKS, type StarterCard } from './starter-content';
 
 const cardsById = new Map(STARTER_CARDS.map((card) => [card.id, card]));
@@ -20,6 +22,12 @@ describe('starter content', () => {
 
   it('only has cards the card maker would allow', () => {
     for (const card of STARTER_CARDS) expect(rank(card).allowed, card.name).toBe(true);
+  });
+
+  it('has an image for every card with art', () => {
+    for (const { art } of STARTER_CARDS) {
+      if (art !== null) expect(existsSync(starterArtPath(art)), art).toBe(true);
+    }
   });
 
   it('marks exactly one starter deck as the default', () => {
