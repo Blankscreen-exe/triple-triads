@@ -1,0 +1,253 @@
+<!doctype html>
+<!--
+  Thumbnail for posts and link previews, 1200 × 630. Open it from the repository: it uses the
+  game's own fonts, sprite sheets and card art through relative paths.
+  docs/images/thumbnail.png is its screenshot.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Triple Triad thumbnail</title>
+    <style>
+      @font-face {
+        font-family: Cinzel;
+        src: url('../../apps/web/src/app/fonts/cinzel-latin-variable.woff2') format('woff2');
+        font-weight: 400 900;
+      }
+      @font-face {
+        font-family: 'Exo 2';
+        src: url('../../apps/web/src/app/fonts/exo-2-latin-variable.woff2') format('woff2');
+        font-weight: 100 900;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: #0a0f1f;
+      }
+      .thumbnail {
+        position: relative;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        background:
+          radial-gradient(ellipse 620px 620px at 930px 315px, #33497f 0%, transparent 72%),
+          radial-gradient(ellipse 600px 320px at 120px -40px, #22315a 0%, transparent 75%), #0a0f1f;
+        font-family: 'Exo 2', sans-serif;
+      }
+      .words {
+        position: absolute;
+        left: 60px;
+        top: 50%;
+        width: 590px;
+        transform: translateY(-50%);
+      }
+      h1 {
+        margin: 0;
+        font-family: Cinzel, serif;
+        font-size: 92px;
+        font-weight: 900;
+        line-height: 1.02;
+        letter-spacing: 0.06em;
+        color: #f4ecd2;
+        text-shadow:
+          0 4px 0 #000,
+          0 12px 30px rgb(0 0 0 / 0.7);
+      }
+      .tagline {
+        margin: 26px 0 0;
+        font-size: 31px;
+        font-weight: 500;
+        line-height: 1.25;
+        color: #d6deef;
+      }
+      .features {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 28px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      .features li {
+        padding: 7px 13px;
+        border: 1px solid rgb(214 222 239 / 0.55);
+        border-radius: 6px;
+        background: rgb(0 0 0 / 0.3);
+        font-size: 19px;
+        font-weight: 600;
+        color: #f4ecd2;
+      }
+      /* The game's wooden board. */
+      .board {
+        position: absolute;
+        left: 708px;
+        top: 14px;
+        display: grid;
+        grid-template-columns: repeat(3, 134px);
+        gap: 9px;
+        padding: 12px;
+        border: 5px solid #9c8458;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #5a4630, #2b2117);
+        box-shadow: 0 18px 44px rgb(0 0 0 / 0.65);
+      }
+      .slot {
+        aspect-ratio: 1024 / 1434;
+      }
+      .card {
+        position: relative;
+        aspect-ratio: 1024 / 1434;
+        overflow: hidden;
+        border-radius: 3% / 2.2%;
+        box-shadow: 0 5px 12px rgb(0 0 0 / 0.6);
+        container-type: inline-size;
+      }
+      .layer,
+      .sprite,
+      .name {
+        position: absolute;
+      }
+      .layer {
+        inset: 0;
+        background-size: 100% 100%;
+      }
+      .sprite {
+        background-repeat: no-repeat;
+      }
+      .name {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: Cinzel, serif;
+        font-weight: 700;
+        white-space: nowrap;
+        color: #fff;
+        text-shadow: 0 0.3cqw 0.6cqw rgb(0 0 0 / 0.8);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="thumbnail">
+      <div class="words">
+        <h1>TRIPLE TRIAD</h1>
+        <p class="tagline">The Final Fantasy VIII card game, live in your browser.</p>
+        <ul class="features">
+          <li>Every FF8 rule</li>
+          <li>Card maker</li>
+          <li>Rankings</li>
+          <li>Self-hosted</li>
+        </ul>
+      </div>
+      <div class="board" id="board"></div>
+    </div>
+    <script>
+      const PACK = '../../apps/web/public/packs/default/';
+      const ART = '../../apps/web/assets/starter-art/';
+      const DIGITS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'A'];
+      const ELEMENTS = ['fire', 'ice', 'thunder', 'earth', 'poison', 'wind', 'water', 'holy'];
+      const STAT_BOXES = [
+        [135, 30, 285, 180],
+        [240, 135, 390, 285],
+        [135, 240, 285, 390],
+        [30, 135, 180, 285],
+      ];
+      const STAR_BOXES = [342, 412, 482, 552, 622].map((x) => [x, 1334, x + 60, 1394]);
+
+      /** The game's card layers (see CardView), positioned on its 1024 × 1434 layout. */
+      function drawCard({ art, name, stars, stats, element, side }) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        const add = (className, style) => {
+          const part = document.createElement('div');
+          part.className = className;
+          Object.assign(part.style, style);
+          card.append(part);
+          return part;
+        };
+        const place = ([x0, y0, x1, y1]) => ({
+          left: `${(x0 / 1024) * 100}%`,
+          top: `${(y0 / 1434) * 100}%`,
+          width: `${((x1 - x0) / 1024) * 100}%`,
+          height: `${((y1 - y0) / 1434) * 100}%`,
+        });
+        const sprite = (box, sheet, index, cells) =>
+          add('sprite', {
+            ...place(box),
+            backgroundImage: `url(${PACK}${sheet}.png)`,
+            backgroundSize: `${cells * 100}% 100%`,
+            backgroundPosition: `${(index / (cells - 1)) * 100}% 0%`,
+          });
+
+        add('layer', { backgroundImage: `url(${PACK}bg-${side}.png)` });
+        add('layer', { backgroundImage: `url(${ART}${art}.webp)` });
+        add('layer', { backgroundImage: `url(${PACK}frame.png)` });
+        stats.forEach((value, index) => {
+          sprite(
+            STAT_BOXES[index],
+            'digits',
+            DIGITS.indexOf(value === 10 ? 'A' : String(value)),
+            10,
+          );
+        });
+        if (element) sprite([844, 30, 994, 180], 'elements', ELEMENTS.indexOf(element), 8);
+        STAR_BOXES.forEach((box, index) => sprite(box, 'stars', index < stars ? 0 : 1, 2));
+        const label = add('name', {
+          ...place([40, 1220, 984, 1324]),
+          fontSize: `${(104 * 0.7 * 100) / 1024}cqw`,
+        });
+        label.textContent = name;
+        return card;
+      }
+
+      const BOARD = [
+        { art: 'vanilla-ice', name: 'Vanilla Ice', stars: 4, stats: [9, 4, 8, 6], side: 'red' },
+        {
+          art: 'noriaki-kakyoin',
+          name: 'Noriaki Kakyoin',
+          stars: 3,
+          stats: [7, 6, 3, 6],
+          element: 'water',
+          side: 'blue',
+        },
+        { art: 'dio', name: 'DIO', stars: 5, stats: [10, 7, 3, 9], side: 'red' },
+        { art: 'polnareff', name: 'Polnareff', stars: 3, stats: [8, 5, 2, 6], side: 'blue' },
+        { art: 'jotaro-kujo', name: 'Jotaro Kujo', stars: 4, stats: [9, 8, 4, 6], side: 'blue' },
+        { art: 'hol-horse', name: 'Hol Horse', stars: 2, stats: [6, 4, 2, 6], side: 'red' },
+        {
+          art: 'iggy',
+          name: 'Iggy',
+          stars: 3,
+          stats: [4, 7, 2, 8],
+          element: 'earth',
+          side: 'blue',
+        },
+        {
+          art: 'joseph-joestar',
+          name: 'Joseph Joestar',
+          stars: 4,
+          stats: [7, 8, 7, 4],
+          element: 'thunder',
+          side: 'blue',
+        },
+        {
+          art: 'mariah',
+          name: 'Mariah',
+          stars: 2,
+          stats: [2, 6, 5, 3],
+          element: 'thunder',
+          side: 'red',
+        },
+      ];
+      const board = document.getElementById('board');
+      for (const face of BOARD) {
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.append(drawCard(face));
+        board.append(slot);
+      }
+    </script>
+  </body>
+</html>

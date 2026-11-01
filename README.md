@@ -1,3 +1,5 @@
+![Triple Triad: the Final Fantasy VIII card game, played live in your browser](docs/images/banner.png)
+
 # Triple Triad Online
 
 A self-hosted, two-player, browser-based version of **Triple Triad**, the card game from
@@ -10,6 +12,15 @@ uploadable art packs.
 > rankings, an admin panel, and a Docker image with a deployment guide. See [Roadmap](#roadmap).
 
 The full product specification lives in [`design/SPEC.md`](design/SPEC.md).
+
+## Screenshots
+
+|                                                                                                     |                                                                                                               |                                                                                                             |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| [![A live game](docs/images/game.png)](docs/images/game.png)<br>A live game                         | [![The result screen](docs/images/result.png)](docs/images/result.png)<br>The result screen                   | [![The lobby](docs/images/lobby.png)](docs/images/lobby.png)<br>The lobby                                   |
+| [![Your trunk](docs/images/trunk.png)](docs/images/trunk.png)<br>Your trunk                         | [![The deck editor](docs/images/deck-editor.png)](docs/images/deck-editor.png)<br>The deck editor             | [![The card maker](docs/images/card-maker.png)](docs/images/card-maker.png)<br>The card maker               |
+| [![Rankings](docs/images/rankings.png)](docs/images/rankings.png)<br>Rankings                       | [![Profile and match history](docs/images/profile.png)](docs/images/profile.png)<br>Profile and match history | [![The admin panel](docs/images/admin.png)](docs/images/admin.png)<br>The admin panel                       |
+| [![A game on a phone](docs/images/phone-game.png)](docs/images/phone-game.png)<br>A game on a phone | [![The trunk on a phone](docs/images/phone-trunk.png)](docs/images/phone-trunk.png)<br>The trunk on a phone   | [![The lobby on a phone](docs/images/phone-lobby.png)](docs/images/phone-lobby.png)<br>The lobby on a phone |
 
 ## Highlights
 
