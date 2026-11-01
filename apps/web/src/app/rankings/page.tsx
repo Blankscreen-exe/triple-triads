@@ -91,7 +91,9 @@ async function RankingTable({ searchParams }: Pick<PageProps<'/rankings'>, 'sear
                     {tierFor(player.rating).label}
                   </div>
                 </td>
-                <td className="py-2 pr-3 max-sm:hidden">{tierFor(player.rating).label}</td>
+                <td className="py-2 pr-3 whitespace-nowrap max-sm:hidden">
+                  {tierFor(player.rating).label}
+                </td>
                 <td className="py-2 pr-3 text-right font-display font-bold text-cream tabular-nums">
                   {player.rating}
                 </td>

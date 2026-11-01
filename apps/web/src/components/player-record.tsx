@@ -89,7 +89,7 @@ export function MatchTable({
                   <time dateTime={match.playedAt.toISOString()}>{played}</time>
                 </td>
               )}
-              <td className="py-1.5 pr-2 tabular-nums">{match.score}</td>
+              <td className="py-1.5 pr-2 whitespace-nowrap tabular-nums">{match.score}</td>
               <td className="py-1.5 text-right tabular-nums">
                 {match.ratingChange > 0 ? '+' : ''}
                 {match.ratingChange}
