@@ -2,7 +2,7 @@
  * Prepares portraits for the starter cards: cuts out plain backgrounds, so the card's red or blue
  * shows through, and frames each character from the head down on the card canvas.
  *
- *   node scripts/build-starter-art.mjs <directory of portraits> [card slug...]
+ *   node scripts/build-starter-art.mjs <set> <directory of portraits> [card slug...]
  *
  * The results are committed in assets/starter-art, and stored as card art on first startup.
  */
@@ -27,32 +27,66 @@ const GAP_TOLERANCE = 10;
 const GAP_MIN_PIXELS = 40;
 
 /**
+ * The portraits of each set of starter cards, by card slug.
+ *
  * `zoom` enlarges the character beyond fitting the canvas width, and `shift` moves them sideways (a
  * fraction of the canvas width). `white` marks characters wearing white: areas they enclose are
  * kept, as their clothes would otherwise get holes, rather than treated as gaps in the figure.
  * `gapsFrom` looks for gaps only below this fraction of the image, to spare white hair.
+ *
+ * A set's `busts` are cut off at the bottom of the image: they fill the card from the top margin
+ * down to its bottom edge, and smaller ones (`zoom` below 1) still sit on it, so the cut is hidden.
  */
-const PORTRAITS = {
-  alessi: { file: 'Alessi.jpg', white: true },
-  avdol: { file: 'Avdol.jpg' },
-  'daniel-darby': { file: "Daniel J_ D'Arby.jpg", white: true },
-  'enya-the-hag': { file: 'Enya the Hag.jpg', white: true },
-  forever: { file: 'Forever.webp' },
-  iggy: { file: 'Iggy.jpg', white: true },
-  'imposter-tennille': { file: 'Imposter Captain Tennille.jpg', shift: 0.08 },
-  'j-geil': { file: 'J.geil.webp' },
-  mariah: { file: 'Mariah.jpg' },
-  'steely-dan': { file: 'STELLY DAN.jpg', shift: 0.14 },
-  'telence-darby': { file: "Telence T. D'Arby.jpg", white: true },
-  anubis: { file: 'anubis.jpg' },
-  dio: { file: 'dio.jpg' },
-  'hol-horse': { file: 'hol horse.jpg', shift: 0.16 },
-  'joseph-joestar': { file: 'josph joestar.jpg' },
-  'jotaro-kujo': { file: 'jotaro.jpg' },
-  'noriaki-kakyoin': { file: 'kakyoin.jpg' },
-  polnareff: { file: 'polnareff ; ⚔️.jpg', gapsFrom: 0.25 },
-  'vanilla-ice': { file: 'vanilla ice ; 🪄.jpg' },
-  'will-zeppeli': { file: 'william zeppeli ; 🎲.jpg', white: true },
+const SETS = {
+  'stardust-crusaders': {
+    portraits: {
+      alessi: { file: 'Alessi.jpg', white: true },
+      avdol: { file: 'Avdol.jpg' },
+      'daniel-darby': { file: "Daniel J_ D'Arby.jpg", white: true },
+      'enya-the-hag': { file: 'Enya the Hag.jpg', white: true },
+      forever: { file: 'Forever.webp' },
+      iggy: { file: 'Iggy.jpg', white: true },
+      'imposter-tennille': { file: 'Imposter Captain Tennille.jpg', shift: 0.08 },
+      'j-geil': { file: 'J.geil.webp' },
+      mariah: { file: 'Mariah.jpg' },
+      'steely-dan': { file: 'STELLY DAN.jpg', shift: 0.14 },
+      'telence-darby': { file: "Telence T. D'Arby.jpg", white: true },
+      anubis: { file: 'anubis.jpg' },
+      dio: { file: 'dio.jpg' },
+      'hol-horse': { file: 'hol horse.jpg', shift: 0.16 },
+      'joseph-joestar': { file: 'josph joestar.jpg' },
+      'jotaro-kujo': { file: 'jotaro.jpg' },
+      'noriaki-kakyoin': { file: 'kakyoin.jpg' },
+      polnareff: { file: 'polnareff ; ⚔️.jpg', gapsFrom: 0.25 },
+      'vanilla-ice': { file: 'vanilla ice ; 🪄.jpg' },
+      'will-zeppeli': { file: 'william zeppeli ; 🎲.jpg', white: true },
+    },
+  },
+  netherworld: {
+    busts: true,
+    portraits: {
+      adell: { file: 'Adell.png' },
+      axel: { file: 'Axel.png' },
+      dad: { file: 'Dad.png' },
+      director: { file: 'Director.png' },
+      etna: { file: 'Etna.png' },
+      flonne: { file: 'Flonne.png' },
+      fubuki: { file: 'Fubuki.png' },
+      gordon: { file: 'Gordon.png' },
+      hanako: { file: 'Hanako.png' },
+      jennifer: { file: 'Jennifer.png' },
+      kurtis: { file: 'Kurtis.png', zoom: 0.7, shift: -0.14 },
+      laharl: { file: 'Laharl.png' },
+      mom: { file: 'Mom.png' },
+      pleinair: { file: 'Pleinair.png' },
+      prinny: { file: 'Prinny.png', zoom: 0.7, shift: 0.1 },
+      rozalin: { file: 'Rozalin.png' },
+      taro: { file: 'Taro.png' },
+      tink: { file: 'Tink.png', zoom: 0.8, shift: 0.1 },
+      yukimaru: { file: 'Yukimaru.png' },
+      zenon: { file: 'Zenon.png' },
+    },
+  },
 };
 
 /** The colour of a corner, which on these portraits is the background. */
@@ -162,6 +196,7 @@ async function buildPortrait(
   sourceDir,
   slug,
   { file, zoom = 1, shift = 0, white = false, gapsFrom = 0 },
+  bust,
 ) {
   const source = sharp(readFileSync(join(sourceDir, file))).ensureAlpha();
   const { data, info } = await source.raw().toBuffer({ resolveWithObject: true });
@@ -173,7 +208,10 @@ async function buildPortrait(
   const plateTop = CANVAS.height * PLATE_TOP;
   const marginTop = CANVAS.height * TOP_MARGIN;
   const widthScale = (CANVAS.width * CHARACTER_WIDTH) / box.width;
-  const scale = widthScale * zoom;
+  // A bust cut off at the bottom fills the card's height, unless it is a whole figure.
+  const cutOff = bust && box.top + box.height === info.height;
+  const heightScale = cutOff ? (CANVAS.height - marginTop) / box.height : 0;
+  const scale = Math.max(widthScale, heightScale) * zoom;
   const scaled = {
     width: Math.round(box.width * scale),
     height: Math.round(box.height * scale),
@@ -186,7 +224,11 @@ async function buildPortrait(
 
   const left = Math.round((CANVAS.width - scaled.width) / 2 + shift * CANVAS.width);
   const top = Math.round(
-    scaled.height < plateTop - marginTop ? (plateTop - scaled.height) / 2 : marginTop,
+    cutOff
+      ? Math.max(marginTop, CANVAS.height - scaled.height)
+      : scaled.height < plateTop - marginTop
+        ? (plateTop - scaled.height) / 2
+        : marginTop,
   );
   // Characters taller or wider than the card run off its edge: only the visible part is kept.
   const cropLeft = Math.max(0, -left);
@@ -208,9 +250,16 @@ async function buildPortrait(
   console.log(slug, `${String(box.width)}x${String(box.height)}`, `×${scale.toFixed(2)}`);
 }
 
-const [sourceDir, ...only] = process.argv.slice(2);
-if (!sourceDir) throw new Error('Usage: build-starter-art.mjs <directory of portraits> [slug...]');
+const [setName, sourceDir, ...only] = process.argv.slice(2);
+const set = SETS[setName];
+if (!set || !sourceDir) {
+  throw new Error(
+    `Usage: build-starter-art.mjs <${Object.keys(SETS).join('|')}> <directory of portraits> [slug...]`,
+  );
+}
 mkdirSync(OUTPUT_DIR, { recursive: true });
-for (const [slug, portrait] of Object.entries(PORTRAITS)) {
-  if (only.length === 0 || only.includes(slug)) await buildPortrait(sourceDir, slug, portrait);
+for (const [slug, portrait] of Object.entries(set.portraits)) {
+  if (only.length === 0 || only.includes(slug)) {
+    await buildPortrait(sourceDir, slug, portrait, set.busts === true);
+  }
 }

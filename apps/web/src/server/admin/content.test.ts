@@ -174,6 +174,7 @@ describe('starter decks', () => {
     expect(listStarterDecks(db).map((deck) => [deck.name, deck.isDefault])).toEqual([
       ['Stardust Crusaders', true],
       ['Vanguard', false],
+      ['Netherworld', false],
     ]);
   });
 });

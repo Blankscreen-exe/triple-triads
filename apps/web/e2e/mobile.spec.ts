@@ -78,7 +78,7 @@ test('on a phone, the deck list fills the screen and pages instead of scrolling'
   browser,
 }) => {
   const { page } = await newPhonePlayer(browser);
-  // Three starter decks plus six new ones: more than fit on one phone screen.
+  // Four starter decks plus six new ones: more than fit on one phone screen.
   for (const name of ['One', 'Two', 'Three', 'Four', 'Five', 'Six']) {
     await page.goto('/decks');
     await page.getByRole('button', { name: '+ New' }).click();
@@ -100,7 +100,7 @@ test('on a phone, the deck list fills the screen and pages instead of scrolling'
   await pages.getByRole('button', { name: 'Next page' }).click();
   await expect(pages).toContainText('Page 2 of');
   const secondPage = await decks.getByRole('heading').allTextContents();
-  expect(firstPage.length + secondPage.length).toBeLessThanOrEqual(9);
+  expect(firstPage.length + secondPage.length).toBeLessThanOrEqual(10);
   expect(secondPage.some((name) => firstPage.includes(name))).toBe(false);
 
   // Details and actions are behind each row's ⋯ button.
@@ -119,17 +119,20 @@ test('on a phone, the trunk pages three columns of cards, with filters behind a 
   const { page } = await newPhonePlayer(browser);
   await page.goto('/trunk');
   const filters = page.getByRole('search', { name: 'Filter cards' });
-  await expect(filters).toContainText('35 cards');
+  await expect(filters).toContainText('55 cards');
 
   const cards = page.getByRole('list', { name: 'Cards' }).getByRole('listitem');
   const pages = page.getByRole('navigation', { name: 'Cards pages' });
   // Four rows of three.
   await expect(cards).toHaveCount(12);
   await pages.getByRole('button', { name: 'Next page' }).click();
-  await expect(pages).toContainText('Page 2 of 3');
+  await expect(pages).toContainText('Page 2 of 5');
   await expect(cards).toHaveCount(12);
-  await pages.getByRole('button', { name: 'Next page' }).click();
-  await expect(cards).toHaveCount(11);
+  for (const next of [3, 4, 5]) {
+    await pages.getByRole('button', { name: 'Next page' }).click();
+    await expect(pages).toContainText(`Page ${String(next)} of 5`);
+  }
+  await expect(cards).toHaveCount(7);
 
   await expect(filters.getByLabel('Stars')).toBeHidden();
   await filters.getByRole('button', { name: 'Filters' }).click();

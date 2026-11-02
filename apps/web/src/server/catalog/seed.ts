@@ -1,15 +1,35 @@
-import { eq } from 'drizzle-orm';
+import { eq, max } from 'drizzle-orm';
 import type { AppDatabase } from '../db/client';
 import { cards, settings, starterDeckCards, starterDecks } from '../db/schema';
-import { STARDUST_CRUSADERS_DECK_ID, STARTER_CARDS, STARTER_DECKS } from './starter-content';
+import {
+  NETHERWORLD_DECK_ID,
+  STARDUST_CRUSADERS_DECK_ID,
+  STARTER_CARDS,
+  STARTER_DECKS,
+} from './starter-content';
 
 /** Marks that the default content was inserted, so it is never inserted again. */
 const SEEDED_FLAG = 'seed:starterContent';
 /** Marks that an existing installation was offered the Stardust Crusaders deck. */
 const STARDUST_FLAG = 'seed:stardustCrusaders';
+/** Marks that an existing installation was offered the Netherworld deck. */
+const NETHERWORLD_FLAG = 'seed:netherworld';
 
 /** The starter deck the Stardust Crusaders replaced. */
 const ELEMENTALIST_DECK_ID = 'starter-elementalist';
+
+type Transaction = Parameters<Parameters<AppDatabase['transaction']>[0]>[0];
+
+/** Sets a flag, and returns whether it was already set. */
+const checkAndSetFlag = (tx: Transaction, key: string): boolean => {
+  if (tx.select({ key: settings.key }).from(settings).where(eq(settings.key, key)).get()) {
+    return true;
+  }
+  tx.insert(settings)
+    .values({ key, value: { at: new Date().toISOString() } })
+    .run();
+  return false;
+};
 
 const insertStarterCards = (tx: Pick<AppDatabase, 'insert'>) => {
   tx.insert(cards)
@@ -88,14 +108,7 @@ export function seedStarterContent(db: AppDatabase): boolean {
  */
 export function addStardustCrusaders(db: AppDatabase): boolean {
   return db.transaction((tx) => {
-    if (
-      tx.select({ key: settings.key }).from(settings).where(eq(settings.key, STARDUST_FLAG)).get()
-    ) {
-      return false;
-    }
-    tx.insert(settings)
-      .values({ key: STARDUST_FLAG, value: { at: new Date().toISOString() } })
-      .run();
+    if (checkAndSetFlag(tx, STARDUST_FLAG)) return false;
     insertStarterCards(tx);
 
     const deck = STARTER_DECKS.find((starter) => starter.id === STARDUST_CRUSADERS_DECK_ID);
@@ -113,6 +126,38 @@ export function addStardustCrusaders(db: AppDatabase): boolean {
         name: deck.name,
         isDefault: replaced.isDefault,
         sortOrder: replaced.sortOrder,
+      })
+      .run();
+    insertStarterDeckCards(tx, deck);
+    return true;
+  });
+}
+
+/**
+ * Brings the Netherworld deck to installations seeded before it existed: adds its cards, and the
+ * deck after the other starter decks. Runs once, so a deck an admin deletes stays deleted. New
+ * players get the deck; players who already have an account do not. Returns true if it was added.
+ */
+export function addNetherworld(db: AppDatabase): boolean {
+  return db.transaction((tx) => {
+    if (checkAndSetFlag(tx, NETHERWORLD_FLAG)) return false;
+    insertStarterCards(tx);
+
+    const deck = STARTER_DECKS.find((starter) => starter.id === NETHERWORLD_DECK_ID);
+    if (!deck) return false;
+    if (tx.select().from(starterDecks).where(eq(starterDecks.id, deck.id)).get()) return false;
+
+    const last = tx
+      .select({ sortOrder: max(starterDecks.sortOrder) })
+      .from(starterDecks)
+      .get()?.sortOrder;
+    tx.insert(starterDecks)
+      .values({
+        id: deck.id,
+        name: deck.name,
+        // The first starter deck becomes the default, as when an admin creates one.
+        isDefault: last === undefined || last === null,
+        sortOrder: (last ?? -1) + 1,
       })
       .run();
     insertStarterDeckCards(tx, deck);

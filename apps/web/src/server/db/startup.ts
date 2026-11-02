@@ -3,7 +3,7 @@
  */
 import { count } from 'drizzle-orm';
 import { deleteExpiredSessions } from '../auth/sessions';
-import { addStardustCrusaders, seedStarterContent } from '../catalog/seed';
+import { addNetherworld, addStardustCrusaders, seedStarterContent } from '../catalog/seed';
 import type { Logger } from '../logger';
 import { migrateDatabase, openDatabase, type AppDatabase } from './client';
 import { users } from './schema';
@@ -18,6 +18,7 @@ export function prepareDatabase(databasePath: string, logger: Logger): AppDataba
 
   if (seedStarterContent(db)) logger.info('inserted default cards and starter decks');
   if (addStardustCrusaders(db)) logger.info('replaced the Elementalist starter deck');
+  if (addNetherworld(db)) logger.info('added the Netherworld starter deck');
 
   const userCount = db.select({ total: count() }).from(users).get()?.total ?? 0;
   if (userCount === 0) {

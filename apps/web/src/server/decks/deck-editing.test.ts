@@ -151,6 +151,7 @@ describe('deleteDeck', () => {
     expect(listDecks(db, user.id).map((deck) => [deck.name, deck.isActive])).toEqual([
       ['Stardust Crusaders', true],
       ['Vanguard', false],
+      ['Netherworld', false],
     ]);
   });
 

@@ -40,7 +40,7 @@ const portrait = (
   element: Element | null = null,
 ): StarterCard => ({ ...card(slug, name, stats, element), art: slug });
 
-export const STARTER_CARDS: readonly StarterCard[] = [
+const GENERIC_CARDS: readonly StarterCard[] = [
   // ★
   card('sand-lizard', 'Sand Lizard', [1, 4, 1, 5]),
   card('spore-cap', 'Spore Cap', [5, 1, 1, 3]),
@@ -67,8 +67,9 @@ export const STARTER_CARDS: readonly StarterCard[] = [
   card('tempest-roc', 'Tempest Roc', [7, 9, 6, 3], 'thunder'),
   // ★★★★★
   card('sky-wyrm', 'Sky Wyrm', [10, 4, 6, 9], 'wind'),
+];
 
-  // Stardust Crusaders
+const STARDUST_CRUSADERS: readonly StarterCard[] = [
   // ★
   portrait('alessi', 'Alessi', [2, 5, 3, 4]),
   portrait('steely-dan', 'Steely Dan', [4, 2, 4, 3]),
@@ -96,7 +97,55 @@ export const STARTER_CARDS: readonly StarterCard[] = [
   portrait('dio', 'DIO', [10, 7, 3, 9]),
 ];
 
+const NETHERWORLD: readonly StarterCard[] = [
+  // ★
+  portrait('prinny', 'Prinny', [3, 2, 5, 1], 'water'),
+  portrait('tink', 'Tink', [1, 3, 2, 6]),
+  // ★★
+  portrait('jennifer', 'Jennifer', [3, 6, 5, 2]),
+  portrait('kurtis', 'Kurtis', [6, 3, 5, 2], 'thunder'),
+  portrait('axel', 'Axel', [5, 2, 6, 4], 'thunder'),
+  portrait('hanako', 'Hanako', [2, 5, 3, 6]),
+  portrait('taro', 'Taro', [4, 4, 5, 3]),
+  portrait('dad', 'Dad', [6, 5, 3, 3]),
+  portrait('mom', 'Mom', [3, 3, 6, 5], 'holy'),
+  portrait('director', 'Director', [5, 6, 2, 4]),
+  // ★★★
+  portrait('etna', 'Etna', [7, 4, 6, 5]),
+  portrait('flonne', 'Flonne', [3, 7, 5, 7], 'holy'),
+  portrait('pleinair', 'Pleinair', [8, 3, 6, 4]),
+  portrait('yukimaru', 'Yukimaru', [6, 8, 2, 5], 'wind'),
+  portrait('fubuki', 'Fubuki', [4, 6, 7, 4], 'ice'),
+  portrait('gordon', 'Gordon', [7, 5, 6, 4], 'earth'),
+  // ★★★★
+  portrait('adell', 'Adell', [9, 6, 5, 7], 'earth'),
+  portrait('rozalin', 'Rozalin', [6, 9, 4, 8]),
+  portrait('zenon', 'Zenon', [8, 5, 8, 6], 'poison'),
+  // ★★★★★
+  portrait('laharl', 'Laharl', [10, 8, 4, 8], 'fire'),
+];
+
+/** Sets of starter cards with portraits, each one a starter deck of one of every card. */
+export interface PortraitSet {
+  readonly id: string;
+  readonly cards: readonly StarterCard[];
+}
+
+export const PORTRAIT_SETS: readonly PortraitSet[] = [
+  { id: 'stardust-crusaders', cards: STARDUST_CRUSADERS },
+  { id: 'netherworld', cards: NETHERWORLD },
+];
+
+export const STARTER_CARDS: readonly StarterCard[] = [
+  ...GENERIC_CARDS,
+  ...PORTRAIT_SETS.flatMap((set) => set.cards),
+];
+
+const oneOfEach = (set: readonly StarterCard[]): Readonly<Record<string, number>> =>
+  Object.fromEntries(set.map((starter) => [starter.id, 1]));
+
 export const STARDUST_CRUSADERS_DECK_ID = 'starter-stardust-crusaders';
+export const NETHERWORLD_DECK_ID = 'starter-netherworld';
 
 export const STARTER_DECKS: readonly StarterDeck[] = [
   {
@@ -120,10 +169,7 @@ export const STARTER_DECKS: readonly StarterDeck[] = [
     id: STARDUST_CRUSADERS_DECK_ID,
     name: 'Stardust Crusaders',
     isDefault: false,
-    // One of each portrait.
-    cards: Object.fromEntries(
-      STARTER_CARDS.filter((starter) => starter.art !== null).map((starter) => [starter.id, 1]),
-    ),
+    cards: oneOfEach(STARDUST_CRUSADERS),
   },
   {
     id: 'starter-vanguard',
@@ -141,5 +187,11 @@ export const STARTER_DECKS: readonly StarterDeck[] = [
       'generic-magma-titan': 1,
       'generic-sky-wyrm': 1,
     },
+  },
+  {
+    id: NETHERWORLD_DECK_ID,
+    name: 'Netherworld',
+    isDefault: false,
+    cards: oneOfEach(NETHERWORLD),
   },
 ];
