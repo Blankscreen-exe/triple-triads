@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { eq, isNotNull } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cards, settings } from '../db/schema';
+import { seedStarterContent } from './seed';
 import { createLocalStorage, type FileStorage } from '../storage/storage';
 import { createTestDatabase } from '../testing/test-database';
 import { seedStarterArt } from './starter-art';
@@ -47,6 +48,19 @@ describe('seedStarterArt', () => {
       expect(db.select().from(cards).where(isNotNull(cards.artKey)).all()).toHaveLength(
         withArt.length - 1,
       );
+    },
+    TIMEOUT_MS,
+  );
+
+  it(
+    'waits for a set whose cards are not in the database yet',
+    async () => {
+      const db = createTestDatabase({ seed: false });
+
+      expect(await seedStarterArt(db, storage)).toBe(0);
+
+      seedStarterContent(db);
+      expect(await seedStarterArt(db, storage)).toBe(withArt.length);
     },
     TIMEOUT_MS,
   );

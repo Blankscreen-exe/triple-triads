@@ -4,7 +4,7 @@
  */
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { storeCardArt } from '../cards/card-art';
 import type { AppDatabase } from '../db/client';
 import { cards, settings } from '../db/schema';
@@ -24,8 +24,9 @@ export function starterArtPath(art: string): string {
 
 /**
  * Gives the starter cards their art, a set at a time, skipping cards an admin has deleted or given
- * other art. Safe to call on every startup; if it fails part-way, the next startup finishes the
- * job. Returns how many cards were given art.
+ * other art. A set none of whose cards exist yet is left for a later startup rather than marked
+ * done. Safe to call on every startup; if it fails part-way, the next startup finishes the job.
+ * Returns how many cards were given art.
  */
 export async function seedStarterArt(db: AppDatabase, storage: FileStorage): Promise<number> {
   let stored = 0;
@@ -34,6 +35,8 @@ export async function seedStarterArt(db: AppDatabase, storage: FileStorage): Pro
     if (db.select({ key: settings.key }).from(settings).where(eq(settings.key, flag)).get()) {
       continue;
     }
+    const ids = set.cards.map((card) => card.id);
+    if (!db.select({ id: cards.id }).from(cards).where(inArray(cards.id, ids)).get()) continue;
 
     for (const { id, art } of set.cards) {
       if (art === null) continue;
