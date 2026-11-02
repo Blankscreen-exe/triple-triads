@@ -99,6 +99,7 @@ Reference examples (approximate FF8 stats):
 - Admins define **several starter decks** made from generic cards and mark one as the default.
 - A new account receives **all starter decks**: their cards go into the trunk and each starter deck appears as a ready-made deck.
 - The admin's default starter deck is pre-selected as the player's active deck.
+- Changing the starter decks does not affect existing players. An admin can give a starter deck to every player who has not received it yet (for example, players who signed up before it was added): each gets a copy of the deck and its cards in their trunk. Nobody receives the same starter deck twice.
 - Players can use, switch between or edit any of their decks at any time before a match.
 
 ## 6. Card maker

@@ -1,15 +1,16 @@
 /**
  * Starter decks, managed by admins. New players receive a copy of each (see `grantStarterDecks`);
- * changing them later does not affect existing players.
+ * changing them later does not affect existing players, but an admin can give a deck to every
+ * player who has not received it yet.
  */
 import { randomUUID } from 'node:crypto';
 import { validateDeck, type DeckViolation } from '@triple-triad/engine';
-import { asc, count, eq, inArray, ne } from 'drizzle-orm';
+import { and, asc, count, eq, inArray, ne, notExists } from 'drizzle-orm';
 import type { DeckContents } from '@/lib/validation/deck';
 import { compareCards, toCardSummary } from '../cards/cards';
 import type { AppDatabase } from '../db/client';
-import { cards, starterDeckCards, starterDecks } from '../db/schema';
-import type { DeckEntry } from '../decks/decks';
+import { cards, starterDeckCards, starterDeckGrants, starterDecks, users } from '../db/schema';
+import { copyStarterDeck, type DeckEntry } from '../decks/decks';
 import { getGameSettings } from '../settings/settings';
 
 export interface StarterDeckSummary {
@@ -153,6 +154,51 @@ export function deleteStarterDeck(db: AppDatabase, deckId: string): StarterDeckR
     }
   });
   return { ok: true, data: null };
+}
+
+/**
+ * Gives a copy of a starter deck, and its cards, to every player who has not received it: players
+ * who signed up before it existed, or before an admin gave it out. A player's copy becomes their
+ * active deck if they have none. Returns how many players received it.
+ */
+export function giveStarterDeckToAllPlayers(
+  db: AppDatabase,
+  deckId: string,
+): StarterDeckResult<{ given: number }> {
+  return db.transaction((tx) => {
+    const starter = tx.select().from(starterDecks).where(eq(starterDecks.id, deckId)).get();
+    if (!starter) return { ok: false, error: 'DECK_NOT_FOUND' };
+    const contents = tx
+      .select({ cardId: starterDeckCards.cardId, quantity: starterDeckCards.quantity })
+      .from(starterDeckCards)
+      .where(eq(starterDeckCards.starterDeckId, deckId))
+      .all();
+    const recipients = tx
+      .select({ id: users.id, activeDeckId: users.activeDeckId })
+      .from(users)
+      .where(
+        notExists(
+          tx
+            .select({ userId: starterDeckGrants.userId })
+            .from(starterDeckGrants)
+            .where(
+              and(
+                eq(starterDeckGrants.starterDeckId, deckId),
+                eq(starterDeckGrants.userId, users.id),
+              ),
+            ),
+        ),
+      )
+      .all();
+
+    for (const user of recipients) {
+      const copyId = copyStarterDeck(tx, user.id, starter, contents);
+      if (user.activeDeckId === null) {
+        tx.update(users).set({ activeDeckId: copyId }).where(eq(users.id, user.id)).run();
+      }
+    }
+    return { ok: true, data: { given: recipients.length } };
+  });
 }
 
 function findDeck(db: AppDatabase, deckId: string) {

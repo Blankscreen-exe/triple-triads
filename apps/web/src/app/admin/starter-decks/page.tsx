@@ -11,7 +11,7 @@ import { pageFromQuery, pageHref, paginate } from '@/lib/pagination';
 import { listStarterDecks } from '@/server/catalog/starter-decks';
 import { getDatabase } from '@/server/db';
 import { requireAdmin } from '@/server/web/current-user';
-import { starterDeckAction } from '../actions';
+import { giveStarterDeckAction, starterDeckAction } from '../actions';
 import { NewStarterDeckForm } from './new-starter-deck-form';
 
 export const metadata: Metadata = { title: 'Starter decks' };
@@ -29,7 +29,8 @@ export default function AdminStarterDecksPage({ searchParams }: PageProps<'/admi
           </h1>
           <p className="mt-1 text-sm text-slate-300/80">
             Every new player receives a copy of each. The default one starts as their active deck.
-            Changes do not affect existing players.
+            Changes do not affect existing players; to send a deck to players who signed up before
+            it existed, use Give to every player.
           </p>
         </div>
         <NewStarterDeckForm />
@@ -85,6 +86,12 @@ async function StarterDeckList({
                 >
                   Edit
                 </Link>
+                <ActionButton
+                  action={giveStarterDeckAction.bind(null, deck.id)}
+                  confirmation={`Give a copy of "${deck.name}" and its cards to every player who has not received it yet?`}
+                >
+                  Give to every player
+                </ActionButton>
                 <ActionButton
                   variant="quiet"
                   action={starterDeckAction.bind(null, deck.id, 'delete')}

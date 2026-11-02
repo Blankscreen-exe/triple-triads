@@ -28,6 +28,39 @@ test('an admin creates a generic card', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Edit Garden Chocobo' })).toBeVisible();
 });
 
+test('an admin gives a new starter deck to players who signed up before it', async ({
+  page,
+  browser,
+}) => {
+  const player = await (await browser.newContext()).newPage();
+  await signUp(player, uniqueUsername());
+  const deckName = `Gift ${uniqueUsername()}`;
+
+  await logInAsAdmin(page);
+  await page.goto('/admin/starter-decks');
+  await page.getByLabel('New starter deck name').fill(deckName);
+  await page.getByRole('button', { name: 'New starter deck' }).click();
+  await expect(page.getByRole('heading', { name: 'Edit starter deck' })).toBeVisible();
+
+  // The new deck comes last, after the four default ones: on the second page.
+  await page.goto('/admin/starter-decks?page=2');
+  const deck = page.getByRole('region', { name: deckName });
+  page.on('dialog', (dialog) => void dialog.accept());
+  await deck.getByRole('button', { name: 'Give to every player' }).click();
+  await expect(deck.getByRole('status')).toHaveText(/^Given to \d+ players\.$/);
+
+  await player.goto('/decks');
+  await expect(player.getByRole('heading', { name: deckName })).toBeVisible();
+
+  await page.reload();
+  await deck.getByRole('button', { name: 'Give to every player' }).click();
+  await expect(deck.getByRole('status')).toHaveText('Every player already has it.');
+
+  // New players in the other tests get the four default starter decks only.
+  await deck.getByRole('button', { name: 'Delete' }).click();
+  await expect(deck).toHaveCount(0);
+});
+
 test('an admin bans and unbans a player', async ({ page, browser }) => {
   const playerName = uniqueUsername();
   const player = await (await browser.newContext()).newPage();

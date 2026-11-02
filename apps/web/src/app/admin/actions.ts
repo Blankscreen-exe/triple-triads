@@ -17,6 +17,7 @@ import { deleteGenericCard, saveGenericCard } from '@/server/cards/generic-cards
 import {
   createStarterDeck,
   deleteStarterDeck,
+  giveStarterDeckToAllPlayers,
   saveStarterDeck,
   setDefaultStarterDeck,
 } from '@/server/catalog/starter-decks';
@@ -59,7 +60,7 @@ export async function userAction(userId: unknown, command: unknown): Promise<Adm
       const reset = await resetPassword(db, admin.id, userId);
       if (!reset.ok) return { ok: false, error: USER_ERRORS[reset.error] };
       refresh();
-      return { ok: true, message: `New password: ${reset.data.password}` };
+      return { ok: true, message: `New password: ${reset.data.password}`, copyable: true };
     }
     default:
       return { ok: false, error: 'Invalid request.' };
@@ -172,6 +173,21 @@ export async function starterDeckAction(
   if (!result.ok) return { ok: false, error: 'That deck no longer exists.' };
   refresh();
   return { ok: true };
+}
+
+export async function giveStarterDeckAction(deckId: unknown): Promise<AdminActionResult> {
+  await requireAdmin();
+  if (typeof deckId !== 'string') return { ok: false, error: 'Invalid request.' };
+  const result = giveStarterDeckToAllPlayers(getDatabase(), deckId);
+  if (!result.ok) return { ok: false, error: 'That deck no longer exists.' };
+  const { given } = result.data;
+  return {
+    ok: true,
+    message:
+      given === 0
+        ? 'Every player already has it.'
+        : `Given to ${String(given)} ${given === 1 ? 'player' : 'players'}.`,
+  };
 }
 
 // ---- Settings ------------------------------------------------------------------------------

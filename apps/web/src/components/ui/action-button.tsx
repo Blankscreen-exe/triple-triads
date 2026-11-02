@@ -4,7 +4,13 @@ import { useState, useTransition } from 'react';
 import { Button, type ButtonVariant } from './button';
 
 export type ActionResult =
-  { readonly ok: true; readonly message?: string } | { readonly ok: false; readonly error: string };
+  | {
+      readonly ok: true;
+      readonly message?: string;
+      /** Shows the message as text to copy, such as a new password. */
+      readonly copyable?: boolean;
+    }
+  | { readonly ok: false; readonly error: string };
 
 interface ActionButtonProps {
   /** A server action, usually bound to its arguments on the server. */
@@ -50,7 +56,11 @@ export function ActionButton({
       {result?.ok && result.message && (
         <span
           role="status"
-          className="rounded-sm bg-black/40 px-2 py-1 font-mono text-xs text-cream select-all"
+          className={
+            result.copyable
+              ? 'rounded-sm bg-black/40 px-2 py-1 font-mono text-xs text-cream select-all'
+              : 'text-xs text-slate-200'
+          }
         >
           {result.message}
         </span>

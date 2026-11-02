@@ -2,6 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import sharp from 'sharp';
+import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { CardInput } from '@/lib/validation/card';
 import { createCustomCard } from '../cards/custom-cards';
@@ -15,14 +16,17 @@ import { seedStarterContent } from '../catalog/seed';
 import {
   createStarterDeck,
   deleteStarterDeck,
+  giveStarterDeckToAllPlayers,
   listStarterDecks,
   saveStarterDeck,
   setDefaultStarterDeck,
 } from '../catalog/starter-decks';
 import type { AppDatabase } from '../db/client';
+import { users } from '../db/schema';
 import { listDecks } from '../decks/decks';
 import { createLocalStorage, type FileStorage } from '../storage/storage';
 import { createTestDatabase, createTestUser } from '../testing/test-database';
+import { listTrunk } from '../trunk/trunk';
 import { listCustomCards, removeCustomCard } from './moderation';
 
 const CARD: CardInput = {
@@ -176,6 +180,60 @@ describe('starter decks', () => {
       ['Vanguard', false],
       ['Netherworld', false],
     ]);
+  });
+
+  describe('giving a deck to every player', () => {
+    /** A new starter deck of three Sand Lizards. */
+    const createRookie = () => {
+      const created = createStarterDeck(db, 'Rookie');
+      if (!created.ok) throw new Error(created.error);
+      saveStarterDeck(db, created.data.deckId, {
+        name: 'Rookie',
+        entries: [{ cardId: 'generic-sand-lizard', quantity: 3 }],
+      });
+      return created.data.deckId;
+    };
+    const deckNames = (userId: string) => listDecks(db, userId).map((deck) => deck.name);
+    const sandLizards = (userId: string) =>
+      listTrunk(db, userId).find((entry) => entry.card.id === 'generic-sand-lizard')?.quantity;
+
+    it('gives it to the players who signed up before it, once', async () => {
+      const alice = await createTestUser(db, 'alice');
+      const bob = await createTestUser(db, 'bob');
+      const rookie = createRookie();
+      const carol = await createTestUser(db, 'carol');
+
+      expect(giveStarterDeckToAllPlayers(db, rookie)).toEqual({ ok: true, data: { given: 2 } });
+
+      for (const player of [alice, bob, carol]) {
+        expect(deckNames(player.id).filter((name) => name === 'Rookie')).toHaveLength(1);
+      }
+      // Sand Lizard was already in two starter decks: 3 + 2 copies, now 3 more.
+      expect(sandLizards(alice.id)).toBe(8);
+      expect(sandLizards(carol.id)).toBe(8);
+
+      expect(giveStarterDeckToAllPlayers(db, rookie)).toEqual({ ok: true, data: { given: 0 } });
+      expect(sandLizards(alice.id)).toBe(8);
+    });
+
+    it('makes the copy active for a player without an active deck', async () => {
+      const alice = await createTestUser(db, 'alice');
+      const active = () => listDecks(db, alice.id).find((deck) => deck.isActive)?.name;
+      db.update(users).set({ activeDeckId: null }).where(eq(users.id, alice.id)).run();
+
+      giveStarterDeckToAllPlayers(db, createRookie());
+
+      expect(active()).toBe('Rookie');
+      giveStarterDeckToAllPlayers(db, createRookie());
+      expect(active()).toBe('Rookie');
+    });
+
+    it('refuses a deck that does not exist', () => {
+      expect(giveStarterDeckToAllPlayers(db, 'starter-missing')).toEqual({
+        ok: false,
+        error: 'DECK_NOT_FOUND',
+      });
+    });
   });
 });
 

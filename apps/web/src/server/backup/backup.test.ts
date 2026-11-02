@@ -7,10 +7,13 @@ import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_ASSET_PACK } from '@/lib/asset-packs';
 import { fromScoringConfig } from '@/lib/validation/settings';
+import { hashPassword } from '../auth/password';
 import { createSession, validateSessionToken } from '../auth/sessions';
 import { createCustomCard } from '../cards/custom-cards';
 import { seedStarterContent } from '../catalog/seed';
+import { giveStarterDeckToAllPlayers } from '../catalog/starter-decks';
 import { migrateDatabase, migrationsFolder, openDatabase, type AppDatabase } from '../db/client';
+import { users } from '../db/schema';
 import { createDeck } from '../decks/deck-editing';
 import { getPlayerStats, recordMatch } from '../matches/matches';
 import { getAssetPack, uploadPackPart } from '../packs/asset-packs';
@@ -187,7 +190,17 @@ describe('restoreBackup', () => {
     const oldDb = openDatabase(':memory:');
     migrateDatabase(oldDb, oldFolder);
     seedStarterContent(oldDb);
-    const veteran = await createTestUser(oldDb, 'veteran');
+    // Inserted directly: signing up today also writes to tables the old version did not have.
+    const veteran = { id: 'veteran-id' };
+    oldDb
+      .insert(users)
+      .values({
+        id: veteran.id,
+        username: 'veteran',
+        usernameKey: 'veteran',
+        passwordHash: await hashPassword('correct horse battery'),
+      })
+      .run();
     const archive = await createBackup(oldDb, sourceStorage);
     const target = await otherServer();
 
@@ -197,6 +210,10 @@ describe('restoreBackup', () => {
     expect(
       await authenticateUser(target, { username: 'veteran', password: 'correct horse battery' }),
     ).toMatchObject({ ok: true, user: { id: veteran.id } });
+    // Players are recorded as having the starter decks that existed when they signed up.
+    expect(giveStarterDeckToAllPlayers(target, 'starter-wanderer')).toMatchObject({
+      data: { given: 0 },
+    });
   });
 
   describe('refuses, changing nothing,', () => {

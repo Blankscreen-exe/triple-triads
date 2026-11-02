@@ -239,6 +239,27 @@ export const starterDeckCards = sqliteTable(
   ],
 );
 
+/**
+ * Which players have received which starter deck, at sign-up or when an admin gave it to every
+ * player, so nobody receives the same one twice.
+ */
+export const starterDeckGrants = sqliteTable(
+  'starter_deck_grants',
+  {
+    starterDeckId: text('starter_deck_id')
+      .notNull()
+      .references(() => starterDecks.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.starterDeckId, table.userId] }),
+    index('starter_deck_grants_user_id_idx').on(table.userId),
+  ],
+);
+
 /** Admin-editable game settings, one JSON value per key (validated by the settings service). */
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),

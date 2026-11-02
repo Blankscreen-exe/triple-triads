@@ -11,6 +11,7 @@ import {
   deckCards,
   decks,
   starterDeckCards,
+  starterDeckGrants,
   starterDecks,
   trunkCards,
   users,
@@ -34,6 +35,39 @@ export interface DeckSummary {
   readonly violations: readonly DeckViolation[];
 }
 
+interface StarterContents {
+  readonly cardId: string;
+  readonly quantity: number;
+}
+
+/**
+ * Gives a player a copy of a starter deck, adds its cards to their trunk and records that they
+ * received it. Returns the id of the player's copy.
+ */
+export function copyStarterDeck(
+  tx: DbExecutor,
+  userId: string,
+  starter: { readonly id: string; readonly name: string },
+  contents: readonly StarterContents[],
+): string {
+  const deckId = randomUUID();
+  tx.insert(decks).values({ id: deckId, userId, name: starter.name }).run();
+  if (contents.length > 0) {
+    tx.insert(deckCards)
+      .values(contents.map(({ cardId, quantity }) => ({ deckId, cardId, quantity })))
+      .run();
+    tx.insert(trunkCards)
+      .values(contents.map(({ cardId, quantity }) => ({ userId, cardId, quantity })))
+      .onConflictDoUpdate({
+        target: [trunkCards.userId, trunkCards.cardId],
+        set: { quantity: sql`${trunkCards.quantity} + excluded.quantity` },
+      })
+      .run();
+  }
+  tx.insert(starterDeckGrants).values({ starterDeckId: starter.id, userId }).run();
+  return deckId;
+}
+
 /**
  * Gives a new player a copy of every starter deck and adds their cards to the player's trunk.
  * Returns the id of the player's copy of the default starter deck (or of the first one if none
@@ -54,30 +88,11 @@ export function grantStarterDecks(tx: DbExecutor, userId: string): string | null
     )
     .all();
 
-  const trunk = new Map<string, number>();
   let activeDeckId: string | null = null;
-
   for (const starter of starters) {
-    const deckId = randomUUID();
-    tx.insert(decks).values({ id: deckId, userId, name: starter.name }).run();
-
     const contents = starterCards.filter((entry) => entry.starterDeckId === starter.id);
-    if (contents.length > 0) {
-      tx.insert(deckCards)
-        .values(contents.map(({ cardId, quantity }) => ({ deckId, cardId, quantity })))
-        .run();
-    }
-    for (const { cardId, quantity } of contents) {
-      trunk.set(cardId, (trunk.get(cardId) ?? 0) + quantity);
-    }
-
+    const deckId = copyStarterDeck(tx, userId, starter, contents);
     if (starter.isDefault || activeDeckId === null) activeDeckId = deckId;
-  }
-
-  if (trunk.size > 0) {
-    tx.insert(trunkCards)
-      .values([...trunk].map(([cardId, quantity]) => ({ userId, cardId, quantity })))
-      .run();
   }
   return activeDeckId;
 }
