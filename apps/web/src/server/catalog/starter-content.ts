@@ -5,7 +5,7 @@
  *
  * Every starter deck must satisfy the deck rules; `starter-content.test.ts` enforces this.
  */
-import type { Element, StatValue } from '@triple-triad/engine';
+import { rankCard, type Element, type StatValue } from '@triple-triad/engine';
 
 export interface StarterCard {
   readonly id: string;
@@ -125,7 +125,27 @@ const NETHERWORLD: readonly StarterCard[] = [
   portrait('rozalin', 'Rozalin', [10, 8, 4, 8]),
 ];
 
-/** Sets of starter cards with portraits, each one a starter deck of one of every card. */
+const PRETTY_DERBY: readonly StarterCard[] = [
+  // ★
+  portrait('haru-urara', 'Haru Urara', [2, 4, 1, 5]),
+  // ★★
+  portrait('daiwa-scarlet', 'Daiwa Scarlet', [6, 4, 6, 2], 'fire'),
+  portrait('taiki-shuttle', 'Taiki Shuttle', [3, 6, 4, 5], 'wind'),
+  portrait('rice-shower', 'Rice Shower', [5, 3, 7, 2]),
+  portrait('nice-nature', 'Nice Nature', [4, 5, 4, 5]),
+  // ★★★
+  portrait('mejiro-mcqueen', 'Mejiro McQueen', [7, 5, 7, 3], 'holy'),
+  portrait('gold-ship', 'Gold Ship', [5, 8, 3, 7], 'thunder'),
+  portrait('maruzensky', 'Maruzensky', [8, 4, 5, 6], 'fire'),
+  // ★★★★
+  portrait('silence-suzuka', 'Silence Suzuka', [9, 7, 3, 8], 'wind'),
+  portrait('tokai-teio', 'Tokai Teio', [8, 9, 6, 4]),
+  portrait('oguri-cap', 'Oguri Cap', [7, 8, 8, 3], 'earth'),
+  // ★★★★★
+  portrait('special-week', 'Special Week', [9, 9, 5, 8]),
+];
+
+/** Sets of starter cards with portraits, each one the cards of a starter deck. */
 export interface PortraitSet {
   readonly id: string;
   readonly cards: readonly StarterCard[];
@@ -134,6 +154,7 @@ export interface PortraitSet {
 export const PORTRAIT_SETS: readonly PortraitSet[] = [
   { id: 'stardust-crusaders', cards: STARDUST_CRUSADERS },
   { id: 'netherworld', cards: NETHERWORLD },
+  { id: 'pretty-derby', cards: PRETTY_DERBY },
 ];
 
 export const STARTER_CARDS: readonly StarterCard[] = [
@@ -144,8 +165,18 @@ export const STARTER_CARDS: readonly StarterCard[] = [
 const oneOfEach = (set: readonly StarterCard[]): Readonly<Record<string, number>> =>
   Object.fromEntries(set.map((starter) => [starter.id, 1]));
 
+/** One of each 4★ and 5★ card, and two of the others: decks may hold only a few strong cards. */
+const pairsBelowFourStars = (set: readonly StarterCard[]): Readonly<Record<string, number>> =>
+  Object.fromEntries(
+    set.map(({ id, stats: [top, right, bottom, left], element }) => [
+      id,
+      rankCard({ top, right, bottom, left }, element).stars >= 4 ? 1 : 2,
+    ]),
+  );
+
 export const STARDUST_CRUSADERS_DECK_ID = 'starter-stardust-crusaders';
 export const NETHERWORLD_DECK_ID = 'starter-netherworld';
+export const PRETTY_DERBY_DECK_ID = 'starter-pretty-derby';
 
 export const STARTER_DECKS: readonly StarterDeck[] = [
   {
@@ -193,5 +224,11 @@ export const STARTER_DECKS: readonly StarterDeck[] = [
     name: 'Netherworld',
     isDefault: false,
     cards: oneOfEach(NETHERWORLD),
+  },
+  {
+    id: PRETTY_DERBY_DECK_ID,
+    name: 'Pretty Derby',
+    isDefault: false,
+    cards: pairsBelowFourStars(PRETTY_DERBY),
   },
 ];

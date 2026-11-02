@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { cards, starterDecks } from '../db/schema';
 import { createStarterDeck, deleteStarterDeck, listStarterDecks } from './starter-decks';
 import { createTestDatabase } from '../testing/test-database';
-import { addNetherworld, addStardustCrusaders, seedStarterContent } from './seed';
+import { addNewStarterDecks, addStardustCrusaders, seedStarterContent } from './seed';
 import { STARTER_CARDS, STARTER_DECKS } from './starter-content';
 
 describe('seedStarterContent', () => {
@@ -71,11 +71,17 @@ describe('addStardustCrusaders', () => {
 
     expect(addStardustCrusaders(db)).toBe(false);
 
-    expect(deckNames(db)).toEqual(['Wanderer', 'Stardust Crusaders', 'Vanguard', 'Netherworld']);
+    expect(deckNames(db)).toEqual([
+      'Wanderer',
+      'Stardust Crusaders',
+      'Vanguard',
+      'Netherworld',
+      'Pretty Derby',
+    ]);
   });
 });
 
-describe('addNetherworld', () => {
+describe('addNewStarterDecks', () => {
   /** A database as it was seeded before the Netherworld deck. */
   function olderInstallation() {
     const db = createTestDatabase({ seed: false });
@@ -91,34 +97,52 @@ describe('addNetherworld', () => {
   const deckNames = (db: ReturnType<typeof olderInstallation>) =>
     listStarterDecks(db).map((deck) => deck.name);
 
-  it('adds the deck after the others, once', () => {
+  it('adds the decks after the others, once', () => {
     const db = olderInstallation();
 
-    expect(addNetherworld(db)).toBe(true);
+    expect(addNewStarterDecks(db)).toEqual(['Netherworld', 'Pretty Derby']);
 
-    expect(deckNames(db)).toEqual(['Wanderer', 'Stardust Crusaders', 'Vanguard', 'Netherworld']);
-    expect(listStarterDecks(db)[3]).toMatchObject({ isDefault: false, size: 20, violations: [] });
+    expect(deckNames(db)).toEqual([
+      'Wanderer',
+      'Stardust Crusaders',
+      'Vanguard',
+      'Netherworld',
+      'Pretty Derby',
+    ]);
+    expect(listStarterDecks(db).slice(3)).toMatchObject([
+      { isDefault: false, size: 20, violations: [] },
+      { isDefault: false, size: 20, violations: [] },
+    ]);
     expect(db.select({ n: count() }).from(cards).get()?.n).toBe(STARTER_CARDS.length);
 
     deleteStarterDeck(db, 'starter-netherworld');
-    expect(addNetherworld(db)).toBe(false);
-    expect(deckNames(db)).toEqual(['Wanderer', 'Stardust Crusaders', 'Vanguard']);
+    expect(addNewStarterDecks(db)).toEqual([]);
+    expect(deckNames(db)).toEqual(['Wanderer', 'Stardust Crusaders', 'Vanguard', 'Pretty Derby']);
   });
 
-  it('makes it the default when there are no other starter decks', () => {
+  it('makes the first one the default when there are no other starter decks', () => {
     const db = createTestDatabase({ seed: false });
 
-    expect(addNetherworld(db)).toBe(true);
+    addNewStarterDecks(db);
 
-    expect(listStarterDecks(db)).toMatchObject([{ name: 'Netherworld', isDefault: true }]);
+    expect(listStarterDecks(db)).toMatchObject([
+      { name: 'Netherworld', isDefault: true },
+      { name: 'Pretty Derby', isDefault: false },
+    ]);
   });
 
   it('changes nothing on a new installation', () => {
     const db = createTestDatabase({ seed: false });
     seedStarterContent(db);
 
-    expect(addNetherworld(db)).toBe(false);
+    expect(addNewStarterDecks(db)).toEqual([]);
 
-    expect(deckNames(db)).toEqual(['Wanderer', 'Stardust Crusaders', 'Vanguard', 'Netherworld']);
+    expect(deckNames(db)).toEqual([
+      'Wanderer',
+      'Stardust Crusaders',
+      'Vanguard',
+      'Netherworld',
+      'Pretty Derby',
+    ]);
   });
 });

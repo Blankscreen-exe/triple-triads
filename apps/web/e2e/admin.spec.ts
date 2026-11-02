@@ -42,7 +42,7 @@ test('an admin gives a new starter deck to players who signed up before it', asy
   await page.getByRole('button', { name: 'New starter deck' }).click();
   await expect(page.getByRole('heading', { name: 'Edit starter deck' })).toBeVisible();
 
-  // The new deck comes last, after the four default ones: on the second page.
+  // The new deck comes last, after the five default ones: on the second page.
   await page.goto('/admin/starter-decks?page=2');
   const deck = page.getByRole('region', { name: deckName });
   page.on('dialog', (dialog) => void dialog.accept());

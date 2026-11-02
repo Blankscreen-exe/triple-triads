@@ -3,6 +3,7 @@ import type { AppDatabase } from '../db/client';
 import { cards, settings, starterDeckCards, starterDecks } from '../db/schema';
 import {
   NETHERWORLD_DECK_ID,
+  PRETTY_DERBY_DECK_ID,
   STARDUST_CRUSADERS_DECK_ID,
   STARTER_CARDS,
   STARTER_DECKS,
@@ -12,8 +13,14 @@ import {
 const SEEDED_FLAG = 'seed:starterContent';
 /** Marks that an existing installation was offered the Stardust Crusaders deck. */
 const STARDUST_FLAG = 'seed:stardustCrusaders';
-/** Marks that an existing installation was offered the Netherworld deck. */
-const NETHERWORLD_FLAG = 'seed:netherworld';
+/**
+ * Starter decks that came after the first release, each with the flag marking that an existing
+ * installation was offered it.
+ */
+const ADDED_DECKS = [
+  { id: NETHERWORLD_DECK_ID, flag: 'seed:netherworld' },
+  { id: PRETTY_DERBY_DECK_ID, flag: 'seed:prettyDerby' },
+] as const;
 
 /** The starter deck the Stardust Crusaders replaced. */
 const ELEMENTALIST_DECK_ID = 'starter-elementalist';
@@ -134,16 +141,23 @@ export function addStardustCrusaders(db: AppDatabase): boolean {
 }
 
 /**
- * Brings the Netherworld deck to installations seeded before it existed: adds its cards, and the
- * deck after the other starter decks. Runs once, so a deck an admin deletes stays deleted. New
- * players get the deck; players who already have an account do not. Returns true if it was added.
+ * Brings starter decks added since the first release to installations seeded before them: adds
+ * their cards, and each deck after the other starter decks. Runs once per deck, so a deck an admin
+ * deletes stays deleted. New players get the decks; admins can give them to existing players.
+ * Returns the names of the decks added.
  */
-export function addNetherworld(db: AppDatabase): boolean {
+export function addNewStarterDecks(db: AppDatabase): string[] {
+  return ADDED_DECKS.filter(({ id, flag }) => addStarterDeck(db, id, flag)).map(
+    ({ id }) => STARTER_DECKS.find((starter) => starter.id === id)?.name ?? id,
+  );
+}
+
+function addStarterDeck(db: AppDatabase, deckId: string, flag: string): boolean {
   return db.transaction((tx) => {
-    if (checkAndSetFlag(tx, NETHERWORLD_FLAG)) return false;
+    if (checkAndSetFlag(tx, flag)) return false;
     insertStarterCards(tx);
 
-    const deck = STARTER_DECKS.find((starter) => starter.id === NETHERWORLD_DECK_ID);
+    const deck = STARTER_DECKS.find((starter) => starter.id === deckId);
     if (!deck) return false;
     if (tx.select().from(starterDecks).where(eq(starterDecks.id, deck.id)).get()) return false;
 

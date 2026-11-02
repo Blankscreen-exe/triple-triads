@@ -179,6 +179,7 @@ describe('starter decks', () => {
       ['Stardust Crusaders', true],
       ['Vanguard', false],
       ['Netherworld', false],
+      ['Pretty Derby', false],
     ]);
   });
 

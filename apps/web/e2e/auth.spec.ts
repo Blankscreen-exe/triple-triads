@@ -10,7 +10,13 @@ test('a new player signs up and gets the starter decks', async ({ page }) => {
   await expect(page.getByText('Your active deck is Wanderer')).toBeVisible();
 
   await page.getByRole('link', { name: 'Your decks' }).click();
-  for (const deck of ['Wanderer', 'Stardust Crusaders', 'Vanguard', 'Netherworld']) {
+  for (const deck of [
+    'Wanderer',
+    'Stardust Crusaders',
+    'Vanguard',
+    'Netherworld',
+    'Pretty Derby',
+  ]) {
     await expect(page.getByRole('heading', { name: deck })).toBeVisible();
   }
 });

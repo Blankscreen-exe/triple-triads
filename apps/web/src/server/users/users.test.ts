@@ -52,6 +52,7 @@ describe('registerUser', () => {
       'Stardust Crusaders',
       'Vanguard',
       'Netherworld',
+      'Pretty Derby',
     ]);
     expect(decks.filter((deck) => deck.isActive).map((deck) => deck.name)).toEqual(['Wanderer']);
     expect(decks.every((deck) => deck.size === 20 && deck.violations.length === 0)).toBe(true);
@@ -68,7 +69,7 @@ describe('registerUser', () => {
       0,
     );
 
-    expect(total).toBe(80);
+    expect(total).toBe(100);
     // Sand Lizard is in two starter decks: 3 + 2 copies.
     expect(trunk.find((entry) => entry.card.name === 'Sand Lizard')?.quantity).toBe(5);
   });

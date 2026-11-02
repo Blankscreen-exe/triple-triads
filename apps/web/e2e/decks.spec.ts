@@ -9,11 +9,12 @@ test('the deck list shows each deck’s stats, with the active deck first', asyn
   await signUp(page, uniqueUsername());
   await page.goto('/decks');
 
-  await expect(filters(page)).toContainText('4 decks');
+  await expect(filters(page)).toContainText('5 decks');
   // The active deck comes first; the others follow by most recent change.
   await expect.poll(async () => (await deckNames(page))[0]).toBe('Wanderer');
   expect((await deckNames(page)).toSorted()).toEqual([
     'Netherworld',
+    'Pretty Derby',
     'Stardust Crusaders',
     'Vanguard',
     'Wanderer',
@@ -26,19 +27,19 @@ test('the deck list shows each deck’s stats, with the active deck first', asyn
   // The active deck can't be made active again.
   await expect(wanderer.getByRole('button', { name: 'Make active' })).toHaveCount(0);
 
-  // Long lists are paged; four decks fit on one page, so there are no page controls.
+  // Long lists are paged; five decks fit on one page, so there are no page controls.
   await expect(page.getByRole('navigation', { name: 'Decks pages' })).toHaveCount(0);
 });
 
 test('decks can be searched and filtered, and the filters stay in the URL', async ({ page }) => {
   await signUp(page, uniqueUsername());
   await page.goto('/decks');
-  await expect(filters(page)).toContainText('4 decks');
+  await expect(filters(page)).toContainText('5 decks');
 
   await filters(page).getByLabel('Search').fill('GUARD');
   await expect(page).toHaveURL(/\/decks\?q=GUARD$/);
   await expect.poll(() => deckNames(page)).toEqual(['Vanguard']);
-  await expect(filters(page)).toContainText('Showing 1 of 4 decks');
+  await expect(filters(page)).toContainText('Showing 1 of 5 decks');
 
   await page.reload();
   await expect.poll(() => deckNames(page)).toEqual(['Vanguard']);
@@ -52,7 +53,7 @@ test('decks can be searched and filtered, and the filters stay in the URL', asyn
   await filters(page).getByLabel('Sort').selectOption('name');
   await expect
     .poll(() => deckNames(page))
-    .toEqual(['Netherworld', 'Stardust Crusaders', 'Vanguard', 'Wanderer']);
+    .toEqual(['Netherworld', 'Pretty Derby', 'Stardust Crusaders', 'Vanguard', 'Wanderer']);
 });
 
 test('each deck can be edited on its own page, or deleted', async ({ page }) => {
@@ -90,6 +91,6 @@ test('each deck can be edited on its own page, or deleted', async ({ page }) => 
 
   await expect
     .poll(async () => (await deckNames(page)).toSorted())
-    .toEqual(['Netherworld', 'Vanguard', 'Wanderer']);
-  await expect(filters(page)).toContainText('3 decks');
+    .toEqual(['Netherworld', 'Pretty Derby', 'Vanguard', 'Wanderer']);
+  await expect(filters(page)).toContainText('4 decks');
 });

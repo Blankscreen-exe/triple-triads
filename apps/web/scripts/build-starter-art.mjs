@@ -36,6 +36,8 @@ const GAP_MIN_PIXELS = 40;
  *
  * A set's `busts` are cut off at the bottom of the image: they fill the card from the top margin
  * down to its bottom edge, and smaller ones (`zoom` below 1) still sit on it, so the cut is hidden.
+ * A set of `fullFigures` shows the top half of each: from the top margin down to the card's bottom
+ * edge, centred on the head.
  */
 const SETS = {
   'stardust-crusaders': {
@@ -85,6 +87,23 @@ const SETS = {
       tink: { file: 'Tink.png', zoom: 0.8, shift: 0.1 },
       yukimaru: { file: 'Yukimaru.png' },
       zenon: { file: 'Zenon.png' },
+    },
+  },
+  'pretty-derby': {
+    fullFigures: true,
+    portraits: {
+      'daiwa-scarlet': { file: 'daiwascarlet_02.webp' },
+      'gold-ship': { file: 'goldship_02.webp' },
+      'haru-urara': { file: 'haruurara_02.webp' },
+      maruzensky: { file: 'maruzensky_02.webp' },
+      'mejiro-mcqueen': { file: 'mejiromcqueen_02.webp' },
+      'nice-nature': { file: 'nicenature_02.webp' },
+      'oguri-cap': { file: 'oguricap_02.webp' },
+      'rice-shower': { file: 'riceshower_02.webp' },
+      'silence-suzuka': { file: 'silencesuzuka_02.webp' },
+      'special-week': { file: 'specialweek_03.webp' },
+      'taiki-shuttle': { file: 'taikishuttle_02.webp' },
+      'tokai-teio': { file: 'tokaiteio_01.webp' },
     },
   },
 };
@@ -177,10 +196,10 @@ function cutOutBackground(image, keepEnclosed, gapsFrom) {
   }
 }
 
-/** The smallest box around the visible pixels. */
-function visibleBox({ data, width, height }) {
+/** The smallest box around the visible pixels, in the first `rows` rows of the image. */
+function visibleBox({ data, width, height }, rows = height) {
   let [left, top, right, bottom] = [width, height, 0, 0];
-  for (let y = 0; y < height; y++) {
+  for (let y = 0; y < rows; y++) {
     for (let x = 0; x < width; x++) {
       if (data[(y * width + x) * 4 + 3] < 16) continue;
       left = Math.min(left, x);
@@ -192,11 +211,24 @@ function visibleBox({ data, width, height }) {
   return { left, top, width: right - left + 1, height: bottom - top + 1 };
 }
 
+/** The middle of the head, from the left of `box`: the average column of its top quarter. */
+function headCentre({ data, width }, box) {
+  let [sum, count] = [0, 0];
+  for (let y = box.top; y < box.top + box.height / 4; y++) {
+    for (let x = box.left; x < box.left + box.width; x++) {
+      if (data[(y * width + x) * 4 + 3] < 16) continue;
+      sum += x - box.left;
+      count++;
+    }
+  }
+  return sum / count;
+}
+
 async function buildPortrait(
   sourceDir,
   slug,
   { file, zoom = 1, shift = 0, white = false, gapsFrom = 0 },
-  bust,
+  { busts = false, fullFigures = false },
 ) {
   const source = sharp(readFileSync(join(sourceDir, file))).ensureAlpha();
   const { data, info } = await source.raw().toBuffer({ resolveWithObject: true });
@@ -204,12 +236,13 @@ async function buildPortrait(
   const stats = await sharp(data, { raw: { ...info } }).stats();
   if (stats.isOpaque) cutOutBackground(image, white, gapsFrom);
 
-  const box = visibleBox(image);
+  const figure = visibleBox(image);
+  const box = fullFigures ? visibleBox(image, figure.top + Math.round(figure.height / 2)) : figure;
   const plateTop = CANVAS.height * PLATE_TOP;
   const marginTop = CANVAS.height * TOP_MARGIN;
-  const widthScale = (CANVAS.width * CHARACTER_WIDTH) / box.width;
-  // A bust cut off at the bottom fills the card's height, unless it is a whole figure.
-  const cutOff = bust && box.top + box.height === info.height;
+  const widthScale = fullFigures ? 0 : (CANVAS.width * CHARACTER_WIDTH) / box.width;
+  // A bust cut off at the bottom, or half a figure, fills the card's height.
+  const cutOff = fullFigures || (busts && box.top + box.height === info.height);
   const heightScale = cutOff ? (CANVAS.height - marginTop) / box.height : 0;
   const scale = Math.max(widthScale, heightScale) * zoom;
   const scaled = {
@@ -222,7 +255,10 @@ async function buildPortrait(
     .png()
     .toBuffer();
 
-  const left = Math.round((CANVAS.width - scaled.width) / 2 + shift * CANVAS.width);
+  const centred = fullFigures
+    ? CANVAS.width / 2 - headCentre(image, box) * scale
+    : (CANVAS.width - scaled.width) / 2;
+  const left = Math.round(centred + shift * CANVAS.width);
   const top = Math.round(
     cutOff
       ? Math.max(marginTop, CANVAS.height - scaled.height)
@@ -260,6 +296,6 @@ if (!set || !sourceDir) {
 mkdirSync(OUTPUT_DIR, { recursive: true });
 for (const [slug, portrait] of Object.entries(set.portraits)) {
   if (only.length === 0 || only.includes(slug)) {
-    await buildPortrait(sourceDir, slug, portrait, set.busts === true);
+    await buildPortrait(sourceDir, slug, portrait, set);
   }
 }
