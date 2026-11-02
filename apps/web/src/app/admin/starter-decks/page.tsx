@@ -1,23 +1,27 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Suspense } from 'react';
-import { CardLine } from '@/components/cards/card-line';
-import { ActionButton } from '@/components/ui/action-button';
-import { buttonClasses } from '@/components/ui/button';
 import { Pagination } from '@/components/ui/pagination';
 import { Window } from '@/components/ui/window';
-import { describeViolation, violationKey } from '@/lib/deck-violations';
 import { pageFromQuery, pageHref, paginate } from '@/lib/pagination';
 import { listStarterDecks } from '@/server/catalog/starter-decks';
 import { getDatabase } from '@/server/db';
+import { DEFAULT_PACK_OWNER, getAssetPack } from '@/server/packs/asset-packs';
+import { getGameSettings } from '@/server/settings/settings';
 import { requireAdmin } from '@/server/web/current-user';
-import { giveStarterDeckAction, starterDeckAction } from '../actions';
+import {
+  CardFan,
+  DeckNumbers,
+  ElementCounts,
+  StarterDeckBadges,
+  starterDeckStats,
+} from './deck-parts';
 import { NewStarterDeckForm } from './new-starter-deck-form';
 
 export const metadata: Metadata = { title: 'Starter decks' };
 
-/** Two rows of two on wide screens: each deck lists all its cards. */
-const PAGE_SIZE = 4;
+/** Two rows on wide screens. */
+const PAGE_SIZE = 6;
 
 export default function AdminStarterDecksPage({ searchParams }: PageProps<'/admin/starter-decks'>) {
   return (
@@ -29,8 +33,8 @@ export default function AdminStarterDecksPage({ searchParams }: PageProps<'/admi
           </h1>
           <p className="mt-1 text-sm text-slate-300/80">
             Every new player receives a copy of each. The default one starts as their active deck.
-            Changes do not affect existing players; to send a deck to players who signed up before
-            it existed, use Give to every player.
+            Changes do not affect existing players; open a deck to give it to players who signed up
+            before it existed.
           </p>
         </div>
         <NewStarterDeckForm />
@@ -47,8 +51,9 @@ async function StarterDeckList({
 }: Pick<PageProps<'/admin/starter-decks'>, 'searchParams'>) {
   await requireAdmin();
   const query = await searchParams;
+  const db = getDatabase();
   // A handful of decks: they are loaded together (their rules are checked as a set) and paged here.
-  const all = listStarterDecks(getDatabase());
+  const all = listStarterDecks(db);
   const decks = paginate(all, pageFromQuery(query), PAGE_SIZE);
   if (all.length === 0) {
     return (
@@ -57,73 +62,40 @@ async function StarterDeckList({
       </Window>
     );
   }
+  const pack = getAssetPack(db, DEFAULT_PACK_OWNER);
+  const { deckRules } = getGameSettings(db);
 
   return (
     <div className="mt-6 space-y-6">
-      <div className="grid gap-6 lg:grid-cols-2">
-        {decks.items.map((deck) => (
-          <Window key={deck.id} className="p-5" aria-label={deck.name}>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="font-display text-lg font-bold tracking-wider text-cream">
-                  {deck.name}
-                </h2>
-                <p className="text-xs text-slate-300/70">{deck.size} cards</p>
-              </div>
-              <div className="flex flex-wrap items-start gap-2">
-                {deck.isDefault ? (
-                  <span className="rounded-sm bg-action px-3 py-1 text-sm font-semibold ring-1 ring-white/60">
-                    Default
-                  </span>
-                ) : (
-                  <ActionButton action={starterDeckAction.bind(null, deck.id, 'make-default')}>
-                    Make default
-                  </ActionButton>
-                )}
-                <Link
-                  href={`/admin/starter-decks/${deck.id}`}
-                  className={buttonClasses('secondary', '!px-3 !py-1 text-sm')}
-                >
-                  Edit
-                </Link>
-                <ActionButton
-                  action={giveStarterDeckAction.bind(null, deck.id)}
-                  confirmation={`Give a copy of "${deck.name}" and its cards to every player who has not received it yet?`}
-                >
-                  Give to every player
-                </ActionButton>
-                <ActionButton
-                  variant="quiet"
-                  action={starterDeckAction.bind(null, deck.id, 'delete')}
-                  confirmation={`Delete the starter deck "${deck.name}"?`}
-                >
-                  Delete
-                </ActionButton>
-              </div>
-            </div>
-            {deck.violations.length > 0 && (
-              <ul className="mt-3 space-y-1 rounded-md bg-status-live/30 px-3 py-2 text-sm">
-                {deck.violations.map((violation) => (
-                  <li key={violationKey(violation)}>{describeViolation(violation)}</li>
-                ))}
-              </ul>
-            )}
-            <ul className="mt-4 space-y-1.5">
-              {deck.entries.map(({ card, quantity }) => (
-                <li key={card.id}>
-                  <CardLine
-                    name={card.name}
-                    stats={card.stats}
-                    element={card.element}
-                    stars={card.stars}
-                    count={`×${String(quantity)}`}
-                  />
-                </li>
-              ))}
-            </ul>
-          </Window>
-        ))}
-      </div>
+      <ul className="grid gap-6 md:grid-cols-2 xl:grid-cols-3" aria-label="Starter decks">
+        {decks.items.map((deck) => {
+          const stats = starterDeckStats(deck);
+          return (
+            <li key={deck.id}>
+              <Window
+                aria-label={deck.name}
+                className="relative flex h-full flex-col gap-4 p-5 transition hover:border-cream focus-within:border-cream"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="min-w-0 truncate font-display text-lg font-bold tracking-wider text-cream">
+                    {/* Covers the whole panel, so all of it opens the deck. */}
+                    <Link
+                      href={`/admin/starter-decks/${deck.id}`}
+                      className="outline-none after:absolute after:inset-0 after:rounded-lg"
+                    >
+                      {deck.name}
+                    </Link>
+                  </h2>
+                  <StarterDeckBadges deck={deck} />
+                </div>
+                <CardFan deck={deck} pack={pack} />
+                <DeckNumbers stats={stats} deckSize={deckRules.size} />
+                <ElementCounts stats={stats} compact />
+              </Window>
+            </li>
+          );
+        })}
+      </ul>
       <Pagination
         label="Starter decks"
         page={decks.page}

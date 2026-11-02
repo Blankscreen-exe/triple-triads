@@ -130,7 +130,7 @@ export async function createStarterDeckAction(
   if (!name.success) return { error: name.error.issues[0]?.message ?? 'Invalid name.' };
   const result = createStarterDeck(getDatabase(), name.data);
   if (!result.ok) return { error: 'Could not create the deck.' };
-  redirect(`/admin/starter-decks/${result.data.deckId}`);
+  redirect(`/admin/starter-decks/${result.data.deckId}/edit`);
 }
 
 export async function saveStarterDeckAction(
@@ -156,23 +156,24 @@ export async function saveStarterDeckAction(
   };
 }
 
-export async function starterDeckAction(
-  deckId: unknown,
-  command: unknown,
-): Promise<AdminActionResult> {
+export async function makeDefaultStarterDeckAction(deckId: unknown): Promise<AdminActionResult> {
   await requireAdmin();
   if (typeof deckId !== 'string') return { ok: false, error: 'Invalid request.' };
-  const db = getDatabase();
-  const result =
-    command === 'make-default'
-      ? setDefaultStarterDeck(db, deckId)
-      : command === 'delete'
-        ? deleteStarterDeck(db, deckId)
-        : null;
-  if (!result) return { ok: false, error: 'Invalid request.' };
-  if (!result.ok) return { ok: false, error: 'That deck no longer exists.' };
+  if (!setDefaultStarterDeck(getDatabase(), deckId).ok) {
+    return { ok: false, error: 'That deck no longer exists.' };
+  }
   refresh();
   return { ok: true };
+}
+
+/** Deletes a starter deck and returns to the list: the deck's own page is gone. */
+export async function deleteStarterDeckAction(deckId: unknown): Promise<AdminActionResult> {
+  await requireAdmin();
+  if (typeof deckId !== 'string') return { ok: false, error: 'Invalid request.' };
+  if (!deleteStarterDeck(getDatabase(), deckId).ok) {
+    return { ok: false, error: 'That deck no longer exists.' };
+  }
+  redirect('/admin/starter-decks');
 }
 
 export async function giveStarterDeckAction(deckId: unknown): Promise<AdminActionResult> {
@@ -181,6 +182,7 @@ export async function giveStarterDeckAction(deckId: unknown): Promise<AdminActio
   const result = giveStarterDeckToAllPlayers(getDatabase(), deckId);
   if (!result.ok) return { ok: false, error: 'That deck no longer exists.' };
   const { given } = result.data;
+  refresh();
   return {
     ok: true,
     message:

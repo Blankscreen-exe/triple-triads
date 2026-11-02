@@ -1,7 +1,7 @@
 /**
- * At-a-glance numbers for a deck, shown in the deck list.
+ * At-a-glance numbers for a deck, shown in the deck lists.
  */
-import type { Element } from '@triple-triad/engine';
+import { ELEMENTS, type Element } from '@triple-triad/engine';
 
 export interface DeckStatsEntry {
   readonly stars: number;
@@ -20,6 +20,8 @@ export interface DeckStats {
   readonly totalScore: number;
   /** Cards that have an element. */
   readonly elementalCards: number;
+  /** Cards per element, most common first; elements no card has are left out. */
+  readonly byElement: readonly { readonly element: Element; readonly count: number }[];
 }
 
 export const MAX_STARS = 5;
@@ -30,6 +32,7 @@ export function deckStats(entries: readonly DeckStatsEntry[]): DeckStats {
   let starTotal = 0;
   let totalScore = 0;
   let elementalCards = 0;
+  const elements = new Map<Element, number>();
 
   for (const { stars, score, element, quantity } of entries) {
     const rank = Math.min(Math.max(stars, 1), MAX_STARS);
@@ -37,7 +40,10 @@ export function deckStats(entries: readonly DeckStatsEntry[]): DeckStats {
     cards += quantity;
     starTotal += rank * quantity;
     totalScore += score * quantity;
-    if (element !== null) elementalCards += quantity;
+    if (element !== null) {
+      elementalCards += quantity;
+      elements.set(element, (elements.get(element) ?? 0) + quantity);
+    }
   }
 
   return {
@@ -46,5 +52,10 @@ export function deckStats(entries: readonly DeckStatsEntry[]): DeckStats {
     averageStars: cards === 0 ? null : starTotal / cards,
     totalScore,
     elementalCards,
+    // Ties keep the usual element order.
+    byElement: ELEMENTS.flatMap((element) => {
+      const count = elements.get(element);
+      return count === undefined ? [] : [{ element, count }];
+    }).sort((a, b) => b.count - a.count),
   };
 }

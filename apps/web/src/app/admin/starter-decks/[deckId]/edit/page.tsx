@@ -9,13 +9,13 @@ import { getDatabase } from '@/server/db';
 import { DEFAULT_PACK_OWNER, getAssetPack } from '@/server/packs/asset-packs';
 import { getGameSettings } from '@/server/settings/settings';
 import { requireAdmin } from '@/server/web/current-user';
-import { saveStarterDeckAction } from '../../actions';
+import { saveStarterDeckAction } from '../../../actions';
 
 export const metadata: Metadata = { title: 'Edit starter deck' };
 
 export default function EditStarterDeckPage({
   params,
-}: PageProps<'/admin/starter-decks/[deckId]'>) {
+}: PageProps<'/admin/starter-decks/[deckId]/edit'>) {
   return (
     <Suspense fallback={<p className="text-slate-300">Loading…</p>}>
       <Editor params={params} />
@@ -23,7 +23,7 @@ export default function EditStarterDeckPage({
   );
 }
 
-async function Editor({ params }: Pick<PageProps<'/admin/starter-decks/[deckId]'>, 'params'>) {
+async function Editor({ params }: Pick<PageProps<'/admin/starter-decks/[deckId]/edit'>, 'params'>) {
   await requireAdmin();
   const { deckId } = await params;
   const db = getDatabase();
@@ -48,7 +48,7 @@ async function Editor({ params }: Pick<PageProps<'/admin/starter-decks/[deckId]'
       rules={getGameSettings(db).deckRules}
       pack={getAssetPack(db, DEFAULT_PACK_OWNER)}
       save={saveStarterDeckAction.bind(null, deck.id)}
-      backHref="/admin/starter-decks"
+      backHref={`/admin/starter-decks/${deck.id}`}
     />
   );
 }
