@@ -118,11 +118,11 @@ const NETHERWORLD: readonly StarterCard[] = [
   portrait('fubuki', 'Fubuki', [4, 6, 7, 4], 'ice'),
   portrait('gordon', 'Gordon', [7, 5, 6, 4], 'earth'),
   // ★★★★
+  portrait('laharl', 'Laharl', [6, 9, 4, 8], 'fire'),
   portrait('adell', 'Adell', [9, 6, 5, 7], 'earth'),
-  portrait('rozalin', 'Rozalin', [6, 9, 4, 8]),
   portrait('zenon', 'Zenon', [8, 5, 8, 6], 'poison'),
   // ★★★★★
-  portrait('laharl', 'Laharl', [10, 8, 4, 8], 'fire'),
+  portrait('rozalin', 'Rozalin', [10, 8, 4, 8]),
 ];
 
 /** Sets of starter cards with portraits, each one a starter deck of one of every card. */
